@@ -185,7 +185,7 @@ func TestDetectionContext_Struct(t *testing.T) {
 	}
 }
 
-func TestNormalizeLanguageCode(t *testing.T) {
+func TestSanitizeLanguageCode(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -235,58 +235,15 @@ func TestNormalizeLanguageCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := normalizeLanguageCode(tt.input)
+			result := sanitizeLanguageCode(tt.input)
 			if result != tt.expected {
-				t.Errorf("normalizeLanguageCode(%q) = %q, expected %q", 
+				t.Errorf("sanitizeLanguageCode(%q) = %q, expected %q", 
 					tt.input, result, tt.expected)
 			}
 		})
 	}
 }
 
-func TestExtractLanguageFromLocale_WithGolangTextPackage(t *testing.T) {
-	tests := []struct {
-		name     string
-		locale   string
-		expected string
-	}{
-		{
-			name:     "Standard en_US locale",
-			locale:   "en-US",
-			expected: "en",
-		},
-		{
-			name:     "German locale",
-			locale:   "de-DE",
-			expected: "de",
-		},
-		{
-			name:     "Chinese simplified",
-			locale:   "zh-CN",
-			expected: "zh",
-		},
-		{
-			name:     "Portuguese Brazil",
-			locale:   "pt-BR",
-			expected: "pt",
-		},
-		{
-			name:     "Language only",
-			locale:   "fr",
-			expected: "fr",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := extractLanguageFromLocale(tt.locale)
-			if result != tt.expected {
-				t.Errorf("extractLanguageFromLocale(%q) = %q, expected %q", 
-					tt.locale, result, tt.expected)
-			}
-		})
-	}
-}
 
 // TestParseLocale_VariousFormats tests the ParseLocale function with various locale formats and edge cases
 func TestParseLocale_VariousFormats(t *testing.T) {
