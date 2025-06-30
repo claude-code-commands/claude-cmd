@@ -243,3 +243,124 @@ func parseLocaleBasic(locale string) (string, error) {
 	
 	return lang, nil
 }
+
+// NormalizeLanguage matches a detected language code against a list of supported languages.
+// It performs exact matching first, then falls back to base language matching using a
+// two-phase approach for maximum compatibility.
+// 
+// The function handles:
+//   - Exact matches (case-insensitive): "en" matches "en"
+//   - Base language fallback: "en-US" matches "en", "pt_BR" matches "pt"
+//   - Complex language tags: "zh-Hans-CN" matches "zh"
+//   - Case normalization: input and supported languages are compared case-insensitively
+//   - Whitespace trimming: leading/trailing whitespace is ignored
+//   - Three-letter language codes: "deu" matches "deu", "deu-DE" matches "deu"
+//
+// The matching algorithm:
+//   1. Normalize input and supported languages to lowercase
+//   2. Try exact match for simple language codes
+//   3. Extract base language from complex tags and try matching
+//   4. Return the first successful match or empty if no match found
+//
+// Returns the normalized language code and true if a match is found,
+// or empty string and false if no match is found or input is invalid.
+//
+// Example usage:
+//   supported := []string{"en", "fr", "es", "de", "pt", "zh"}
+//   lang, ok := NormalizeLanguage("en-US", supported)  // returns "en", true
+//   lang, ok := NormalizeLanguage("ja", supported)     // returns "", false
+func NormalizeLanguage(inputLang string, supportedLanguages []string) (string, bool) {
+	// Early validation
+	trimmed := strings.TrimSpace(inputLang)
+	if trimmed == "" || len(supportedLanguages) == 0 {
+		return "", false
+	}
+	
+	// Normalize input language to lowercase
+	normalized := strings.ToLower(trimmed)
+	
+	// Build efficient lookup map for supported languages
+	supportedMap := buildSupportedLanguageMap(supportedLanguages)
+	if len(supportedMap) == 0 {
+		return "", false
+	}
+	
+	// Phase 1: Try exact match for simple language codes (e.g., "en", "fr", "deu")
+	if isValidLanguageCode(normalized) {
+		if supported, exists := supportedMap[normalized]; exists {
+			return supported, true
+		}
+	}
+	
+	// Phase 2: Extract base language and try matching (e.g., "en-US" -> "en")
+	baseLang := extractBaseLanguage(normalized)
+	if baseLang != "" && baseLang != normalized && isValidLanguageCode(baseLang) {
+		if supported, exists := supportedMap[baseLang]; exists {
+			return supported, true
+		}
+	}
+	
+	// No match found
+	return "", false
+}
+
+// buildSupportedLanguageMap creates a normalized map of supported languages for efficient lookup.
+// It filters out invalid language codes and normalizes case for consistent matching.
+func buildSupportedLanguageMap(supportedLanguages []string) map[string]string {
+	supportedMap := make(map[string]string, len(supportedLanguages))
+	
+	for _, lang := range supportedLanguages {
+		normalizedSupported := strings.ToLower(strings.TrimSpace(lang))
+		if normalizedSupported != "" && isValidLanguageCode(normalizedSupported) {
+			// Use the normalized version as both key and value for consistency
+			supportedMap[normalizedSupported] = normalizedSupported
+		}
+	}
+	
+	return supportedMap
+}
+
+// extractBaseLanguage extracts the base language code from a complex language tag.
+// Examples: "en-US" -> "en", "zh-Hans-CN" -> "zh", "pt_BR" -> "pt"
+func extractBaseLanguage(langTag string) string {
+	// Split on common separators (hyphen and underscore)
+	var parts []string
+	if strings.Contains(langTag, "-") {
+		parts = strings.Split(langTag, "-")
+	} else if strings.Contains(langTag, "_") {
+		parts = strings.Split(langTag, "_")
+	} else {
+		// No separators, return as-is if valid
+		return langTag
+	}
+	
+	if len(parts) == 0 || parts[0] == "" {
+		return ""
+	}
+	
+	baseLang := strings.ToLower(parts[0])
+	
+	// Validate the base language part
+	if isValidLanguageCode(baseLang) {
+		return baseLang
+	}
+	
+	return ""
+}
+
+// isValidLanguageCode checks if a string is a valid language code format.
+// Valid language codes are 2-3 lowercase letters only.
+func isValidLanguageCode(code string) bool {
+	if len(code) < 2 || len(code) > 3 {
+		return false
+	}
+	
+	// Check if it contains only lowercase letters
+	for _, char := range code {
+		if char < 'a' || char > 'z' {
+			return false
+		}
+	}
+	
+	return true
+}

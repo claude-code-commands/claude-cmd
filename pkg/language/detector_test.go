@@ -475,3 +475,221 @@ func TestParseLocale_EdgeCases(t *testing.T) {
 		})
 	}
 }
+
+// TestNormalizeLanguage_ExactAndFallback tests the NormalizeLanguage function for exact matches and base language fallback
+func TestNormalizeLanguage_ExactAndFallback(t *testing.T) {
+	supportedLanguages := []string{"en", "fr", "es", "de", "pt", "zh"}
+	
+	tests := []struct {
+		name         string
+		inputLang    string
+		supported    []string
+		expectedLang string
+		expectedOk   bool
+	}{
+		{
+			name:         "Exact match - English",
+			inputLang:    "en",
+			supported:    supportedLanguages,
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Exact match - French",
+			inputLang:    "fr",
+			supported:    supportedLanguages,
+			expectedLang: "fr",
+			expectedOk:   true,
+		},
+		{
+			name:         "Exact match - Chinese",
+			inputLang:    "zh",
+			supported:    supportedLanguages,
+			expectedLang: "zh",
+			expectedOk:   true,
+		},
+		{
+			name:         "Case insensitive exact match",
+			inputLang:    "EN",
+			supported:    supportedLanguages,
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Mixed case exact match",
+			inputLang:    "Fr",
+			supported:    supportedLanguages,
+			expectedLang: "fr",
+			expectedOk:   true,
+		},
+		{
+			name:         "Language with country code fallback to base",
+			inputLang:    "en-US",
+			supported:    supportedLanguages,
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Language with underscore country fallback to base",
+			inputLang:    "pt_BR",
+			supported:    supportedLanguages,
+			expectedLang: "pt",
+			expectedOk:   true,
+		},
+		{
+			name:         "Complex language tag fallback to base",
+			inputLang:    "zh-Hans-CN",
+			supported:    supportedLanguages,
+			expectedLang: "zh",
+			expectedOk:   true,
+		},
+		{
+			name:         "Language not supported",
+			inputLang:    "ja",
+			supported:    supportedLanguages,
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Complex unsupported language",
+			inputLang:    "ja-JP",
+			supported:    supportedLanguages,
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Empty input language",
+			inputLang:    "",
+			supported:    supportedLanguages,
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Empty supported languages list",
+			inputLang:    "en",
+			supported:    []string{},
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Nil supported languages list",
+			inputLang:    "en",
+			supported:    nil,
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Whitespace in input",
+			inputLang:    " en ",
+			supported:    supportedLanguages,
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Three letter language code supported",
+			inputLang:    "deu",
+			supported:    []string{"en", "deu", "fra"},
+			expectedLang: "deu",
+			expectedOk:   true,
+		},
+		{
+			name:         "Three letter language code with fallback",
+			inputLang:    "deu-DE",
+			supported:    []string{"en", "deu", "fra"},
+			expectedLang: "deu",
+			expectedOk:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, ok := NormalizeLanguage(tt.inputLang, tt.supported)
+			
+			if ok != tt.expectedOk {
+				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v", 
+					tt.inputLang, tt.supported, ok, tt.expectedOk)
+			}
+			
+			if result != tt.expectedLang {
+				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q", 
+					tt.inputLang, tt.supported, result, tt.expectedLang)
+			}
+		})
+	}
+}
+
+func TestNormalizeLanguage_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name         string
+		inputLang    string
+		supported    []string
+		expectedLang string
+		expectedOk   bool
+	}{
+		{
+			name:         "Multiple hyphens in language tag",
+			inputLang:    "zh-Hans-CN-x-private",
+			supported:    []string{"en", "zh", "fr"},
+			expectedLang: "zh",
+			expectedOk:   true,
+		},
+		{
+			name:         "Invalid characters in input",
+			inputLang:    "en@variant",
+			supported:    []string{"en", "fr"},
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Only separator characters",
+			inputLang:    "-_",
+			supported:    []string{"en", "fr"},
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Supported list with duplicates",
+			inputLang:    "en",
+			supported:    []string{"en", "fr", "en", "de"},
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Supported list with mixed case",
+			inputLang:    "en",
+			supported:    []string{"EN", "FR", "DE"},
+			expectedLang: "en",
+			expectedOk:   true,
+		},
+		{
+			name:         "Very long language code",
+			inputLang:    "toolongtobevalid",
+			supported:    []string{"en", "fr"},
+			expectedLang: "",
+			expectedOk:   false,
+		},
+		{
+			name:         "Single character input",
+			inputLang:    "e",
+			supported:    []string{"en", "fr"},
+			expectedLang: "",
+			expectedOk:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, ok := NormalizeLanguage(tt.inputLang, tt.supported)
+			
+			if ok != tt.expectedOk {
+				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v", 
+					tt.inputLang, tt.supported, ok, tt.expectedOk)
+			}
+			
+			if result != tt.expectedLang {
+				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q", 
+					tt.inputLang, tt.supported, result, tt.expectedLang)
+			}
+		})
+	}
+}
