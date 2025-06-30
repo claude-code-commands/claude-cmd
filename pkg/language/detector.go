@@ -4,6 +4,7 @@
 package language
 
 import (
+	"errors"
 	"strings"
 
 	"golang.org/x/text/language"
@@ -132,4 +133,113 @@ func normalizeLanguageCode(code string) string {
 	}
 	
 	return normalized
+}
+
+// ParseLocale parses a POSIX locale string and extracts the language code using
+// golang.org/x/text/language for robust parsing. This function handles various
+// locale formats and provides comprehensive error reporting.
+//
+// Supported locale formats:
+//   - Standard POSIX: "en_US.UTF-8", "fr_FR.ISO-8859-1"
+//   - With modifiers: "en_US.UTF-8@euro", "de_DE.UTF-8@currency=EUR"
+//   - ISO format: "en-US", "pt-BR"
+//   - Language only: "fr", "es", "deu"
+//   - Mixed separators: "zh-Hans_CN.UTF-8"
+//
+// The function returns an error for:
+//   - Empty or whitespace-only strings
+//   - Invalid locale formats
+//   - Special locale names like "C" and "POSIX"
+//   - Locales that don't contain valid language codes
+func ParseLocale(localeString string) (string, error) {
+	// Trim whitespace and check for empty input
+	trimmed := strings.TrimSpace(localeString)
+	if trimmed == "" {
+		return "", errors.New("locale string cannot be empty")
+	}
+	
+	// Handle special locale names that should be rejected
+	switch strings.ToUpper(trimmed) {
+	case "C", "POSIX":
+		return "", errors.New("special locale names 'C' and 'POSIX' are not supported")
+	}
+	
+	// First try using golang.org/x/text/language for standards-compliant parsing
+	tag, err := language.Parse(trimmed)
+	if err == nil {
+		// Extract the base language from the parsed tag
+		base, confidence := tag.Base()
+		if confidence == language.No {
+			return "", errors.New("locale does not contain a recognizable language")
+		}
+		return base.String(), nil
+	}
+	
+	// Fallback to custom parsing for non-standard POSIX formats
+	lang, parseErr := parseLocaleBasic(trimmed)
+	if parseErr != nil {
+		return "", parseErr
+	}
+	
+	return lang, nil
+}
+
+// parseLocaleBasic provides basic POSIX locale parsing as a fallback
+// when golang.org/x/text/language parsing fails.
+func parseLocaleBasic(locale string) (string, error) {
+	// Remove modifiers (everything after @)
+	if atIndex := strings.Index(locale, "@"); atIndex != -1 {
+		locale = locale[:atIndex]
+	}
+	
+	// Remove encoding (everything after .)
+	if dotIndex := strings.Index(locale, "."); dotIndex != -1 {
+		locale = locale[:dotIndex]
+	}
+	
+	// For mixed separators like "zh-Hans_CN", try to parse with multiple separators
+	// First split on hyphen, then on underscore
+	var languagePart string
+	
+	// Split on hyphen first
+	if strings.Contains(locale, "-") {
+		parts := strings.Split(locale, "-")
+		if len(parts) > 0 && parts[0] != "" {
+			languagePart = parts[0]
+		}
+	}
+	
+	// If we didn't find a valid language part, try splitting on underscore
+	if languagePart == "" && strings.Contains(locale, "_") {
+		parts := strings.Split(locale, "_")
+		if len(parts) > 0 && parts[0] != "" {
+			languagePart = parts[0]
+		}
+	}
+	
+	// If still no language part, use the whole string (language only case)
+	if languagePart == "" {
+		languagePart = locale
+	}
+	
+	if languagePart == "" {
+		return "", errors.New("invalid locale format: missing language component")
+	}
+	
+	// Take the language code and normalize it
+	lang := strings.ToLower(languagePart)
+	
+	// Validate language code format
+	if len(lang) < 2 || len(lang) > 3 {
+		return "", errors.New("invalid language code: must be 2-3 characters")
+	}
+	
+	// Check if it contains only letters
+	for _, char := range lang {
+		if char < 'a' || char > 'z' {
+			return "", errors.New("invalid language code: must contain only letters")
+		}
+	}
+	
+	return lang, nil
 }

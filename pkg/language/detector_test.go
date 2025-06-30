@@ -287,3 +287,191 @@ func TestExtractLanguageFromLocale_WithGolangTextPackage(t *testing.T) {
 		})
 	}
 }
+
+// TestParseLocale_VariousFormats tests the ParseLocale function with various locale formats and edge cases
+func TestParseLocale_VariousFormats(t *testing.T) {
+	tests := []struct {
+		name         string
+		localeString string
+		expectedLang string
+		expectedErr  bool
+	}{
+		{
+			name:         "Standard POSIX locale en_US.UTF-8",
+			localeString: "en_US.UTF-8",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "Standard POSIX locale with modifier",
+			localeString: "en_US.UTF-8@euro",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "ISO format en-US",
+			localeString: "en-US",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "Language only",
+			localeString: "fr",
+			expectedLang: "fr",
+			expectedErr:  false,
+		},
+		{
+			name:         "Language with country underscore",
+			localeString: "pt_BR",
+			expectedLang: "pt",
+			expectedErr:  false,
+		},
+		{
+			name:         "Language with country hyphen",
+			localeString: "pt-BR",
+			expectedLang: "pt",
+			expectedErr:  false,
+		},
+		{
+			name:         "Complex locale with encoding",
+			localeString: "zh_CN.GB2312",
+			expectedLang: "zh",
+			expectedErr:  false,
+		},
+		{
+			name:         "Three letter language code",
+			localeString: "deu_DE.UTF-8",
+			expectedLang: "deu",
+			expectedErr:  false,
+		},
+		{
+			name:         "Case insensitive",
+			localeString: "EN_US.UTF-8",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "Lowercase with hyphen",
+			localeString: "es-es",
+			expectedLang: "es",
+			expectedErr:  false,
+		},
+		{
+			name:         "Empty string",
+			localeString: "",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "Invalid format",
+			localeString: "invalid-locale-format",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "Numeric locale",
+			localeString: "123_456",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "Special characters",
+			localeString: "@#$%_US",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "C locale",
+			localeString: "C",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "POSIX locale",
+			localeString: "POSIX",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lang, err := ParseLocale(tt.localeString)
+			
+			if tt.expectedErr {
+				if err == nil {
+					t.Errorf("ParseLocale(%q) expected error, got nil", tt.localeString)
+				}
+				if lang != "" {
+					t.Errorf("ParseLocale(%q) expected empty language on error, got %q", tt.localeString, lang)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ParseLocale(%q) unexpected error: %v", tt.localeString, err)
+				}
+				if lang != tt.expectedLang {
+					t.Errorf("ParseLocale(%q) = %q, expected %q", tt.localeString, lang, tt.expectedLang)
+				}
+			}
+		})
+	}
+}
+
+func TestParseLocale_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name         string
+		localeString string
+		expectedLang string
+		expectedErr  bool
+	}{
+		{
+			name:         "Very long valid locale",
+			localeString: "en_US.UTF-8@currency=USD,collation=phonebook",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "Whitespace around locale",
+			localeString: "  en_US.UTF-8  ",
+			expectedLang: "en",
+			expectedErr:  false,
+		},
+		{
+			name:         "Mixed separators",
+			localeString: "zh-Hans_CN.UTF-8",
+			expectedLang: "zh",
+			expectedErr:  false,
+		},
+		{
+			name:         "Single character",
+			localeString: "a",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+		{
+			name:         "Only separators",
+			localeString: "_-.",
+			expectedLang: "",
+			expectedErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lang, err := ParseLocale(tt.localeString)
+			
+			if tt.expectedErr {
+				if err == nil {
+					t.Errorf("ParseLocale(%q) expected error, got nil", tt.localeString)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ParseLocale(%q) unexpected error: %v", tt.localeString, err)
+				}
+				if lang != tt.expectedLang {
+					t.Errorf("ParseLocale(%q) = %q, expected %q", tt.localeString, lang, tt.expectedLang)
+				}
+			}
+		})
+	}
+}
