@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -29,4 +30,8 @@ func Execute() {
 
 func init() {
 	// Global flags can be added here
+
+	// Add subcommands using real filesystem for production
+	fs := afero.NewOsFs()
+	rootCmd.AddCommand(newLanguageCommand(fs))
 }
