@@ -2,17 +2,18 @@
 // configuration file management for the claude-cmd CLI tool.
 //
 // The package supports a hierarchical configuration system with the following precedence:
-//   1. Project-level configuration: .claude/config.yaml
-//   2. Global configuration: ~/.config/claude-cmd/config.yaml
-//   3. Built-in defaults
+//  1. Project-level configuration: .claude/config.yaml
+//  2. Global configuration: ~/.config/claude-cmd/config.yaml
+//  3. Built-in defaults
 //
 // Configuration files use YAML format and support the following fields:
 //   - language: ISO 639-1 language code for command retrieval
 //   - repository_url: HTTPS URL pointing to the command repository
 //
 // Example configuration file:
-//   language: en
-//   repository_url: https://raw.githubusercontent.com/claude-code-commands/commands/main
+//
+//	language: en
+//	repository_url: https://raw.githubusercontent.com/claude-code-commands/commands/main
 package config
 
 import (
@@ -34,8 +35,8 @@ var userConfigDir = os.UserConfigDir
 var langCodeRegex = regexp.MustCompile("^[a-z]{2,3}$")
 
 const (
-	// DefaultLanguage is the fallback language code used when no language 
-	// is detected through environment variables, configuration files, or 
+	// DefaultLanguage is the fallback language code used when no language
+	// is detected through environment variables, configuration files, or
 	// system locale settings. This follows ISO 639-1 language codes.
 	DefaultLanguage = "en"
 
@@ -57,15 +58,19 @@ type Config struct {
 	// RepositoryURL specifies the base URL for the command repository.
 	// This should be a valid HTTPS URL pointing to the command source.
 	RepositoryURL string `yaml:"repository_url"`
+
+	// FirstUse tracks whether this is the first time the tool is being used.
+	// Used for displaying informational messages on initial use.
+	FirstUse bool `yaml:"first_use"`
 }
 
 // Load reads a configuration file from the filesystem and unmarshals it into the Config struct.
 // It uses the provided afero.Fs for filesystem operations to support testing with mock filesystems.
 //
 // The function performs the following operations:
-//   1. Reads the file from the specified path
-//   2. Unmarshals the YAML content into the Config struct
-//   3. Validates the configuration values
+//  1. Reads the file from the specified path
+//  2. Unmarshals the YAML content into the Config struct
+//  3. Validates the configuration values
 //
 // Returns an error if:
 //   - The file cannot be read
@@ -121,6 +126,7 @@ func (c *Config) merge(other Config) {
 	if other.RepositoryURL != "" {
 		c.RepositoryURL = other.RepositoryURL
 	}
+	// Note: FirstUse is not merged as it should only be set by the first-use detection logic
 }
 
 // Validate checks if the configuration values are valid.
@@ -165,7 +171,7 @@ func isValidLanguageCode(code string) bool {
 //
 // Returns:
 //   - projectPath: path to project-level config file, empty string if not found
-//   - globalPath: path to global config file, empty string if not found  
+//   - globalPath: path to global config file, empty string if not found
 //   - error: any error encountered during file system operations
 func FindConfigFiles(fs afero.Fs) (projectPath, globalPath string, err error) {
 	// Check for project-level configuration

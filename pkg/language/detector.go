@@ -5,12 +5,15 @@ package language
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/afero"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
+
+	"github.com/claude-code-commands/cli/pkg/config"
 )
 
 // DetectionContext contains all the language detection sources in precedence order.
@@ -27,11 +30,11 @@ type DetectionContext struct {
 // ResolveContext contains all the inputs needed for comprehensive language resolution
 // integrating both the existing detection system and configuration file loading.
 type ResolveContext struct {
-	Filesystem     afero.Fs // Filesystem abstraction for testing
-	UserConfigDir  string   // Mocked user config directory for testing
-	CLIFlag        string   // --language flag value
-	EnvVar         string   // CLAUDE_CMD_LANG environment variable  
-	POSIXLocale    string   // POSIX locale from environment
+	Filesystem    afero.Fs // Filesystem abstraction for testing
+	UserConfigDir string   // Mocked user config directory for testing
+	CLIFlag       string   // --language flag value
+	EnvVar        string   // CLAUDE_CMD_LANG environment variable
+	POSIXLocale   string   // POSIX locale from environment
 }
 
 // Detect determines the language to use based on the detection context,
@@ -49,35 +52,35 @@ func Detect(context DetectionContext) string {
 			return normalized
 		}
 	}
-	
+
 	// 2. Environment variable - user's explicit choice for all commands in session
 	if context.EnvVar != "" {
 		if normalized := sanitizeLanguageCode(context.EnvVar); normalized != "" {
 			return normalized
 		}
 	}
-	
+
 	// 3. Project configuration - team/project-specific language setting
 	if context.ProjectConfig != "" {
 		if normalized := sanitizeLanguageCode(context.ProjectConfig); normalized != "" {
 			return normalized
 		}
 	}
-	
+
 	// 4. Global configuration - user's persistent personal preference
 	if context.GlobalConfig != "" {
 		if normalized := sanitizeLanguageCode(context.GlobalConfig); normalized != "" {
 			return normalized
 		}
 	}
-	
+
 	// 5. POSIX locale - system-level language preference
 	if context.POSIXLocale != "" {
 		if lang, err := ParseLocale(context.POSIXLocale); err == nil {
 			return lang
 		}
 	}
-	
+
 	// 6. Fallback to English when no language source is available
 	return "en"
 }
@@ -104,13 +107,13 @@ func ParseLocale(localeString string) (string, error) {
 	if trimmed == "" {
 		return "", errors.New("locale string cannot be empty")
 	}
-	
+
 	// Handle special locale names that should be rejected
 	switch strings.ToUpper(trimmed) {
 	case "C", "POSIX":
 		return "", errors.New("special locale names 'C' and 'POSIX' are not supported")
 	}
-	
+
 	// First try using golang.org/x/text/language for standards-compliant parsing
 	tag, err := language.Parse(trimmed)
 	if err == nil {
@@ -121,20 +124,20 @@ func ParseLocale(localeString string) (string, error) {
 		}
 		return base.String(), nil
 	}
-	
+
 	// Fallback to custom parsing for non-standard POSIX formats
 	lang, parseErr := parseLocaleBasic(trimmed)
 	if parseErr != nil {
 		return "", parseErr
 	}
-	
+
 	return lang, nil
 }
 
 // NormalizeLanguage matches a detected language code against a list of supported languages.
 // It performs exact matching first, then falls back to base language matching using a
 // two-phase approach for maximum compatibility.
-// 
+//
 // The function handles:
 //   - Exact matches (case-insensitive): "en" matches "en"
 //   - Base language fallback: "en-US" matches "en", "pt_BR" matches "pt"
@@ -144,41 +147,42 @@ func ParseLocale(localeString string) (string, error) {
 //   - Three-letter language codes: "deu" matches "deu", "deu-DE" matches "deu"
 //
 // The matching algorithm:
-//   1. Normalize input and supported languages to lowercase
-//   2. Try exact match for simple language codes
-//   3. Extract base language from complex tags and try matching
-//   4. Return the first successful match or empty if no match found
+//  1. Normalize input and supported languages to lowercase
+//  2. Try exact match for simple language codes
+//  3. Extract base language from complex tags and try matching
+//  4. Return the first successful match or empty if no match found
 //
 // Returns the normalized language code and true if a match is found,
 // or empty string and false if no match is found or input is invalid.
 //
 // Example usage:
-//   supported := []string{"en", "fr", "es", "de", "pt", "zh"}
-//   lang, ok := NormalizeLanguage("en-US", supported)  // returns "en", true
-//   lang, ok := NormalizeLanguage("ja", supported)     // returns "", false
+//
+//	supported := []string{"en", "fr", "es", "de", "pt", "zh"}
+//	lang, ok := NormalizeLanguage("en-US", supported)  // returns "en", true
+//	lang, ok := NormalizeLanguage("ja", supported)     // returns "", false
 func NormalizeLanguage(inputLang string, supportedLanguages []string) (string, bool) {
 	// Early validation
 	trimmed := strings.TrimSpace(inputLang)
 	if trimmed == "" || len(supportedLanguages) == 0 {
 		return "", false
 	}
-	
+
 	// Normalize input language to lowercase
 	normalized := strings.ToLower(trimmed)
-	
+
 	// Build efficient lookup map for supported languages
 	supportedMap := buildSupportedLanguageMap(supportedLanguages)
 	if len(supportedMap) == 0 {
 		return "", false
 	}
-	
+
 	// Phase 1: Try exact match for simple language codes (e.g., "en", "fr", "deu")
 	if isValidLanguageCode(normalized) {
 		if supported, exists := supportedMap[normalized]; exists {
 			return supported, true
 		}
 	}
-	
+
 	// Phase 2: Extract base language and try matching (e.g., "en-US" -> "en")
 	baseLang := extractBaseLanguage(normalized)
 	if baseLang != "" && baseLang != normalized && isValidLanguageCode(baseLang) {
@@ -186,7 +190,7 @@ func NormalizeLanguage(inputLang string, supportedLanguages []string) (string, b
 			return supported, true
 		}
 	}
-	
+
 	// No match found
 	return "", false
 }
@@ -197,15 +201,15 @@ func sanitizeLanguageCode(code string) string {
 	if code == "" {
 		return ""
 	}
-	
+
 	// Convert to lowercase and trim whitespace for consistency
 	normalized := strings.ToLower(strings.TrimSpace(code))
-	
+
 	// Validate language code format (2-3 lowercase letters)
 	if !isValidLanguageCode(normalized) {
 		return ""
 	}
-	
+
 	return normalized
 }
 
@@ -216,16 +220,16 @@ func parseLocaleBasic(locale string) (string, error) {
 	if atIndex := strings.Index(locale, "@"); atIndex != -1 {
 		locale = locale[:atIndex]
 	}
-	
+
 	// Remove encoding (everything after .)
 	if dotIndex := strings.Index(locale, "."); dotIndex != -1 {
 		locale = locale[:dotIndex]
 	}
-	
+
 	// For mixed separators like "zh-Hans_CN", try to parse with multiple separators
 	// First split on hyphen, then on underscore
 	var languagePart string
-	
+
 	// Split on hyphen first
 	if strings.Contains(locale, "-") {
 		parts := strings.Split(locale, "-")
@@ -233,7 +237,7 @@ func parseLocaleBasic(locale string) (string, error) {
 			languagePart = parts[0]
 		}
 	}
-	
+
 	// If we didn't find a valid language part, try splitting on underscore
 	if languagePart == "" && strings.Contains(locale, "_") {
 		parts := strings.Split(locale, "_")
@@ -241,24 +245,24 @@ func parseLocaleBasic(locale string) (string, error) {
 			languagePart = parts[0]
 		}
 	}
-	
+
 	// If still no language part, use the whole string (language only case)
 	if languagePart == "" {
 		languagePart = locale
 	}
-	
+
 	if languagePart == "" {
 		return "", errors.New("invalid locale format: missing language component")
 	}
-	
+
 	// Take the language code and normalize it
 	lang := strings.ToLower(languagePart)
-	
+
 	// Validate language code format
 	if !isValidLanguageCode(lang) {
 		return "", errors.New("invalid language code: must be 2-3 lowercase letters")
 	}
-	
+
 	return lang, nil
 }
 
@@ -266,7 +270,7 @@ func parseLocaleBasic(locale string) (string, error) {
 // It filters out invalid language codes and normalizes case for consistent matching.
 func buildSupportedLanguageMap(supportedLanguages []string) map[string]string {
 	supportedMap := make(map[string]string, len(supportedLanguages))
-	
+
 	for _, lang := range supportedLanguages {
 		normalizedSupported := strings.ToLower(strings.TrimSpace(lang))
 		if normalizedSupported != "" && isValidLanguageCode(normalizedSupported) {
@@ -274,7 +278,7 @@ func buildSupportedLanguageMap(supportedLanguages []string) map[string]string {
 			supportedMap[normalizedSupported] = normalizedSupported
 		}
 	}
-	
+
 	return supportedMap
 }
 
@@ -291,18 +295,18 @@ func extractBaseLanguage(langTag string) string {
 		// No separators, return as-is if valid
 		return langTag
 	}
-	
+
 	if len(parts) == 0 || parts[0] == "" {
 		return ""
 	}
-	
+
 	baseLang := strings.ToLower(parts[0])
-	
+
 	// Validate the base language part
 	if isValidLanguageCode(baseLang) {
 		return baseLang
 	}
-	
+
 	return ""
 }
 
@@ -312,14 +316,14 @@ func isValidLanguageCode(code string) bool {
 	if len(code) < 2 || len(code) > 3 {
 		return false
 	}
-	
+
 	// Check if it contains only lowercase letters
 	for _, char := range code {
 		if char < 'a' || char > 'z' {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -349,18 +353,18 @@ func checkLanguageSource(source string) (string, bool) {
 	return "", false
 }
 
-// ResolveLanguage integrates language detection with configuration file system following 
+// ResolveLanguage integrates language detection with configuration file system following
 // the complete precedence order: CLI flag → env var → project config → global config → POSIX locale → fallback.
 // It loads configuration files from the filesystem and merges them with other language sources
 // to provide the final language determination.
 //
 // The function performs the following operations:
-//   1. Checks CLI flag (highest precedence)
-//   2. Checks environment variable  
-//   3. Loads and checks project configuration (.claude/config.yaml)
-//   4. Loads and checks global configuration (~/.config/claude-cmd/config.yaml)
-//   5. Parses POSIX locale as fallback
-//   6. Returns default "en" if all sources are empty
+//  1. Checks CLI flag (highest precedence)
+//  2. Checks environment variable
+//  3. Loads and checks project configuration (.claude/config.yaml)
+//  4. Loads and checks global configuration (~/.config/claude-cmd/config.yaml)
+//  5. Parses POSIX locale as fallback
+//  6. Returns default "en" if all sources are empty
 //
 // This function uses the provided filesystem abstraction and user config directory
 // to support testing with mock filesystems.
@@ -371,12 +375,12 @@ func ResolveLanguage(ctx ResolveContext) (string, error) {
 	if lang, ok := checkLanguageSource(ctx.CLIFlag); ok {
 		return lang, nil
 	}
-	
+
 	// 2. Environment variable - user's explicit choice for all commands in session
 	if lang, ok := checkLanguageSource(ctx.EnvVar); ok {
 		return lang, nil
 	}
-	
+
 	// 3. Project configuration - team/project-specific language setting
 	projectLang, err := loadConfigLanguage(ctx.Filesystem, ProjectConfigPath)
 	if err != nil {
@@ -386,7 +390,7 @@ func ResolveLanguage(ctx ResolveContext) (string, error) {
 	} else if lang, ok := checkLanguageSource(projectLang); ok {
 		return lang, nil
 	}
-	
+
 	// 4. Global configuration - user's persistent personal preference
 	if ctx.UserConfigDir != "" {
 		globalConfigPath := filepath.Join(ctx.UserConfigDir, GlobalConfigDir, GlobalConfigFile)
@@ -398,14 +402,14 @@ func ResolveLanguage(ctx ResolveContext) (string, error) {
 			return lang, nil
 		}
 	}
-	
+
 	// 5. POSIX locale - system-level language preference
 	if ctx.POSIXLocale != "" {
 		if lang, err := ParseLocale(ctx.POSIXLocale); err == nil {
 			return lang, nil
 		}
 	}
-	
+
 	// 6. Fallback to English when no language source is available
 	return "en", nil
 }
@@ -423,18 +427,122 @@ func loadConfigLanguage(fs afero.Fs, configPath string) (string, error) {
 	if !exists {
 		return "", nil // Not an error - just no config file
 	}
-	
+
 	// Read the config file
 	data, err := afero.ReadFile(fs, configPath)
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Parse the YAML to extract language
 	var config ConfigFile
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return "", err
 	}
-	
+
 	return config.Language, nil
+}
+
+// ShowFirstUseContext contains the inputs needed for first-use message display
+type ShowFirstUseContext struct {
+	Filesystem    afero.Fs // Filesystem abstraction for testing
+	UserConfigDir string   // User config directory for storing first-use tracking
+	DetectedLang  string   // The detected language to display in the message
+}
+
+// ShowFirstUseMessage displays informational message on first use and tracks it to prevent repeated display.
+// This implements the "Informative on First Use" pattern - shows the detected language and override instructions
+// once, then remains silent on subsequent runs.
+//
+// The function:
+//  1. Loads existing global config to check first_use status
+//  2. If first use (no config or first_use not set to false), returns an informational message
+//  3. Updates global config with first_use: false to prevent repeated display
+//  4. If not first use, returns empty message
+//
+// Returns:
+//   - message: informational message to display (empty if not first use)
+//   - firstUse: boolean indicating if this was the first use
+//   - error: any error encountered during config operations
+func ShowFirstUseMessage(ctx ShowFirstUseContext) (message string, firstUse bool, err error) {
+	if ctx.UserConfigDir == "" {
+		// If no user config dir available, treat as not first use to avoid errors
+		return "", false, nil
+	}
+
+	globalConfigPath := filepath.Join(ctx.UserConfigDir, GlobalConfigDir, GlobalConfigFile)
+
+	// Load existing global config using the existing infrastructure
+	var globalConfig config.Config
+
+	// Check if config file exists
+	exists, err := afero.Exists(ctx.Filesystem, globalConfigPath)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to check global config existence: %w", err)
+	}
+
+	if exists {
+		// Load existing config using the standard Config.Load method
+		if err := globalConfig.Load(ctx.Filesystem, globalConfigPath); err != nil {
+			// Config loading errors are not fatal for first-use detection
+			// We treat malformed configs as first use to provide better UX
+		} else {
+			// Config loaded successfully - check first_use status
+			// Read the raw YAML to determine if first_use field is present and set to false
+			data, readErr := afero.ReadFile(ctx.Filesystem, globalConfigPath)
+			if readErr == nil {
+				// Parse into a map to check if first_use field exists
+				var yamlMap map[string]interface{}
+				if yaml.Unmarshal(data, &yamlMap) == nil {
+					if firstUseValue, exists := yamlMap["first_use"]; exists {
+						// first_use field is explicitly set - check its value
+						if firstUseBool, ok := firstUseValue.(bool); ok && !firstUseBool {
+							return "", false, nil
+						}
+					} else if len(yamlMap) > 0 {
+						// Config exists with other fields but no first_use field
+						// This means it's an existing config, so not first use
+						return "", false, nil
+					}
+				}
+			}
+		}
+	}
+
+	// This is first use - generate informational message
+	message = formatFirstUseMessage(ctx.DetectedLang)
+
+	// Update global config to mark first_use as false
+	// Preserve any existing configuration values by reloading if the file exists
+	if exists {
+		// Re-load to preserve existing values
+		_ = globalConfig.Load(ctx.Filesystem, globalConfigPath) // Ignore errors - we'll use defaults
+	} else {
+		// Initialize with defaults for new config
+		globalConfig = config.Config{
+			Language:      config.DefaultLanguage,
+			RepositoryURL: config.DefaultRepositoryURL,
+		}
+	}
+
+	// Set first_use to false and save
+	globalConfig.FirstUse = false
+	if err := globalConfig.Save(ctx.Filesystem, globalConfigPath); err != nil {
+		return message, true, fmt.Errorf("failed to save first-use status: %w", err)
+	}
+
+	return message, true, nil
+}
+
+// formatFirstUseMessage creates the informational message for first-use display
+func formatFirstUseMessage(detectedLang string) string {
+	return fmt.Sprintf(`claude-cmd detected language: %s
+
+You can override this with:
+  --language flag:       claude-cmd --language <lang> <command>
+  Environment variable:  export CLAUDE_CMD_LANG=<lang>
+  Global config:         claude-cmd language set <lang>
+  Project config:        echo "language: <lang>" > .claude/config.yaml
+
+This message will only be shown once.`, detectedLang)
 }

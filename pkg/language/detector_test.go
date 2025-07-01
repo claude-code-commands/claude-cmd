@@ -1,6 +1,8 @@
 package language
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -152,7 +154,7 @@ func TestDetect_POSIXLocaleExtraction(t *testing.T) {
 			}
 			result := Detect(context)
 			if result != tt.expected {
-				t.Errorf("Detect() with POSIX locale %q = %q, expected %q", 
+				t.Errorf("Detect() with POSIX locale %q = %q, expected %q",
 					tt.posixLocale, result, tt.expected)
 			}
 		})
@@ -164,11 +166,11 @@ func TestDetectionContext_Struct(t *testing.T) {
 	context := DetectionContext{
 		CLIFlag:       "test",
 		EnvVar:        "test",
-		ProjectConfig: "test", 
+		ProjectConfig: "test",
 		GlobalConfig:  "test",
 		POSIXLocale:   "test",
 	}
-	
+
 	// Verify fields are accessible
 	if context.CLIFlag != "test" {
 		t.Error("CLIFlag field not accessible")
@@ -239,7 +241,7 @@ func TestSanitizeLanguageCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := sanitizeLanguageCode(tt.input)
 			if result != tt.expected {
-				t.Errorf("sanitizeLanguageCode(%q) = %q, expected %q", 
+				t.Errorf("sanitizeLanguageCode(%q) = %q, expected %q",
 					tt.input, result, tt.expected)
 			}
 		})
@@ -355,7 +357,7 @@ func TestParseLocale_VariousFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lang, err := ParseLocale(tt.localeString)
-			
+
 			if tt.expectedErr {
 				if err == nil {
 					t.Errorf("ParseLocale(%q) expected error, got nil", tt.localeString)
@@ -417,7 +419,7 @@ func TestParseLocale_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lang, err := ParseLocale(tt.localeString)
-			
+
 			if tt.expectedErr {
 				if err == nil {
 					t.Errorf("ParseLocale(%q) expected error, got nil", tt.localeString)
@@ -437,7 +439,7 @@ func TestParseLocale_EdgeCases(t *testing.T) {
 // TestNormalizeLanguage_ExactAndFallback tests the NormalizeLanguage function for exact matches and base language fallback
 func TestNormalizeLanguage_ExactAndFallback(t *testing.T) {
 	supportedLanguages := []string{"en", "fr", "es", "de", "pt", "zh"}
-	
+
 	tests := []struct {
 		name         string
 		inputLang    string
@@ -562,14 +564,14 @@ func TestNormalizeLanguage_ExactAndFallback(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, ok := NormalizeLanguage(tt.inputLang, tt.supported)
-			
+
 			if ok != tt.expectedOk {
-				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v", 
+				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v",
 					tt.inputLang, tt.supported, ok, tt.expectedOk)
 			}
-			
+
 			if result != tt.expectedLang {
-				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q", 
+				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q",
 					tt.inputLang, tt.supported, result, tt.expectedLang)
 			}
 		})
@@ -638,14 +640,14 @@ func TestNormalizeLanguage_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, ok := NormalizeLanguage(tt.inputLang, tt.supported)
-			
+
 			if ok != tt.expectedOk {
-				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v", 
+				t.Errorf("NormalizeLanguage(%q, %v) ok = %v, expected %v",
 					tt.inputLang, tt.supported, ok, tt.expectedOk)
 			}
-			
+
 			if result != tt.expectedLang {
-				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q", 
+				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q",
 					tt.inputLang, tt.supported, result, tt.expectedLang)
 			}
 		})
@@ -655,14 +657,14 @@ func TestNormalizeLanguage_EdgeCases(t *testing.T) {
 // setupMockFilesystem creates a mock filesystem with the given files for testing
 func setupMockFilesystem(files map[string]string) afero.Fs {
 	fs := afero.NewMemMapFs()
-	
+
 	for path, content := range files {
 		err := afero.WriteFile(fs, path, []byte(content), 0644)
 		if err != nil {
 			panic("Failed to setup test file: " + err.Error())
 		}
 	}
-	
+
 	return fs
 }
 
@@ -670,19 +672,19 @@ func setupMockFilesystem(files map[string]string) afero.Fs {
 // integrating language detection with configuration system
 func TestResolveLanguage_AllSources(t *testing.T) {
 	tests := []struct {
-		name           string
-		configFiles    map[string]string // path -> content
-		mockConfigDir  string           // mocked user config directory
-		envVar         string           // CLAUDE_CMD_LANG environment variable
-		cliFlag        string           // --language flag value
-		posixLocale    string           // POSIX locale
-		expectedLang   string
-		expectError    bool
+		name          string
+		configFiles   map[string]string // path -> content
+		mockConfigDir string            // mocked user config directory
+		envVar        string            // CLAUDE_CMD_LANG environment variable
+		cliFlag       string            // --language flag value
+		posixLocale   string            // POSIX locale
+		expectedLang  string
+		expectError   bool
 	}{
 		{
 			name: "CLI flag overrides all other sources",
 			configFiles: map[string]string{
-				".claude/config.yaml": "language: en\n",
+				".claude/config.yaml":                       "language: en\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
 			},
 			mockConfigDir: "/home/user/.config",
@@ -695,7 +697,7 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 		{
 			name: "Environment variable when no CLI flag",
 			configFiles: map[string]string{
-				".claude/config.yaml": "language: en\n",
+				".claude/config.yaml":                       "language: en\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
 			},
 			mockConfigDir: "/home/user/.config",
@@ -708,7 +710,7 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 		{
 			name: "Project config when no CLI flag or env var",
 			configFiles: map[string]string{
-				".claude/config.yaml": "language: en\n",
+				".claude/config.yaml":                       "language: en\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
 			},
 			mockConfigDir: "/home/user/.config",
@@ -731,8 +733,8 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 			expectError:   false,
 		},
 		{
-			name: "POSIX locale when no config files",
-			configFiles: map[string]string{},
+			name:          "POSIX locale when no config files",
+			configFiles:   map[string]string{},
 			mockConfigDir: "/home/user/.config",
 			envVar:        "",
 			cliFlag:       "",
@@ -741,8 +743,8 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 			expectError:   false,
 		},
 		{
-			name: "Default fallback when all sources empty or invalid",
-			configFiles: map[string]string{},
+			name:          "Default fallback when all sources empty or invalid",
+			configFiles:   map[string]string{},
 			mockConfigDir: "/home/user/.config",
 			envVar:        "",
 			cliFlag:       "",
@@ -753,7 +755,7 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 		{
 			name: "Invalid project config should not fail resolution",
 			configFiles: map[string]string{
-				".claude/config.yaml": "language: invalid-lang-code\n",
+				".claude/config.yaml":                       "language: invalid-lang-code\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
 			},
 			mockConfigDir: "/home/user/.config",
@@ -766,7 +768,7 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 		{
 			name: "Partial project config merged with global config",
 			configFiles: map[string]string{
-				".claude/config.yaml": "repository_url: https://project.example.com\n", // missing language
+				".claude/config.yaml":                       "repository_url: https://project.example.com\n", // missing language
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\nrepository_url: https://global.example.com\n",
 			},
 			mockConfigDir: "/home/user/.config",
@@ -782,13 +784,13 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Call ResolveLanguage function (to be implemented)
 			lang, err := ResolveLanguage(ResolveContext{
-				Filesystem:     setupMockFilesystem(tt.configFiles),
-				UserConfigDir:  tt.mockConfigDir,
-				CLIFlag:        tt.cliFlag,
-				EnvVar:         tt.envVar,
-				POSIXLocale:    tt.posixLocale,
+				Filesystem:    setupMockFilesystem(tt.configFiles),
+				UserConfigDir: tt.mockConfigDir,
+				CLIFlag:       tt.cliFlag,
+				EnvVar:        tt.envVar,
+				POSIXLocale:   tt.posixLocale,
 			})
-			
+
 			if tt.expectError && err == nil {
 				t.Error("ResolveLanguage() expected error, got nil")
 				return
@@ -797,7 +799,7 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 				t.Errorf("ResolveLanguage() unexpected error: %v", err)
 				return
 			}
-			
+
 			if tt.expectError {
 				return // Skip language verification for error cases
 			}
@@ -805,6 +807,99 @@ func TestResolveLanguage_AllSources(t *testing.T) {
 			// Verify resolved language matches expected
 			if lang != tt.expectedLang {
 				t.Errorf("ResolveLanguage() = %q, expected %q", lang, tt.expectedLang)
+			}
+		})
+	}
+}
+
+// TestFirstUseMessage_ShowOnce tests the first-use informational messaging system.
+// This test verifies that the first-use message is shown once and then tracked to prevent repeated display.
+func TestFirstUseMessage_ShowOnce(t *testing.T) {
+	tests := []struct {
+		name             string
+		configFiles      map[string]string // path -> content
+		mockConfigDir    string            // mocked user config directory
+		expectedFirstUse bool              // whether first_use should be true
+		expectedMessage  bool              // whether a message should be displayed
+	}{
+		{
+			name:             "First use - no previous config",
+			configFiles:      map[string]string{},
+			mockConfigDir:    "/home/user/.config",
+			expectedFirstUse: true,
+			expectedMessage:  true,
+		},
+		{
+			name: "First use - empty global config",
+			configFiles: map[string]string{
+				"/home/user/.config/claude-cmd/config.yaml": "",
+			},
+			mockConfigDir:    "/home/user/.config",
+			expectedFirstUse: true,
+			expectedMessage:  true,
+		},
+		{
+			name: "Not first use - global config exists with first_use: false",
+			configFiles: map[string]string{
+				"/home/user/.config/claude-cmd/config.yaml": "language: en\nfirst_use: false\n",
+			},
+			mockConfigDir:    "/home/user/.config",
+			expectedFirstUse: false,
+			expectedMessage:  false,
+		},
+		{
+			name: "Not first use - global config exists with language but no first_use field",
+			configFiles: map[string]string{
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir:    "/home/user/.config",
+			expectedFirstUse: false,
+			expectedMessage:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create filesystem once and reuse it
+			fs := setupMockFilesystem(tt.configFiles)
+
+			// Call ShowFirstUseMessage function (to be implemented)
+			message, firstUse, err := ShowFirstUseMessage(ShowFirstUseContext{
+				Filesystem:    fs,
+				UserConfigDir: tt.mockConfigDir,
+				DetectedLang:  "en", // Example detected language
+			})
+
+			if err != nil {
+				t.Errorf("ShowFirstUseMessage() unexpected error: %v", err)
+				return
+			}
+
+			// Verify first use status
+			if firstUse != tt.expectedFirstUse {
+				t.Errorf("ShowFirstUseMessage() firstUse = %v, expected %v", firstUse, tt.expectedFirstUse)
+			}
+
+			// Verify message presence
+			hasMessage := message != ""
+			if hasMessage != tt.expectedMessage {
+				t.Errorf("ShowFirstUseMessage() hasMessage = %v, expected %v", hasMessage, tt.expectedMessage)
+			}
+
+			// If it was first use, verify that config was updated
+			if tt.expectedFirstUse {
+				// Check that the global config now has first_use: false
+				configPath := filepath.Join(tt.mockConfigDir, "claude-cmd", "config.yaml")
+
+				data, err := afero.ReadFile(fs, configPath)
+				if err != nil {
+					t.Errorf("Failed to read updated config: %v", err)
+					return
+				}
+
+				if !strings.Contains(string(data), "first_use: false") {
+					t.Errorf("Config was not updated with first_use: false after first use")
+				}
 			}
 		})
 	}
