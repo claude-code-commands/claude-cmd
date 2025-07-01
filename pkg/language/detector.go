@@ -5,9 +5,12 @@ package language
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 
+	"github.com/spf13/afero"
 	"golang.org/x/text/language"
+	"gopkg.in/yaml.v3"
 )
 
 // DetectionContext contains all the language detection sources in precedence order.
@@ -19,6 +22,16 @@ type DetectionContext struct {
 	ProjectConfig string // Language from project .claude/config.yaml
 	GlobalConfig  string // Language from global ~/.config/claude-cmd/config.yaml
 	POSIXLocale   string // POSIX locale from LC_ALL/LC_MESSAGES/LANG (lowest precedence)
+}
+
+// ResolveContext contains all the inputs needed for comprehensive language resolution
+// integrating both the existing detection system and configuration file loading.
+type ResolveContext struct {
+	Filesystem     afero.Fs // Filesystem abstraction for testing
+	UserConfigDir  string   // Mocked user config directory for testing
+	CLIFlag        string   // --language flag value
+	EnvVar         string   // CLAUDE_CMD_LANG environment variable  
+	POSIXLocale    string   // POSIX locale from environment
 }
 
 // Detect determines the language to use based on the detection context,
@@ -308,4 +321,120 @@ func isValidLanguageCode(code string) bool {
 	}
 	
 	return true
+}
+
+const (
+	// Configuration file path constants
+	ProjectConfigPath = ".claude/config.yaml"
+	GlobalConfigDir   = "claude-cmd"
+	GlobalConfigFile  = "config.yaml"
+)
+
+// ConfigFile represents a simplified configuration structure for language resolution.
+// This is separate from the full config.Config to avoid circular dependencies.
+type ConfigFile struct {
+	Language string `yaml:"language"`
+}
+
+// checkLanguageSource validates a language source and returns the normalized language if valid.
+// This helper eliminates code duplication in language validation across different sources.
+// Returns the normalized language code and a boolean indicating whether it's valid.
+func checkLanguageSource(source string) (string, bool) {
+	if source == "" {
+		return "", false
+	}
+	if normalized := sanitizeLanguageCode(source); normalized != "" {
+		return normalized, true
+	}
+	return "", false
+}
+
+// ResolveLanguage integrates language detection with configuration file system following 
+// the complete precedence order: CLI flag → env var → project config → global config → POSIX locale → fallback.
+// It loads configuration files from the filesystem and merges them with other language sources
+// to provide the final language determination.
+//
+// The function performs the following operations:
+//   1. Checks CLI flag (highest precedence)
+//   2. Checks environment variable  
+//   3. Loads and checks project configuration (.claude/config.yaml)
+//   4. Loads and checks global configuration (~/.config/claude-cmd/config.yaml)
+//   5. Parses POSIX locale as fallback
+//   6. Returns default "en" if all sources are empty
+//
+// This function uses the provided filesystem abstraction and user config directory
+// to support testing with mock filesystems.
+//
+// Returns the resolved language code and any error encountered during config loading.
+func ResolveLanguage(ctx ResolveContext) (string, error) {
+	// 1. CLI flag has highest precedence - user's explicit choice for this command
+	if lang, ok := checkLanguageSource(ctx.CLIFlag); ok {
+		return lang, nil
+	}
+	
+	// 2. Environment variable - user's explicit choice for all commands in session
+	if lang, ok := checkLanguageSource(ctx.EnvVar); ok {
+		return lang, nil
+	}
+	
+	// 3. Project configuration - team/project-specific language setting
+	projectLang, err := loadConfigLanguage(ctx.Filesystem, ProjectConfigPath)
+	if err != nil {
+		// Config loading errors are not fatal - we continue with other sources
+		// This allows graceful degradation when config files are malformed or missing
+		// Error details are silently ignored to prevent disrupting language resolution
+	} else if lang, ok := checkLanguageSource(projectLang); ok {
+		return lang, nil
+	}
+	
+	// 4. Global configuration - user's persistent personal preference
+	if ctx.UserConfigDir != "" {
+		globalConfigPath := filepath.Join(ctx.UserConfigDir, GlobalConfigDir, GlobalConfigFile)
+		globalLang, err := loadConfigLanguage(ctx.Filesystem, globalConfigPath)
+		if err != nil {
+			// Config loading errors are not fatal - we continue with other sources
+			// This provides graceful degradation for config file issues
+		} else if lang, ok := checkLanguageSource(globalLang); ok {
+			return lang, nil
+		}
+	}
+	
+	// 5. POSIX locale - system-level language preference
+	if ctx.POSIXLocale != "" {
+		if lang, err := ParseLocale(ctx.POSIXLocale); err == nil {
+			return lang, nil
+		}
+	}
+	
+	// 6. Fallback to English when no language source is available
+	return "en", nil
+}
+
+// loadConfigLanguage loads a language setting from a YAML configuration file.
+// It returns the language value from the config file, or empty string if not found.
+// This is a simplified config loader that only reads the language field to avoid
+// circular dependencies with the full config package.
+func loadConfigLanguage(fs afero.Fs, configPath string) (string, error) {
+	// Check if config file exists
+	exists, err := afero.Exists(fs, configPath)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", nil // Not an error - just no config file
+	}
+	
+	// Read the config file
+	data, err := afero.ReadFile(fs, configPath)
+	if err != nil {
+		return "", err
+	}
+	
+	// Parse the YAML to extract language
+	var config ConfigFile
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return "", err
+	}
+	
+	return config.Language, nil
 }

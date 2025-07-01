@@ -2,6 +2,8 @@ package language
 
 import (
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
 // TestDetect_PrecedenceOrder verifies that language detection follows the correct precedence order:
@@ -243,7 +245,6 @@ func TestSanitizeLanguageCode(t *testing.T) {
 		})
 	}
 }
-
 
 // TestParseLocale_VariousFormats tests the ParseLocale function with various locale formats and edge cases
 func TestParseLocale_VariousFormats(t *testing.T) {
@@ -646,6 +647,164 @@ func TestNormalizeLanguage_EdgeCases(t *testing.T) {
 			if result != tt.expectedLang {
 				t.Errorf("NormalizeLanguage(%q, %v) = %q, expected %q", 
 					tt.inputLang, tt.supported, result, tt.expectedLang)
+			}
+		})
+	}
+}
+
+// setupMockFilesystem creates a mock filesystem with the given files for testing
+func setupMockFilesystem(files map[string]string) afero.Fs {
+	fs := afero.NewMemMapFs()
+	
+	for path, content := range files {
+		err := afero.WriteFile(fs, path, []byte(content), 0644)
+		if err != nil {
+			panic("Failed to setup test file: " + err.Error())
+		}
+	}
+	
+	return fs
+}
+
+// TestResolveLanguage_AllSources tests the ResolveLanguage function with comprehensive scenarios
+// integrating language detection with configuration system
+func TestResolveLanguage_AllSources(t *testing.T) {
+	tests := []struct {
+		name           string
+		configFiles    map[string]string // path -> content
+		mockConfigDir  string           // mocked user config directory
+		envVar         string           // CLAUDE_CMD_LANG environment variable
+		cliFlag        string           // --language flag value
+		posixLocale    string           // POSIX locale
+		expectedLang   string
+		expectError    bool
+	}{
+		{
+			name: "CLI flag overrides all other sources",
+			configFiles: map[string]string{
+				".claude/config.yaml": "language: en\n",
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "de",
+			cliFlag:       "es",
+			posixLocale:   "pt_BR",
+			expectedLang:  "es",
+			expectError:   false,
+		},
+		{
+			name: "Environment variable when no CLI flag",
+			configFiles: map[string]string{
+				".claude/config.yaml": "language: en\n",
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "de",
+			cliFlag:       "",
+			posixLocale:   "pt_BR",
+			expectedLang:  "de",
+			expectError:   false,
+		},
+		{
+			name: "Project config when no CLI flag or env var",
+			configFiles: map[string]string{
+				".claude/config.yaml": "language: en\n",
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "pt_BR",
+			expectedLang:  "en",
+			expectError:   false,
+		},
+		{
+			name: "Global config when no higher precedence sources",
+			configFiles: map[string]string{
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "pt_BR",
+			expectedLang:  "fr",
+			expectError:   false,
+		},
+		{
+			name: "POSIX locale when no config files",
+			configFiles: map[string]string{},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "pt_BR.UTF-8",
+			expectedLang:  "pt",
+			expectError:   false,
+		},
+		{
+			name: "Default fallback when all sources empty or invalid",
+			configFiles: map[string]string{},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "",
+			expectedLang:  "en", // Should fall back to config.DefaultLanguage
+			expectError:   false,
+		},
+		{
+			name: "Invalid project config should not fail resolution",
+			configFiles: map[string]string{
+				".claude/config.yaml": "language: invalid-lang-code\n",
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "pt_BR",
+			expectedLang:  "fr", // Should fall back to global config
+			expectError:   false,
+		},
+		{
+			name: "Partial project config merged with global config",
+			configFiles: map[string]string{
+				".claude/config.yaml": "repository_url: https://project.example.com\n", // missing language
+				"/home/user/.config/claude-cmd/config.yaml": "language: fr\nrepository_url: https://global.example.com\n",
+			},
+			mockConfigDir: "/home/user/.config",
+			envVar:        "",
+			cliFlag:       "",
+			posixLocale:   "pt_BR",
+			expectedLang:  "fr", // Should use global config language
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Call ResolveLanguage function (to be implemented)
+			lang, err := ResolveLanguage(ResolveContext{
+				Filesystem:     setupMockFilesystem(tt.configFiles),
+				UserConfigDir:  tt.mockConfigDir,
+				CLIFlag:        tt.cliFlag,
+				EnvVar:         tt.envVar,
+				POSIXLocale:    tt.posixLocale,
+			})
+			
+			if tt.expectError && err == nil {
+				t.Error("ResolveLanguage() expected error, got nil")
+				return
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("ResolveLanguage() unexpected error: %v", err)
+				return
+			}
+			
+			if tt.expectError {
+				return // Skip language verification for error cases
+			}
+
+			// Verify resolved language matches expected
+			if lang != tt.expectedLang {
+				t.Errorf("ResolveLanguage() = %q, expected %q", lang, tt.expectedLang)
 			}
 		})
 	}
