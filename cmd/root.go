@@ -34,4 +34,5 @@ func init() {
 	// Add subcommands using real filesystem for production
 	fs := afero.NewOsFs()
 	rootCmd.AddCommand(newLanguageCommand(fs))
+	rootCmd.AddCommand(newListCommand(fs))
 }
