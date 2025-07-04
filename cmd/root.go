@@ -35,4 +35,5 @@ func init() {
 	fs := afero.NewOsFs()
 	rootCmd.AddCommand(newLanguageCommand(fs))
 	rootCmd.AddCommand(newListCommand(fs))
+	rootCmd.AddCommand(newAddCommand(fs))
 }

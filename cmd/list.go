@@ -8,25 +8,21 @@ import (
 	"strings"
 
 	"github.com/claude-code-commands/cli/internal/cache"
+	"github.com/claude-code-commands/cli/internal/interfaces"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
-
-// CacheManagerInterface defines the interface for cache operations
-type CacheManagerInterface interface {
-	GetOrUpdateManifest(lang string) (*cache.Manifest, error)
-}
 
 // ListOption configures the list command
 type ListOption func(*listConfig)
 
 // listConfig holds configuration for the list command
 type listConfig struct {
-	cacheManager CacheManagerInterface
+	cacheManager interfaces.CacheManagerInterface
 }
 
 // WithCacheManager sets a custom cache manager for testing
-func WithCacheManager(cm CacheManagerInterface) ListOption {
+func WithCacheManager(cm interfaces.CacheManagerInterface) ListOption {
 	return func(config *listConfig) {
 		config.cacheManager = cm
 	}
@@ -54,7 +50,7 @@ Commands are organized by category and include descriptions to help you find wha
 }
 
 // runListCommand executes the list command logic
-func runListCommand(cmd *cobra.Command, fs afero.Fs, cacheManager CacheManagerInterface) error {
+func runListCommand(cmd *cobra.Command, fs afero.Fs, cacheManager interfaces.CacheManagerInterface) error {
 	// If no cache manager provided, create default one
 	if cacheManager == nil {
 		cacheDir, err := os.UserCacheDir()

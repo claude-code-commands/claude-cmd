@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-// MockCacheManager implements CacheManagerInterface for testing
+// MockCacheManager implements interfaces.CacheManagerInterface for testing
 type MockCacheManager struct {
 	manifest *cache.Manifest
 	err      error
