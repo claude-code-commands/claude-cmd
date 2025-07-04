@@ -37,4 +37,5 @@ func init() {
 	rootCmd.AddCommand(newListCommand(fs))
 	rootCmd.AddCommand(newAddCommand(fs))
 	rootCmd.AddCommand(newSearchCommand(fs))
+	rootCmd.AddCommand(newInfoCommand(fs))
 }
