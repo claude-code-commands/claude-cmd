@@ -36,4 +36,5 @@ func init() {
 	rootCmd.AddCommand(newLanguageCommand(fs))
 	rootCmd.AddCommand(newListCommand(fs))
 	rootCmd.AddCommand(newAddCommand(fs))
+	rootCmd.AddCommand(newSearchCommand(fs))
 }
