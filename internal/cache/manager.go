@@ -76,7 +76,7 @@ func NewCacheManager(fs afero.Fs, cacheDir string, opts ...ManagerOption) *Cache
 		fs:         fs,
 		cacheDir:   cacheDir,
 		httpClient: httpclient.NewClient(),
-		baseURL:    "https://raw.githubusercontent.com/claude-commands/commands/main/pages",
+		baseURL:    "https://raw.githubusercontent.com/claude-code-commands/commands/main/pages",
 	}
 
 	for _, opt := range opts {

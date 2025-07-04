@@ -57,7 +57,7 @@ func WithAddBaseURL(url string) AddOption {
 func newAddCommand(fs afero.Fs, opts ...AddOption) *cobra.Command {
 	// Apply configuration options
 	config := &addConfig{
-		baseURL: "https://raw.githubusercontent.com/claude-commands/commands/main",
+		baseURL: "https://raw.githubusercontent.com/claude-code-commands/commands/main",
 	}
 	for _, opt := range opts {
 		opt(config)
