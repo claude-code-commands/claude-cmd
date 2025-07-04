@@ -57,7 +57,7 @@ This command helps you debug issues in your codebase.
 `
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "debug-issue.md") {
+		if strings.Contains(r.URL.Path, "/pages/en/debug-issue.md") {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(testContent))
 		} else {
@@ -150,7 +150,7 @@ This command helps you debug issues in your codebase.
 `
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "debug-issue.md") {
+		if strings.Contains(r.URL.Path, "/pages/en/debug-issue.md") {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(testContent))
 		} else {

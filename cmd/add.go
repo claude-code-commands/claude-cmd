@@ -130,7 +130,7 @@ func runAddCommand(cmd *cobra.Command, fs afero.Fs, commandName string, config *
 	}
 
 	// Download command content
-	commandURL := fmt.Sprintf("%s/%s", config.baseURL, cleanFile)
+	commandURL := fmt.Sprintf("%s/pages/%s/%s", config.baseURL, lang, cleanFile)
 	resp, err := config.httpClient.Get(commandURL)
 	if err != nil {
 		return fmt.Errorf("failed to download command: %w", err)
