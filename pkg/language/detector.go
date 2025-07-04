@@ -13,7 +13,7 @@ import (
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 
-	"github.com/claude-code-commands/cli/pkg/config"
+	"github.com/claude-code-commands/claude-cmd/pkg/config"
 )
 
 // DetectionContext contains all the language detection sources in precedence order.

@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/claude-code-commands/cli/pkg/config"
+	"github.com/claude-code-commands/claude-cmd/pkg/config"
 )
 
 // userConfigDir is a variable that can be mocked in tests to override

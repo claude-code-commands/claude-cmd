@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/claude-code-commands/cli/internal/cache"
+	"github.com/claude-code-commands/claude-cmd/internal/cache"
 	"github.com/spf13/afero"
 )
 

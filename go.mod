@@ -1,4 +1,4 @@
-module github.com/claude-code-commands/cli
+module github.com/claude-code-commands/claude-cmd
 
 go 1.24.4
 

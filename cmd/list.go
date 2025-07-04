@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/claude-code-commands/cli/internal/cache"
-	"github.com/claude-code-commands/cli/internal/interfaces"
+	"github.com/claude-code-commands/claude-cmd/internal/cache"
+	"github.com/claude-code-commands/claude-cmd/internal/interfaces"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )

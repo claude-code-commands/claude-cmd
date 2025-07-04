@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/claude-code-commands/cli/pkg/httpclient"
+	"github.com/claude-code-commands/claude-cmd/pkg/httpclient"
 	"github.com/spf13/afero"
 )
 

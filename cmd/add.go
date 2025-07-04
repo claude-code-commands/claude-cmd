@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -11,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/claude-code-commands/cli/internal/cache"
-	"github.com/claude-code-commands/cli/internal/install"
-	"github.com/claude-code-commands/cli/internal/interfaces"
+	"github.com/claude-code-commands/claude-cmd/internal/cache"
+	"github.com/claude-code-commands/claude-cmd/internal/install"
+	"github.com/claude-code-commands/claude-cmd/internal/interfaces"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
