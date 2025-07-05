@@ -134,6 +134,7 @@ way to extend Claude Code with community-contributed commands.`,
 	cmd.AddCommand(newAddCommand(fs))
 	cmd.AddCommand(newSearchCommand(fs))
 	cmd.AddCommand(newInfoCommand(fs))
+	cmd.AddCommand(newUpdateCommand(fs))
 
 	return cmd
 }
