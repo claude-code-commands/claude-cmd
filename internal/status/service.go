@@ -6,6 +6,7 @@ package status
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/claude-code-commands/claude-cmd/pkg/config"
@@ -122,7 +123,7 @@ func NewStatusServiceWithInstallCounter(fs afero.Fs, cacheManager CacheManagerIn
 //	    status.Version, status.Cache.CommandCount, status.Installed.TotalCount)
 func (s *StatusService) GetFullStatus(language string) (*FullStatus, error) {
 	// Validate input parameters
-	if language == "" {
+	if strings.TrimSpace(language) == "" {
 		return nil, fmt.Errorf("language cannot be empty")
 	}
 	// Get version information
