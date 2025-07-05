@@ -173,3 +173,6 @@ go.work.sum
 # env file
 .env
 
+### claude-cmd specific
+
+/claude-cmd
