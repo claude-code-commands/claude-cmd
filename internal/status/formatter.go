@@ -11,20 +11,18 @@ import (
 
 // Format constants for consistent format identification
 const (
-	FormatDefault  = "default"
-	FormatCompact  = "compact"
-	FormatDetailed = "detailed"
-	FormatJSON     = "json"
+	FormatDefault = "default"
+	FormatCompact = "compact"
+	FormatJSON    = "json"
 )
 
 // Time format constants for consistent timestamp formatting
 const (
 	StandardTimeFormat = "2006-01-02 15:04:05"
-	DetailedTimeFormat = "2006-01-02 15:04:05 MST"
 )
 
 // StatusFormatter handles formatting of FullStatus data into various output formats.
-// It supports multiple output formats including default, compact, detailed, and JSON.
+// It supports multiple output formats including default, compact, and JSON.
 type StatusFormatter struct{}
 
 // NewStatusFormatter creates a new StatusFormatter instance.
@@ -33,7 +31,7 @@ func NewStatusFormatter() *StatusFormatter {
 }
 
 // Format formats the given FullStatus into the specified output format.
-// Supported formats: default, compact, detailed, json (case-insensitive).
+// Supported formats: default, compact, json (case-insensitive).
 // Empty format defaults to "default".
 func (f *StatusFormatter) Format(status *FullStatus, format string) (string, error) {
 	if status == nil {
@@ -51,8 +49,6 @@ func (f *StatusFormatter) Format(status *FullStatus, format string) (string, err
 		return f.formatDefault(status), nil
 	case FormatCompact:
 		return f.formatCompact(status), nil
-	case FormatDetailed:
-		return f.formatDetailed(status), nil
 	case FormatJSON:
 		return f.formatJSON(status)
 	default:
@@ -75,19 +71,11 @@ func (f *StatusFormatter) writeLine(builder *strings.Builder, format string, arg
 }
 
 // formatCacheLastUpdated provides consistent cache timestamp formatting
-func (f *StatusFormatter) formatCacheLastUpdated(lastUpdated time.Time, useDetailed bool) string {
+func (f *StatusFormatter) formatCacheLastUpdated(lastUpdated time.Time) string {
 	if lastUpdated.IsZero() {
-		if useDetailed {
-			return "never (cache miss)"
-		}
 		return "(no cache available)"
 	}
-
-	format := StandardTimeFormat
-	if useDetailed {
-		format = DetailedTimeFormat
-	}
-	return lastUpdated.Format(format)
+	return lastUpdated.Format(StandardTimeFormat)
 }
 
 // formatDefault formats status in the default human-readable format.
@@ -101,10 +89,10 @@ func (f *StatusFormatter) formatDefault(status *FullStatus) string {
 	// Cache information
 	f.writeSection(&result, "Cache Status:", func(b *strings.Builder) {
 		if status.Cache.LastUpdated.IsZero() {
-			f.writeLine(b, "  Commands: %d %s", status.Cache.CommandCount, f.formatCacheLastUpdated(status.Cache.LastUpdated, false))
+			f.writeLine(b, "  Commands: %d %s", status.Cache.CommandCount, f.formatCacheLastUpdated(status.Cache.LastUpdated))
 		} else {
 			f.writeLine(b, "  Commands: %d", status.Cache.CommandCount)
-			f.writeLine(b, "  Last Updated: %s", f.formatCacheLastUpdated(status.Cache.LastUpdated, false))
+			f.writeLine(b, "  Last Updated: %s", f.formatCacheLastUpdated(status.Cache.LastUpdated))
 		}
 		f.writeLine(b, "  Language: %s", status.Cache.Language)
 	})
@@ -128,51 +116,6 @@ func (f *StatusFormatter) formatCompact(status *FullStatus) string {
 		status.Version,
 		status.Cache.CommandCount,
 		status.Installed.TotalCount)
-}
-
-// formatDetailed formats status with comprehensive details.
-func (f *StatusFormatter) formatDetailed(status *FullStatus) string {
-	var result strings.Builder
-
-	f.writeLine(&result, "=== Claude CMD Detailed Status ===")
-	result.WriteString("\n")
-
-	// Version section
-	f.writeSection(&result, "VERSION INFORMATION:", func(b *strings.Builder) {
-		f.writeLine(b, "  Version: %s", status.Version)
-	})
-
-	// Cache section
-	f.writeSection(&result, "CACHE STATUS:", func(b *strings.Builder) {
-		f.writeLine(b, "  Available Commands: %d", status.Cache.CommandCount)
-		f.writeLine(b, "  Language: %s", status.Cache.Language)
-		f.writeLine(b, "  Last Updated: %s", f.formatCacheLastUpdated(status.Cache.LastUpdated, true))
-		if !status.Cache.LastUpdated.IsZero() {
-			f.writeLine(b, "  Cache Age: %s", time.Since(status.Cache.LastUpdated).Truncate(time.Minute))
-		}
-	})
-
-	// Installation section
-	f.writeSection(&result, "INSTALLATION STATUS:", func(b *strings.Builder) {
-		f.writeLine(b, "  Total Installed: %d", status.Installed.TotalCount)
-		f.writeLine(b, "  Project Directory: %d commands", status.Installed.ProjectCount)
-		f.writeLine(b, "  Personal Directory: %d commands", status.Installed.PersonalCount)
-		f.writeLine(b, "  Primary Location: %s", status.Installed.PrimaryLocation)
-	})
-
-	// Summary
-	f.writeSection(&result, "SUMMARY:", func(b *strings.Builder) {
-		if status.Cache.CommandCount == 0 {
-			f.writeLine(b, "  • No cached commands available")
-		} else {
-			f.writeLine(b, "  • %d commands available in cache", status.Cache.CommandCount)
-		}
-		f.writeLine(b, "  • %d commands currently installed", status.Installed.TotalCount)
-	})
-
-	// Remove the extra newline at the end
-	output := result.String()
-	return strings.TrimSuffix(output, "\n")
 }
 
 // formatJSON formats status as JSON output.

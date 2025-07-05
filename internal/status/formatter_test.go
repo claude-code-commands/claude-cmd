@@ -153,60 +153,6 @@ func TestStatusFormatter_Format_JSONFormat(t *testing.T) {
 	}
 }
 
-// RED PHASE: Test detailed format output
-func TestStatusFormatter_Format_DetailedFormat(t *testing.T) {
-	formatter := NewStatusFormatter()
-
-	fullStatus := &FullStatus{
-		Version: "dev",
-		Cache: CacheStatus{
-			CommandCount: 50,
-			LastUpdated:  time.Date(2024, 12, 1, 10, 0, 0, 0, time.UTC),
-			Language:     "de",
-		},
-		Installed: InstalledStatus{
-			Count:           35,
-			TotalCount:      35,
-			ProjectCount:    20,
-			PersonalCount:   15,
-			PrimaryLocation: "project",
-		},
-	}
-
-	output, err := formatter.Format(fullStatus, "detailed")
-
-	if err != nil {
-		t.Fatalf("Expected no error for detailed format, got: %v", err)
-	}
-
-	if output == "" {
-		t.Fatal("Expected non-empty output for detailed format")
-	}
-
-	// Detailed format should include more comprehensive information
-	expectedContent := []string{
-		"dev",        // Version
-		"50",         // Cache count
-		"35",         // Total installed
-		"20",         // Project count
-		"15",         // Personal count
-		"project",    // Primary location
-		"de",         // Language
-		"2024-12-01", // Date information
-	}
-
-	for _, expected := range expectedContent {
-		if !strings.Contains(output, expected) {
-			t.Errorf("Expected detailed output to contain %q, got: %s", expected, output)
-		}
-	}
-
-	// Detailed should have more lines than compact
-	if strings.Count(output, "\n") < 5 {
-		t.Errorf("Expected detailed format to have 5 or more lines, got: %s", output)
-	}
-}
-
 // RED PHASE: Test invalid format handling
 func TestStatusFormatter_Format_InvalidFormat(t *testing.T) {
 	formatter := NewStatusFormatter()

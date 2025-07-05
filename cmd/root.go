@@ -125,7 +125,7 @@ way to extend Claude Code with community-contributed commands.`,
 
 	// Add format flag when status is enabled
 	if config.statusEnabled {
-		cmd.Flags().StringVar(&config.statusFormat, "format", "default", "Output format (default, compact, detailed, json)")
+		cmd.Flags().StringVar(&config.statusFormat, "format", "default", "Output format (default, compact, json)")
 	}
 
 	// Add subcommands

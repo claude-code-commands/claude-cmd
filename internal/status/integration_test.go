@@ -166,7 +166,7 @@ func TestStatusIntegration_CompleteWorkflow_Success(t *testing.T) {
 	}
 
 	// Test all format outputs
-	formats := []string{"default", "compact", "detailed", "json"}
+	formats := []string{"default", "compact", "json"}
 	for _, format := range formats {
 		output, err := formatter.Format(fullStatus, format)
 		if err != nil {
@@ -187,7 +187,7 @@ func TestStatusIntegration_CompleteWorkflow_Success(t *testing.T) {
 			if strings.Count(output, "\n") > 1 {
 				t.Errorf("Expected compact format to be single line, got: %s", output)
 			}
-		case "detailed", "default":
+		case "default":
 			if !strings.Contains(output, config.GetVersion()) {
 				t.Errorf("Expected format %q to contain version, got: %s", format, output)
 			}
@@ -363,24 +363,6 @@ func TestStatusIntegration_MixedDirectoryScenario(t *testing.T) {
 		t.Errorf("Expected primary location 'personal', got %q", fullStatus.Installed.PrimaryLocation)
 	}
 
-	// Test detailed format includes all information
-	formatter := NewStatusFormatter()
-	output, err := formatter.Format(fullStatus, "detailed")
-	if err != nil {
-		t.Fatalf("Expected no error formatting detailed view, got: %v", err)
-	}
-
-	// Verify all key information is present
-	expectedContent := []string{
-		"3", "2", "personal", "fr", // counts and location
-		"VERSION INFORMATION", "CACHE STATUS", "INSTALLATION STATUS", "SUMMARY", // sections
-	}
-
-	for _, expected := range expectedContent {
-		if !strings.Contains(output, expected) {
-			t.Errorf("Expected detailed output to contain %q, got: %s", expected, output)
-		}
-	}
 }
 
 // RED PHASE: Test integration error handling and recovery
@@ -550,18 +532,12 @@ func TestStatusIntegration_TimeBasedScenarios(t *testing.T) {
 		t.Errorf("Expected timestamp %v, got %v", pastTime, fullStatus.Cache.LastUpdated)
 	}
 
-	// Test detailed format includes cache age
-	output, err := formatter.Format(fullStatus, "detailed")
+	// Should include formatted timestamp in default format
+	output, err := formatter.Format(fullStatus, "default")
 	if err != nil {
-		t.Fatalf("Expected no error formatting detailed view, got: %v", err)
+		t.Fatalf("Expected no error formatting default view, got: %v", err)
 	}
 
-	// Should include cache age information
-	if !strings.Contains(output, "Cache Age:") {
-		t.Errorf("Expected detailed output to contain cache age, got: %s", output)
-	}
-
-	// Should include formatted timestamp
 	expectedDate := pastTime.Format("2006-01-02")
 	if !strings.Contains(output, expectedDate) {
 		t.Errorf("Expected output to contain date %s, got: %s", expectedDate, output)

@@ -225,7 +225,7 @@ func TestStatusFormatter_EdgeCases_MalformedData(t *testing.T) {
 					PrimaryLocation: "personal",
 				},
 			},
-			format: "detailed",
+			format: "default",
 		},
 	}
 
@@ -355,7 +355,7 @@ func TestStatusFormatter_EdgeCases_ConcurrentAccess(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		go func(id int) {
-			format := []string{"default", "compact", "detailed", "json"}[id%4]
+			format := []string{"default", "compact", "json"}[id%3]
 			output, err := formatter.Format(status, format)
 
 			if err != nil {
@@ -483,11 +483,11 @@ func TestStatusFormatter_EdgeCases_TimeFormatting(t *testing.T) {
 		lastUpdated time.Time
 		format      string
 	}{
-		{"epoch time", time.Unix(0, 0), "detailed"},
+		{"epoch time", time.Unix(0, 0), "default"},
 		{"year 1", time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), "default"},
-		{"year 9999", time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC), "detailed"},
-		{"negative time zone", time.Date(2024, 6, 15, 12, 0, 0, 0, time.FixedZone("NEGATIVE", -12*60*60)), "detailed"},
-		{"positive time zone", time.Date(2024, 6, 15, 12, 0, 0, 0, time.FixedZone("POSITIVE", 14*60*60)), "detailed"},
+		{"year 9999", time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC), "default"},
+		{"negative time zone", time.Date(2024, 6, 15, 12, 0, 0, 0, time.FixedZone("NEGATIVE", -12*60*60)), "default"},
+		{"positive time zone", time.Date(2024, 6, 15, 12, 0, 0, 0, time.FixedZone("POSITIVE", 14*60*60)), "default"},
 	}
 
 	for _, tc := range testCases {
@@ -519,18 +519,11 @@ func TestStatusFormatter_EdgeCases_TimeFormatting(t *testing.T) {
 			}
 
 			// Should handle extreme time values gracefully
-			if tc.format == "detailed" && !tc.lastUpdated.IsZero() {
-				// Should contain some time information
-				timeIndicators := []string{"Cache Age:", "Last Updated:", tc.lastUpdated.Format("2006")}
-				hasTimeInfo := false
-				for _, indicator := range timeIndicators {
-					if strings.Contains(output, indicator) {
-						hasTimeInfo = true
-						break
-					}
-				}
-				if !hasTimeInfo {
-					t.Errorf("Expected detailed output to contain time information for %s, got: %s", tc.name, output)
+			if !tc.lastUpdated.IsZero() {
+				// Should contain timestamp information
+				yearStr := tc.lastUpdated.Format("2006")
+				if !strings.Contains(output, yearStr) {
+					t.Errorf("Expected output to contain year %s for %s, got: %s", yearStr, tc.name, output)
 				}
 			}
 		})
