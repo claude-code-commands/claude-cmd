@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -435,5 +436,188 @@ func TestGetOrUpdateManifest_InvalidLanguage(t *testing.T) {
 	// Should contain "language validation failed" in error message
 	if !strings.Contains(err.Error(), "language validation failed") {
 		t.Errorf("Expected 'language validation failed' error, got: %v", err)
+	}
+}
+
+func TestGetCacheStatus_Success(t *testing.T) {
+	manager, fs := setupMemCache("/cache")
+
+	// Create test manifest with specific command count
+	testData := testManifest(withCommands(
+		Command{Name: "cmd1", Description: "Command 1", File: "cmd1.md"},
+		Command{Name: "cmd2", Description: "Command 2", File: "cmd2.md"},
+		Command{Name: "cmd3", Description: "Command 3", File: "cmd3.md"},
+	))
+
+	// Write manifest to language-specific cache
+	manifestPath := filepath.Join("/cache", "pages", "en", "index.json")
+	err := fs.MkdirAll(filepath.Dir(manifestPath), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create cache directory: %v", err)
+	}
+	err = writeTestManifest(fs, manifestPath, testData)
+	if err != nil {
+		t.Fatalf("Failed to write test manifest: %v", err)
+	}
+
+	// Get cache status
+	status, err := manager.GetCacheStatus("en")
+	if err != nil {
+		t.Fatalf("GetCacheStatus() failed: %v", err)
+	}
+
+	// Verify status content
+	if status.CommandCount != 3 {
+		t.Errorf("Expected CommandCount 3, got %d", status.CommandCount)
+	}
+	if status.Language != "en" {
+		t.Errorf("Expected Language 'en', got %q", status.Language)
+	}
+	if !status.LastUpdated.Equal(testData.Updated) {
+		t.Errorf("Expected LastUpdated %v, got %v", testData.Updated, status.LastUpdated)
+	}
+}
+
+func TestGetCacheStatus_CacheMiss(t *testing.T) {
+	manager, _ := setupMemCache("/cache")
+
+	// Try to get status for non-existent cache
+	_, err := manager.GetCacheStatus("en")
+	if err == nil {
+		t.Fatal("GetCacheStatus() should have failed with cache miss")
+	}
+
+	// Should return ErrCacheMiss
+	if !IsErrCacheMiss(err) {
+		t.Errorf("Expected ErrCacheMiss, got: %v", err)
+	}
+}
+
+func TestGetCacheStatus_EmptyCache(t *testing.T) {
+	manager, fs := setupMemCache("/cache")
+
+	// Create test manifest with no commands
+	testData := testManifest(withNoCommands())
+
+	// Write manifest to language-specific cache
+	manifestPath := filepath.Join("/cache", "pages", "fr", "index.json")
+	err := fs.MkdirAll(filepath.Dir(manifestPath), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create cache directory: %v", err)
+	}
+	err = writeTestManifest(fs, manifestPath, testData)
+	if err != nil {
+		t.Fatalf("Failed to write test manifest: %v", err)
+	}
+
+	// Get cache status
+	status, err := manager.GetCacheStatus("fr")
+	if err != nil {
+		t.Fatalf("GetCacheStatus() failed: %v", err)
+	}
+
+	// Verify status content for empty cache
+	if status.CommandCount != 0 {
+		t.Errorf("Expected CommandCount 0, got %d", status.CommandCount)
+	}
+	if status.Language != "fr" {
+		t.Errorf("Expected Language 'fr', got %q", status.Language)
+	}
+}
+
+func TestGetCacheStatus_InvalidLanguage(t *testing.T) {
+	manager, _ := setupMemCache("/cache")
+
+	// Try to get status with invalid language
+	_, err := manager.GetCacheStatus("")
+	if err == nil {
+		t.Fatal("GetCacheStatus() should have failed with validation error")
+	}
+
+	// Should contain "language validation failed" in error message
+	if !strings.Contains(err.Error(), "language validation failed") {
+		t.Errorf("Expected 'language validation failed' error, got: %v", err)
+	}
+}
+
+func TestGetCacheStatus_CorruptedCache(t *testing.T) {
+	manager, fs := setupMemCache("/cache")
+
+	// Create corrupted cache file
+	manifestPath := filepath.Join("/cache", "pages", "en", "index.json")
+	err := fs.MkdirAll(filepath.Dir(manifestPath), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create cache directory: %v", err)
+	}
+
+	// Write invalid JSON
+	err = afero.WriteFile(fs, manifestPath, []byte(`{"invalid": json`), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write corrupted manifest: %v", err)
+	}
+
+	// Try to get status - should fail with corruption error
+	_, err = manager.GetCacheStatus("en")
+	if err == nil {
+		t.Fatal("GetCacheStatus() should have failed with corrupted cache")
+	}
+
+	// Should return ErrCacheCorrupted
+	if !IsErrCacheCorrupted(err) {
+		t.Errorf("Expected ErrCacheCorrupted, got: %v", err)
+	}
+}
+
+func TestGetCacheStatus_DifferentLanguages(t *testing.T) {
+	manager, fs := setupMemCache("/cache")
+
+	testCases := []struct {
+		lang         string
+		commandCount int
+	}{
+		{"en", 5},
+		{"fr", 3},
+		{"es", 7},
+	}
+
+	// Create manifests for different languages
+	for _, tc := range testCases {
+		// Create commands based on count
+		commands := make([]Command, tc.commandCount)
+		for i := 0; i < tc.commandCount; i++ {
+			commands[i] = Command{
+				Name:        fmt.Sprintf("cmd%d", i+1),
+				Description: fmt.Sprintf("Command %d", i+1),
+				File:        fmt.Sprintf("cmd%d.md", i+1),
+			}
+		}
+
+		testData := testManifest(withCommands(commands...))
+		manifestPath := filepath.Join("/cache", "pages", tc.lang, "index.json")
+		err := fs.MkdirAll(filepath.Dir(manifestPath), 0755)
+		if err != nil {
+			t.Fatalf("Failed to create cache directory for %s: %v", tc.lang, err)
+		}
+		err = writeTestManifest(fs, manifestPath, testData)
+		if err != nil {
+			t.Fatalf("Failed to write test manifest for %s: %v", tc.lang, err)
+		}
+	}
+
+	// Test each language
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("language_%s", tc.lang), func(t *testing.T) {
+			status, err := manager.GetCacheStatus(tc.lang)
+			if err != nil {
+				t.Fatalf("GetCacheStatus(%s) failed: %v", tc.lang, err)
+			}
+
+			if status.CommandCount != tc.commandCount {
+				t.Errorf("Expected CommandCount %d for %s, got %d", tc.commandCount, tc.lang, status.CommandCount)
+			}
+			if status.Language != tc.lang {
+				t.Errorf("Expected Language %s, got %q", tc.lang, status.Language)
+			}
+		})
 	}
 }

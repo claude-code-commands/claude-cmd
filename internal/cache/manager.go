@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/claude-code-commands/claude-cmd/internal/status"
 	"github.com/claude-code-commands/claude-cmd/pkg/httpclient"
 	"github.com/spf13/afero"
 )
@@ -472,4 +473,54 @@ func (c *CacheManager) GetOrUpdateManifest(lang string) (*Manifest, error) {
 
 	// Other cache errors - pass through with context
 	return nil, fmt.Errorf("failed to read cached manifest for language %q: %w", lang, err)
+}
+
+// GetCacheStatus provides information about the current cache state for the specified language.
+// This method reads the cached manifest and extracts status information including command count,
+// last update time, and language without performing any network operations.
+//
+// The status information is useful for displaying cache health in status dashboards and
+// helping users understand the current state of their local command cache.
+//
+// Parameters:
+//   - lang: Language code (e.g., "en", "fr", "deu"). Will be validated and normalized.
+//
+// Returns:
+//   - *status.CacheStatus: Status information including CommandCount, LastUpdated, Language
+//   - error: Language validation error, ErrCacheMiss if no cache exists, ErrCacheCorrupted
+//     if cache is corrupted, or other cache read errors
+//
+// Example usage:
+//
+//	status, err := cache.GetCacheStatus("en")
+//	if IsErrCacheMiss(err) {
+//	    // No cache available - suggest running update
+//	    fmt.Println("No cached commands available. Run 'claude-cmd update' to download.")
+//	} else if err != nil {
+//	    // Other error - handle appropriately
+//	    return fmt.Errorf("failed to get cache status: %w", err)
+//	}
+//	fmt.Printf("Cache: %d commands available (last updated %v)\n", status.CommandCount, status.LastUpdated)
+func (c *CacheManager) GetCacheStatus(lang string) (*status.CacheStatus, error) {
+	if err := validateLanguageCode(lang); err != nil {
+		return nil, fmt.Errorf("language validation failed: %w", err)
+	}
+
+	normalizedLang := normalizeLanguageCode(lang)
+
+	// Read manifest from cache (no network operations)
+	manifest, err := c.ReadManifestWithLanguage(normalizedLang)
+	if err != nil {
+		// Pass through cache errors (ErrCacheMiss, ErrCacheCorrupted, etc.)
+		return nil, err
+	}
+
+	// Create status from manifest data
+	cacheStatus := &status.CacheStatus{
+		CommandCount: len(manifest.Commands),
+		LastUpdated:  manifest.Updated,
+		Language:     normalizedLang,
+	}
+
+	return cacheStatus, nil
 }

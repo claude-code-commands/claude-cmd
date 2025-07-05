@@ -10,16 +10,6 @@ import (
 	"github.com/spf13/afero"
 )
 
-// MockCacheManager implements interfaces.CacheManagerInterface for testing
-type MockCacheManager struct {
-	manifest *cache.Manifest
-	err      error
-}
-
-func (m *MockCacheManager) GetOrUpdateManifest(lang string) (*cache.Manifest, error) {
-	return m.manifest, m.err
-}
-
 // Helper function to create test manifest
 func createTestManifest() *cache.Manifest {
 	return &cache.Manifest{
