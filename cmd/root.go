@@ -54,17 +54,8 @@ func WithStatusCacheManager(cm interfaces.CacheManagerInterface) RootOption {
 	}
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "claude-cmd",
-	Short: "A CLI package manager for Claude Code slash commands",
-	Long: `claude-cmd is a CLI tool that helps you discover, install, and manage 
-Claude Code slash commands from a centralized repository. It provides a simple 
-way to extend Claude Code with community-contributed commands.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("claude-cmd - CLI package manager for Claude Code slash commands")
-		fmt.Println("Use 'claude-cmd --help' for more information.")
-	},
-}
+// rootCmd will be initialized in init() with status functionality enabled
+var rootCmd *cobra.Command
 
 // Execute runs the root command
 func Execute() {
@@ -219,13 +210,7 @@ func runRootCommandWithStatus(cmd *cobra.Command, fs afero.Fs, config *rootConfi
 }
 
 func init() {
-	// Global flags can be added here
-
-	// Add subcommands using real filesystem for production
+	// Initialize root command with status functionality enabled for production
 	fs := afero.NewOsFs()
-	rootCmd.AddCommand(newLanguageCommand(fs))
-	rootCmd.AddCommand(newListCommand(fs))
-	rootCmd.AddCommand(newAddCommand(fs))
-	rootCmd.AddCommand(newSearchCommand(fs))
-	rootCmd.AddCommand(newInfoCommand(fs))
+	rootCmd = newRootCommandWithOptions(fs, WithStatusEnabled(true))
 }
