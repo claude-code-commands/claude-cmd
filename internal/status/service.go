@@ -4,7 +4,6 @@
 package status
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -172,10 +171,8 @@ func (s *StatusService) getCacheStatus(language string) (*CacheStatus, error) {
 	return cacheStatus, nil
 }
 
-// Define cache miss error locally to avoid import cycle
-var ErrCacheMiss = errors.New("cache miss")
-
-// isCacheMiss checks if the error represents a cache miss using proper error checking
+// isCacheMiss checks if the error represents a cache miss using error message inspection
+// This avoids import cycles by checking the error message rather than importing cache package
 func isCacheMiss(err error) bool {
-	return errors.Is(err, ErrCacheMiss)
+	return strings.Contains(err.Error(), "cache miss")
 }

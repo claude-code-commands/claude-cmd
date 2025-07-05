@@ -2,6 +2,7 @@ package status
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -124,7 +125,7 @@ func TestStatusService_GetFullStatus_CacheMiss(t *testing.T) {
 	// Mock cache manager that returns cache miss
 	cacheManager := &MockCacheManager{
 		cacheStatus: nil,
-		err:         ErrCacheMiss,
+		err:         fmt.Errorf("cache miss"),
 	}
 
 	service := NewStatusService(fs, cacheManager)

@@ -67,7 +67,7 @@ func (m *IntegrationCacheManager) GetCacheStatus(lang string) (*CacheStatus, err
 	data, err := afero.ReadFile(m.fs, manifestPath)
 	if err != nil {
 		// Return cache miss error to simulate missing cache
-		return nil, ErrCacheMiss
+		return nil, fmt.Errorf("cache miss")
 	}
 
 	var manifest mockManifest
