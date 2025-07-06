@@ -206,3 +206,82 @@ func InstallCommand(fs afero.Fs, targetDir, commandName, commandContent string) 
 
 	return nil
 }
+
+// CommandLocation represents the location of an installed command
+type CommandLocation struct {
+	Installed bool   // Whether the command is installed
+	Path      string // Full path to the command file
+	Location  string // Human-readable location description
+}
+
+// FindInstalledCommand searches for an installed command in both project and personal directories.
+// It follows the same precedence order as SelectInstallDir: project directory first, then personal directory.
+// This function consolidates the command-finding logic used by multiple commands.
+//
+// Parameters:
+//   - fs: Filesystem abstraction for testing and production use
+//   - commandName: The name of the command to find (will be validated for security)
+//
+// Returns:
+//   - CommandLocation: Information about the command's installation status and location
+//   - error: Any error encountered during the search
+//
+// Example:
+//
+//	location, err := FindInstalledCommand(fs, "debug-issue")
+//	if err != nil {
+//	    // handle error
+//	}
+//	if location.Installed {
+//	    // command found at location.Path
+//	}
+func FindInstalledCommand(fs afero.Fs, commandName string) (CommandLocation, error) {
+	// Validate command name to prevent path traversal attacks
+	if !validCommandName.MatchString(commandName) {
+		return CommandLocation{}, fmt.Errorf("invalid command name %q: only letters, numbers, underscores, and hyphens are allowed", commandName)
+	}
+
+	commandFile := commandName + ".md"
+
+	// Check project directory first (takes precedence over personal)
+	projectDir, exists, err := GetProjectDir(fs)
+	if err != nil {
+		return CommandLocation{}, fmt.Errorf("checking project directory: %w", err)
+	}
+
+	if exists {
+		projectPath := filepath.Join(projectDir, commandFile)
+		exists, err := afero.Exists(fs, projectPath)
+		if err != nil {
+			return CommandLocation{}, fmt.Errorf("checking project command file: %w", err)
+		}
+		if exists {
+			return CommandLocation{
+				Installed: true,
+				Path:      projectPath,
+				Location:  projectPath,
+			}, nil
+		}
+	}
+
+	// Check personal directory as fallback
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		return CommandLocation{}, fmt.Errorf("getting personal directory: %w", err)
+	}
+
+	personalPath := filepath.Join(personalDir, commandFile)
+	exists, err = afero.Exists(fs, personalPath)
+	if err != nil {
+		return CommandLocation{}, fmt.Errorf("checking personal command file: %w", err)
+	}
+	if exists {
+		return CommandLocation{
+			Installed: true,
+			Path:      personalPath,
+			Location:  personalPath,
+		}, nil
+	}
+
+	return CommandLocation{Installed: false}, nil
+}

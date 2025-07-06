@@ -121,9 +121,20 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 	fmt.Fprintf(cmd.OutOrStdout(), "Description: %s\n", targetCommand.Description)
 	fmt.Fprintf(cmd.OutOrStdout(), "Repository File: %s\n", targetCommand.File)
 
-	// Check installation status
-	status := getInstallationStatus(fs, commandName)
-	fmt.Fprintf(cmd.OutOrStdout(), "Installation Status: %s\n", status)
+	// Check installation status using shared utility
+	location, err := install.FindInstalledCommand(fs, commandName)
+	if err != nil {
+		// For info command, we don't want to fail on invalid names, just show as not installed
+		location = install.CommandLocation{Installed: false}
+	}
+
+	var statusText string
+	if location.Installed {
+		statusText = fmt.Sprintf("Installed at %s", location.Path)
+	} else {
+		statusText = "Not installed"
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Installation Status: %s\n", statusText)
 
 	// Fetch and display detailed content if requested
 	if detailed {
@@ -135,68 +146,6 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 	}
 
 	return nil
-}
-
-// installStatus represents the installation status of a command
-type installStatus struct {
-	installed bool
-	location  string
-}
-
-// String returns a formatted string representation of the installation status
-func (s installStatus) String() string {
-	if s.installed {
-		return fmt.Sprintf("Installed at %s", s.location)
-	}
-	return "Not installed"
-}
-
-// getInstallationStatus checks if a command is installed and returns its status.
-// This function checks project directory first (higher precedence), then personal directory.
-func getInstallationStatus(fs afero.Fs, commandName string) installStatus {
-	commandFile := commandName + ".md"
-
-	// Check project directory first (takes precedence over personal)
-	if projectStatus := checkProjectInstallation(fs, commandFile); projectStatus.installed {
-		return projectStatus
-	}
-
-	// Check personal directory as fallback
-	if personalStatus := checkPersonalInstallation(fs, commandFile); personalStatus.installed {
-		return personalStatus
-	}
-
-	return installStatus{installed: false}
-}
-
-// checkProjectInstallation checks if command is installed in project directory
-func checkProjectInstallation(fs afero.Fs, commandFile string) installStatus {
-	projectDir, exists, err := install.GetProjectDir(fs)
-	if err != nil || !exists {
-		return installStatus{installed: false}
-	}
-
-	projectPath := filepath.Join(projectDir, commandFile)
-	if exists, _ := afero.Exists(fs, projectPath); exists {
-		return installStatus{installed: true, location: projectPath}
-	}
-
-	return installStatus{installed: false}
-}
-
-// checkPersonalInstallation checks if command is installed in personal directory
-func checkPersonalInstallation(fs afero.Fs, commandFile string) installStatus {
-	personalDir, err := install.GetPersonalDir()
-	if err != nil {
-		return installStatus{installed: false}
-	}
-
-	personalPath := filepath.Join(personalDir, commandFile)
-	if exists, _ := afero.Exists(fs, personalPath); exists {
-		return installStatus{installed: true, location: personalPath}
-	}
-
-	return installStatus{installed: false}
 }
 
 // displayDetailedContent fetches and displays the detailed command content

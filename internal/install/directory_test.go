@@ -369,3 +369,170 @@ func TestInstallCommand_ValidCommandNames(t *testing.T) {
 		})
 	}
 }
+
+// TestFindInstalledCommand_ProjectDirectory tests finding command in project directory
+func TestFindInstalledCommand_ProjectDirectory(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with a command
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	testCommand := "test-command"
+	err = afero.WriteFile(fs, projectDir+"/"+testCommand+".md", []byte("test content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test command: %v", err)
+	}
+
+	// Test finding the command
+	location, err := FindInstalledCommand(fs, testCommand)
+	if err != nil {
+		t.Fatalf("Expected FindInstalledCommand to succeed, got error: %v", err)
+	}
+
+	if !location.Installed {
+		t.Error("Expected command to be found")
+	}
+
+	expectedPath := filepath.Join(projectDir, testCommand+".md")
+	if location.Path != expectedPath {
+		t.Errorf("Expected path %s, got %s", expectedPath, location.Path)
+	}
+}
+
+// TestFindInstalledCommand_PersonalDirectory tests finding command in personal directory
+func TestFindInstalledCommand_PersonalDirectory(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create personal directory with a command
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	testCommand := "test-command"
+	err = afero.WriteFile(fs, personalDir+"/"+testCommand+".md", []byte("test content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test command: %v", err)
+	}
+
+	// Test finding the command
+	location, err := FindInstalledCommand(fs, testCommand)
+	if err != nil {
+		t.Fatalf("Expected FindInstalledCommand to succeed, got error: %v", err)
+	}
+
+	if !location.Installed {
+		t.Error("Expected command to be found")
+	}
+
+	expectedPath := filepath.Join(personalDir, testCommand+".md")
+	if location.Path != expectedPath {
+		t.Errorf("Expected path %s, got %s", expectedPath, location.Path)
+	}
+}
+
+// TestFindInstalledCommand_NotFound tests handling of non-existent command
+func TestFindInstalledCommand_NotFound(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create empty directories
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	projectDir := "./.claude/commands"
+	err = fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	// Test finding non-existent command
+	location, err := FindInstalledCommand(fs, "non-existent-command")
+	if err != nil {
+		t.Fatalf("Expected FindInstalledCommand to succeed, got error: %v", err)
+	}
+
+	if location.Installed {
+		t.Error("Expected command not to be found")
+	}
+}
+
+// TestFindInstalledCommand_InvalidName tests command name validation
+func TestFindInstalledCommand_InvalidName(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Test with invalid command name
+	_, err := FindInstalledCommand(fs, "../../../etc/passwd")
+	if err == nil {
+		t.Error("Expected error for invalid command name")
+	}
+
+	if !strings.Contains(err.Error(), "invalid command name") {
+		t.Errorf("Expected error message about invalid command name, got: %v", err)
+	}
+}
+
+// TestFindInstalledCommand_Precedence tests that project directory takes precedence
+func TestFindInstalledCommand_Precedence(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create both directories with the same command
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	projectDir := "./.claude/commands"
+	err = fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	testCommand := "test-command"
+
+	// Add command to both directories
+	err = afero.WriteFile(fs, personalDir+"/"+testCommand+".md", []byte("personal content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write personal command: %v", err)
+	}
+
+	err = afero.WriteFile(fs, projectDir+"/"+testCommand+".md", []byte("project content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write project command: %v", err)
+	}
+
+	// Test finding the command - should return project directory
+	location, err := FindInstalledCommand(fs, testCommand)
+	if err != nil {
+		t.Fatalf("Expected FindInstalledCommand to succeed, got error: %v", err)
+	}
+
+	if !location.Installed {
+		t.Error("Expected command to be found")
+	}
+
+	expectedPath := filepath.Join(projectDir, testCommand+".md")
+	if location.Path != expectedPath {
+		t.Errorf("Expected project path %s, got %s", expectedPath, location.Path)
+	}
+}
