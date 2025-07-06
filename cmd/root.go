@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/claude-code-commands/claude-cmd/internal/cache"
 	"github.com/claude-code-commands/claude-cmd/internal/interfaces"
 	"github.com/claude-code-commands/claude-cmd/internal/status"
 	"github.com/spf13/afero"
@@ -177,14 +175,9 @@ func runRootCommand(cmd *cobra.Command, fs afero.Fs, config *rootConfig) error {
 //   - error: Status retrieval or formatting errors (cache misses handled gracefully)
 func runRootCommandWithStatus(cmd *cobra.Command, fs afero.Fs, config *rootConfig) error {
 	// Create cache manager if not provided
-	cacheManager := config.cacheManager
-	if cacheManager == nil {
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user cache directory: %w", err)
-		}
-		cacheDir = filepath.Join(cacheDir, "claude-cmd")
-		cacheManager = cache.NewCacheManager(fs, cacheDir)
+	cacheManager, err := setupCacheManager(fs, config.cacheManager)
+	if err != nil {
+		return err
 	}
 
 	// Create status service

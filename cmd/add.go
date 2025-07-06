@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -81,13 +80,10 @@ The command will be installed to your personal or project Claude Code directory.
 // runAddCommand executes the add command logic
 func runAddCommand(cmd *cobra.Command, fs afero.Fs, commandName string, config *addConfig) error {
 	// Set up default cache manager if not provided
-	if config.cacheManager == nil {
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user cache directory: %w", err)
-		}
-		cacheDir = filepath.Join(cacheDir, "claude-cmd")
-		config.cacheManager = cache.NewCacheManager(fs, cacheDir)
+	var err error
+	config.cacheManager, err = setupCacheManager(fs, config.cacheManager)
+	if err != nil {
+		return err
 	}
 
 	// Set up default HTTP client if not provided

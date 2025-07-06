@@ -20,7 +20,6 @@ type MockCacheManagerForUpdate struct {
 	oldManifest        *cache.Manifest
 	newManifest        *cache.Manifest
 	fetchError         error
-	writeError         error
 	getOrUpdateErr     error
 	shouldForceFail    bool
 	forceRefreshCalled bool
@@ -352,5 +351,44 @@ func TestUpdateCommand_LanguageSupport(t *testing.T) {
 	outputStr := output.String()
 	if outputStr == "" {
 		t.Fatal("Expected non-empty output for update command with language")
+	}
+}
+
+// Test update command with invalid language validation
+func TestUpdateCommand_InvalidLanguage(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	manifest := &cache.Manifest{
+		Version: "1.0.0",
+		Updated: time.Date(2024, 12, 1, 10, 0, 0, 0, time.UTC),
+		Commands: []cache.Command{
+			{Name: "test-cmd", Description: "Test command", File: "test-cmd.md"},
+		},
+	}
+
+	mockCache := &MockCacheManagerForUpdate{
+		oldManifest: manifest,
+		newManifest: manifest,
+	}
+
+	cmd := newUpdateCommandWithOptions(fs, WithUpdateCacheManager(mockCache))
+
+	var output bytes.Buffer
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+	cmd.SetArgs([]string{"--language", "invalid"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("Expected error for invalid language, got nil")
+	}
+
+	// Should contain error message about unsupported language
+	if !strings.Contains(err.Error(), "unsupported language code") {
+		t.Errorf("Expected error message about unsupported language, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "invalid") {
+		t.Errorf("Expected error message to contain invalid language code, got: %v", err)
 	}
 }

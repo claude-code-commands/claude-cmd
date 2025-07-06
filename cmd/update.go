@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/claude-code-commands/claude-cmd/internal/cache"
 	"github.com/claude-code-commands/claude-cmd/internal/interfaces"
@@ -67,19 +66,23 @@ Use --force to refresh even if the cache appears to be current.`,
 // runUpdateCommand executes the update command logic
 func runUpdateCommand(cmd *cobra.Command, fs afero.Fs, cacheManager interfaces.CacheManagerInterface, force bool, langFlag string) error {
 	// Resolve language
-	lang := "en" // Default for now, will implement proper language detection later
+	var lang string
 	if langFlag != "" {
+		// Validate the provided language flag
+		if !isLanguageSupported(langFlag) {
+			supportedList := strings.Join(supportedLanguages, ", ")
+			return fmt.Errorf("unsupported language code %q. Supported languages: %s", langFlag, supportedList)
+		}
 		lang = langFlag
+	} else {
+		lang = getCurrentLanguage(fs)
 	}
 
 	// Create cache manager if not provided
-	if cacheManager == nil {
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user cache directory: %w", err)
-		}
-		cacheDir = filepath.Join(cacheDir, "claude-cmd")
-		cacheManager = cache.NewCacheManager(fs, cacheDir)
+	var err error
+	cacheManager, err = setupCacheManager(fs, cacheManager)
+	if err != nil {
+		return err
 	}
 
 	// Get current cached manifest
@@ -87,7 +90,6 @@ func runUpdateCommand(cmd *cobra.Command, fs afero.Fs, cacheManager interfaces.C
 
 	// Force refresh or get new manifest
 	var newManifest *cache.Manifest
-	var err error
 
 	if force || oldErr != nil {
 		// Force refresh by fetching directly from repository

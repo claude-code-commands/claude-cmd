@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/claude-code-commands/claude-cmd/internal/cache"
@@ -52,13 +50,10 @@ Commands are organized by category and include descriptions to help you find wha
 // runListCommand executes the list command logic
 func runListCommand(cmd *cobra.Command, fs afero.Fs, cacheManager interfaces.CacheManagerInterface) error {
 	// If no cache manager provided, create default one
-	if cacheManager == nil {
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user cache directory: %w", err)
-		}
-		cacheDir = filepath.Join(cacheDir, "claude-cmd")
-		cacheManager = cache.NewCacheManager(fs, cacheDir)
+	var err error
+	cacheManager, err = setupCacheManager(fs, cacheManager)
+	if err != nil {
+		return err
 	}
 
 	// Get current language preference (defaults to "en" if not configured)
