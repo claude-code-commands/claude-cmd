@@ -536,3 +536,217 @@ func TestFindInstalledCommand_Precedence(t *testing.T) {
 		t.Errorf("Expected project path %s, got %s", expectedPath, location.Path)
 	}
 }
+
+// TestListInstalledCommands_BothDirectories tests listing commands from both project and personal directories
+func TestListInstalledCommands_BothDirectories(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with commands
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	// Create personal directory with commands
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	// Add commands to both directories
+	projectCommands := []string{"debug-issue", "fix-bug"}
+	personalCommands := []string{"optimize-code", "write-tests"}
+
+	for _, cmd := range projectCommands {
+		err = afero.WriteFile(fs, filepath.Join(projectDir, cmd+".md"), []byte("project content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write project command %s: %v", cmd, err)
+		}
+	}
+
+	for _, cmd := range personalCommands {
+		err = afero.WriteFile(fs, filepath.Join(personalDir, cmd+".md"), []byte("personal content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write personal command %s: %v", cmd, err)
+		}
+	}
+
+	// Test listing all installed commands
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should find all 4 commands
+	expectedCount := 4
+	if len(commands) != expectedCount {
+		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
+	}
+
+	// Verify commands are sorted alphabetically and have correct locations
+	expectedCommands := []struct {
+		name     string
+		location string
+	}{
+		{"debug-issue", filepath.Join(projectDir, "debug-issue.md")},
+		{"fix-bug", filepath.Join(projectDir, "fix-bug.md")},
+		{"optimize-code", filepath.Join(personalDir, "optimize-code.md")},
+		{"write-tests", filepath.Join(personalDir, "write-tests.md")},
+	}
+
+	for i, expected := range expectedCommands {
+		if i >= len(commands) {
+			t.Errorf("Missing command %s at index %d", expected.name, i)
+			continue
+		}
+
+		commandName := strings.TrimSuffix(filepath.Base(commands[i].Path), ".md")
+		if commandName != expected.name {
+			t.Errorf("Expected command %s at index %d, got %s", expected.name, i, commandName)
+		}
+
+		if commands[i].Path != expected.location {
+			t.Errorf("Expected path %s for command %s, got %s", expected.location, expected.name, commands[i].Path)
+		}
+
+		if !commands[i].Installed {
+			t.Errorf("Expected command %s to be marked as installed", expected.name)
+		}
+	}
+}
+
+// TestListInstalledCommands_ProjectOnly tests listing commands only from project directory
+func TestListInstalledCommands_ProjectOnly(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with commands
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	// Add commands to project directory
+	projectCommands := []string{"debug-issue", "fix-bug"}
+	for _, cmd := range projectCommands {
+		err = afero.WriteFile(fs, filepath.Join(projectDir, cmd+".md"), []byte("project content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write project command %s: %v", cmd, err)
+		}
+	}
+
+	// Test listing commands
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should find 2 commands
+	expectedCount := 2
+	if len(commands) != expectedCount {
+		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
+	}
+
+	// Verify all commands are from project directory
+	for _, command := range commands {
+		if !strings.Contains(command.Path, ".claude/commands") {
+			t.Errorf("Expected command %s to be from project directory, got path %s", filepath.Base(command.Path), command.Path)
+		}
+	}
+}
+
+// TestListInstalledCommands_PersonalOnly tests listing commands only from personal directory
+func TestListInstalledCommands_PersonalOnly(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create personal directory with commands
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	// Add commands to personal directory
+	personalCommands := []string{"optimize-code", "write-tests"}
+	for _, cmd := range personalCommands {
+		err = afero.WriteFile(fs, filepath.Join(personalDir, cmd+".md"), []byte("personal content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write personal command %s: %v", cmd, err)
+		}
+	}
+
+	// Test listing commands
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should find 2 commands
+	expectedCount := 2
+	if len(commands) != expectedCount {
+		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
+	}
+
+	// Verify all commands are from personal directory
+	for _, command := range commands {
+		if !strings.Contains(command.Path, personalDir) {
+			t.Errorf("Expected command %s to be from personal directory, got path %s", filepath.Base(command.Path), command.Path)
+		}
+	}
+}
+
+// TestListInstalledCommands_EmptyDirectories tests handling when no commands are installed
+func TestListInstalledCommands_EmptyDirectories(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create empty directories
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	personalDir, err := GetPersonalDir()
+	if err != nil {
+		t.Fatalf("Failed to get personal dir: %v", err)
+	}
+	err = fs.MkdirAll(personalDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create personal directory: %v", err)
+	}
+
+	// Test listing commands from empty directories
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should return empty slice
+	if len(commands) != 0 {
+		t.Errorf("Expected no commands in empty directories, got %d", len(commands))
+	}
+}
+
+// TestListInstalledCommands_NoDirectories tests handling when no directories exist
+func TestListInstalledCommands_NoDirectories(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Test listing commands when directories don't exist
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should return empty slice gracefully
+	if len(commands) != 0 {
+		t.Errorf("Expected no commands when directories don't exist, got %d", len(commands))
+	}
+}

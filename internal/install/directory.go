@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/spf13/afero"
 )
@@ -284,4 +286,132 @@ func FindInstalledCommand(fs afero.Fs, commandName string) (CommandLocation, err
 	}
 
 	return CommandLocation{Installed: false}, nil
+}
+
+// ListInstalledCommands lists all installed Claude Code commands from both project and personal directories.
+// It returns a slice of CommandLocation structs sorted alphabetically by command name.
+// The function handles missing directories gracefully by returning an empty slice.
+//
+// Parameters:
+//   - fs: Filesystem abstraction for testing and production use
+//
+// Returns:
+//   - []CommandLocation: Slice of command locations with path and installation information
+//   - error: Any error encountered during directory scanning
+//
+// Example:
+//
+//	commands, err := ListInstalledCommands(fs)
+//	if err != nil {
+//	    // handle error
+//	}
+//	for _, cmd := range commands {
+//	    fmt.Printf("Command: %s at %s\n", filepath.Base(cmd.Path), cmd.Location)
+//	}
+func ListInstalledCommands(fs afero.Fs) ([]CommandLocation, error) {
+	var commands []CommandLocation
+
+	// Check project directory first
+	projectDir, exists, err := GetProjectDir(fs)
+	if err == nil && exists {
+		projectCommands, err := scanDirectoryForCommands(fs, projectDir)
+		if err == nil {
+			commands = append(commands, projectCommands...)
+		}
+	}
+
+	// Check personal directory
+	personalDir, err := GetPersonalDir()
+	if err == nil {
+		exists, err := afero.DirExists(fs, personalDir)
+		if err == nil && exists {
+			personalCommands, err := scanDirectoryForCommands(fs, personalDir)
+			if err == nil {
+				commands = append(commands, personalCommands...)
+			}
+		}
+	}
+
+	// Sort commands alphabetically by name
+	sortCommandsByName(commands)
+
+	return commands, nil
+}
+
+// CommandFileFilter represents the filter criteria for command files
+type CommandFileFilter struct {
+	Extension        string // File extension to match (e.g., ".md")
+	HiddenPrefix     string // Prefix for hidden files to skip (e.g., ".")
+	IncludeOnlyFiles bool   // Whether to include only files (not directories)
+}
+
+// DefaultCommandFileFilter returns the standard filter for Claude Code command files
+func DefaultCommandFileFilter() CommandFileFilter {
+	return CommandFileFilter{
+		Extension:        ".md",
+		HiddenPrefix:     ".",
+		IncludeOnlyFiles: true,
+	}
+}
+
+// ScanDirectoryWithFilter scans a directory for files matching the given filter.
+// This is a shared utility function used by both command listing and counting operations.
+func ScanDirectoryWithFilter(fs afero.Fs, dir string, filter CommandFileFilter) ([]string, error) {
+	files, err := afero.ReadDir(fs, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var matchingFiles []string
+	for _, file := range files {
+		name := file.Name()
+
+		// Skip hidden files
+		if filter.HiddenPrefix != "" && strings.HasPrefix(name, filter.HiddenPrefix) {
+			continue
+		}
+
+		// Apply file-only filter
+		if filter.IncludeOnlyFiles && file.IsDir() {
+			continue
+		}
+
+		// Check extension
+		if filter.Extension != "" && strings.HasSuffix(strings.ToLower(name), filter.Extension) {
+			matchingFiles = append(matchingFiles, filepath.Join(dir, name))
+		}
+	}
+
+	return matchingFiles, nil
+}
+
+// scanDirectoryForCommands scans a directory for .md files and returns CommandLocation structs.
+// This is a helper function used by ListInstalledCommands.
+func scanDirectoryForCommands(fs afero.Fs, dir string) ([]CommandLocation, error) {
+	filePaths, err := ScanDirectoryWithFilter(fs, dir, DefaultCommandFileFilter())
+	if err != nil {
+		return nil, err
+	}
+
+	var commands []CommandLocation
+	for _, filePath := range filePaths {
+		commands = append(commands, CommandLocation{
+			Installed: true,
+			Path:      filePath,
+			Location:  filePath,
+		})
+	}
+
+	return commands, nil
+}
+
+// sortCommandsByName sorts a slice of CommandLocation structs alphabetically by command name.
+// Command name is extracted from the filename by removing the .md extension.
+func sortCommandsByName(commands []CommandLocation) {
+	// Use standard library sort for O(n log n) performance
+	sort.Slice(commands, func(i, j int) bool {
+		nameI := strings.TrimSuffix(filepath.Base(commands[i].Path), ".md")
+		nameJ := strings.TrimSuffix(filepath.Base(commands[j].Path), ".md")
+		return nameI < nameJ
+	})
 }

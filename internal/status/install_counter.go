@@ -4,20 +4,11 @@
 package status
 
 import (
-	"strings"
-
 	"github.com/claude-code-commands/claude-cmd/internal/install"
 	"github.com/spf13/afero"
 )
 
-// Constants for file filtering
-const (
-	// CommandFileExtension is the file extension for Claude Code command files
-	CommandFileExtension = ".md"
-
-	// HiddenFilePrefix is the prefix that indicates a hidden file
-	HiddenFilePrefix = "."
-)
+// Note: File filtering constants moved to install.DefaultCommandFileFilter() for consistency
 
 // InstallCounter provides functionality for counting installed Claude Code commands
 // across personal and project directories. It uses filesystem abstraction for testability
@@ -162,13 +153,8 @@ func (ic *InstallCounter) determinePrimaryLocation(projectCount, personalCount i
 }
 
 // countCommandsInDirectory counts .md files in the specified directory, excluding hidden files.
-// This is an internal helper method that handles directory reading errors gracefully.
-//
-// The function:
-//   - Reads the directory contents
-//   - Filters for .md files
-//   - Excludes hidden files (starting with .)
-//   - Returns 0 on any error for graceful degradation
+// This function now uses the shared directory scanning logic from the install package
+// to eliminate code duplication and ensure consistent file filtering behavior.
 //
 // Parameters:
 //   - dir: Directory path to scan for command files
@@ -176,26 +162,12 @@ func (ic *InstallCounter) determinePrimaryLocation(projectCount, personalCount i
 // Returns:
 //   - int: Number of valid command files found
 func (ic *InstallCounter) countCommandsInDirectory(dir string) int {
-	files, err := afero.ReadDir(ic.fs, dir)
+	// Use shared scanning logic from install package
+	matchingFiles, err := install.ScanDirectoryWithFilter(ic.fs, dir, install.DefaultCommandFileFilter())
 	if err != nil {
 		// Return 0 on error for graceful handling
 		return 0
 	}
 
-	count := 0
-	for _, file := range files {
-		name := file.Name()
-
-		// Skip hidden files
-		if strings.HasPrefix(name, HiddenFilePrefix) {
-			continue
-		}
-
-		// Count only .md files
-		if strings.HasSuffix(strings.ToLower(name), CommandFileExtension) && !file.IsDir() {
-			count++
-		}
-	}
-
-	return count
+	return len(matchingFiles)
 }
