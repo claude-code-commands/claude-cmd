@@ -548,3 +548,141 @@ func TestInfoCommand_NilAllowedTools(t *testing.T) {
 		t.Error("expected output to contain 'None specified' for nil allowed-tools")
 	}
 }
+
+// Test info command with local command
+func TestInfoCommand_LocalCommand(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a local command file in project directory (takes precedence)
+	projectCommandPath := ".claude/commands/my-local-command.md"
+	localCommandContent := `---
+description: My local debugging command
+allowed-tools: Read, Edit, Bash(git:*)
+---
+
+## Your task
+
+This is a local command for debugging.
+`
+
+	// Create directory structure
+	err := fs.MkdirAll(".claude/commands", 0755)
+	if err != nil {
+		t.Fatalf("failed to create directory: %v", err)
+	}
+
+	// Write local command file
+	err = afero.WriteFile(fs, projectCommandPath, []byte(localCommandContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to write local command file: %v", err)
+	}
+
+	// Create a mock cache manager that returns empty manifest (no repository commands)
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version:  "1.0.0",
+			Commands: []cache.Command{}, // Empty repository
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	cmd.SetArgs([]string{"my-local-command"})
+	err = cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for local command, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Verify local command information is displayed
+	if !strings.Contains(outputStr, "Command: my-local-command") {
+		t.Error("expected output to contain command name")
+	}
+
+	if !strings.Contains(outputStr, "Source: Local") {
+		t.Error("expected output to contain 'Source: Local'")
+	}
+
+	if !strings.Contains(outputStr, "My local debugging command") {
+		t.Error("expected output to contain local command description")
+	}
+
+	if !strings.Contains(outputStr, "Read, Edit, Bash(git:*)") {
+		t.Error("expected output to contain local command allowed-tools")
+	}
+
+	if !strings.Contains(outputStr, "Local command at") {
+		t.Error("expected output to contain local command installation status")
+	}
+}
+
+// Test info command with local command (detailed mode)
+func TestInfoCommand_LocalCommandDetailed(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a local command file in project directory (takes precedence)
+	projectCommandPath := ".claude/commands/my-local-command.md"
+	localCommandContent := `---
+description: My local debugging command
+allowed-tools: Read, Edit, Bash(git:*)
+---
+
+## Your task
+
+This is a local command for debugging.
+`
+
+	// Create directory structure
+	err := fs.MkdirAll(".claude/commands", 0755)
+	if err != nil {
+		t.Fatalf("failed to create directory: %v", err)
+	}
+
+	// Write local command file
+	err = afero.WriteFile(fs, projectCommandPath, []byte(localCommandContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to write local command file: %v", err)
+	}
+
+	// Create a mock cache manager that returns empty manifest (no repository commands)
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version:  "1.0.0",
+			Commands: []cache.Command{}, // Empty repository
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	cmd.SetArgs([]string{"my-local-command", "--detailed"})
+	err = cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for local command detailed, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Verify local command information is displayed
+	if !strings.Contains(outputStr, "Source: Local") {
+		t.Error("expected output to contain 'Source: Local'")
+	}
+
+	if !strings.Contains(outputStr, "Content Preview:") {
+		t.Error("expected output to contain 'Content Preview:' in detailed mode")
+	}
+
+	if !strings.Contains(outputStr, "## Your task") {
+		t.Error("expected output to contain command content in detailed mode")
+	}
+}

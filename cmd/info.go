@@ -18,6 +18,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// LocalCommand represents metadata extracted from a local command file
+type LocalCommand struct {
+	Name         string   // Command name (derived from filename)
+	Description  string   // Description from YAML frontmatter
+	AllowedTools []string // Allowed tools from YAML frontmatter
+	Path         string   // Full path to the command file
+	Content      string   // Raw file content
+}
+
 // InfoOption configures the info command
 type InfoOption func(*infoConfig)
 
@@ -80,7 +89,7 @@ Use --detailed flag to fetch and display the complete command file content.`,
 	return cmd
 }
 
-// runInfoCommand executes the info command logic
+// runInfoCommand executes the info command logic with dual-source support
 func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detailed bool, config *infoConfig) error {
 	// Set up default HTTP client if not provided (for detailed mode)
 	if config.httpClient == nil {
@@ -92,32 +101,73 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 		}
 	}
 
+	// Try to find command in repository first
+	repositoryCommand, err := findRepositoryCommand(commandName, config)
+	if err == nil && repositoryCommand != nil {
+		// Found in repository - display repository command info
+		return displayRepositoryCommandInfo(cmd, fs, repositoryCommand, commandName, detailed, config)
+	}
+
+	// Not found in repository - try local commands
+	localCommand, err := findLocalCommand(fs, commandName)
+	if err == nil && localCommand != nil {
+		// Found locally - display local command info
+		return displayLocalCommandInfo(cmd, fs, localCommand, detailed)
+	}
+
+	// Not found anywhere
+	return fmt.Errorf("command %q not found. Run 'claude-cmd list' to see repository commands or 'claude-cmd installed' to see local commands", commandName)
+}
+
+// findRepositoryCommand looks up a command in the repository manifest
+func findRepositoryCommand(commandName string, config *infoConfig) (*cache.Command, error) {
 	// Use shared command setup utilities to eliminate duplication
 	baseConfig := &command.BaseConfig{
 		CacheManager: config.cacheManager,
-		FileSystem:   fs,
+		FileSystem:   afero.NewOsFs(), // Use OS filesystem for repository access
 	}
 
-	manifest, lang, err := command.CommonCommandSetup(baseConfig, getCurrentLanguage)
+	manifest, _, err := command.CommonCommandSetup(baseConfig, getCurrentLanguage)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Look up command in manifest
-	var targetCommand *cache.Command
 	for _, command := range manifest.Commands {
 		if command.Name == commandName {
-			targetCommand = &command
-			break
+			return &command, nil
 		}
 	}
 
-	if targetCommand == nil {
-		return fmt.Errorf("command %q not found. Run 'claude-cmd list' to see available commands", commandName)
+	return nil, fmt.Errorf("command not found in repository")
+}
+
+// findLocalCommand looks up a command in local installations
+func findLocalCommand(fs afero.Fs, commandName string) (*LocalCommand, error) {
+	// Check if command is installed locally
+	location, err := install.FindInstalledCommand(fs, commandName)
+	if err != nil {
+		return nil, err
 	}
 
+	if !location.Installed {
+		return nil, fmt.Errorf("command not found locally")
+	}
+
+	// Parse the local command file
+	localCommand, err := parseLocalCommand(fs, location.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse local command: %w", err)
+	}
+
+	return localCommand, nil
+}
+
+// displayRepositoryCommandInfo displays information for a repository command
+func displayRepositoryCommandInfo(cmd *cobra.Command, fs afero.Fs, targetCommand *cache.Command, commandName string, detailed bool, config *infoConfig) error {
 	// Display basic command information
 	fmt.Fprintf(cmd.OutOrStdout(), "Command: %s\n", targetCommand.Name)
+	fmt.Fprintf(cmd.OutOrStdout(), "Source: Repository\n")
 	fmt.Fprintf(cmd.OutOrStdout(), "Description: %s\n", targetCommand.Description)
 	fmt.Fprintf(cmd.OutOrStdout(), "Repository File: %s\n", targetCommand.File)
 
@@ -141,7 +191,7 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 
 	// Fetch and display detailed content if requested
 	if detailed {
-		err := displayDetailedContent(cmd, fs, targetCommand, lang, config)
+		err := displayDetailedRepositoryContent(cmd, fs, targetCommand, config)
 		if err != nil {
 			// Don't fail completely on detailed mode errors - show basic info
 			fmt.Fprintf(cmd.OutOrStderr(), "\nWarning: Failed to fetch detailed content: %v\n", err)
@@ -151,8 +201,50 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 	return nil
 }
 
-// displayDetailedContent fetches and displays the detailed command content
-func displayDetailedContent(cmd *cobra.Command, fs afero.Fs, command *cache.Command, lang string, config *infoConfig) error {
+// displayLocalCommandInfo displays information for a local command
+func displayLocalCommandInfo(cmd *cobra.Command, fs afero.Fs, localCommand *LocalCommand, detailed bool) error {
+	// Display basic command information
+	fmt.Fprintf(cmd.OutOrStdout(), "Command: %s\n", localCommand.Name)
+	fmt.Fprintf(cmd.OutOrStdout(), "Source: Local\n")
+
+	// Display description (or placeholder if not available)
+	if localCommand.Description != "" {
+		fmt.Fprintf(cmd.OutOrStdout(), "Description: %s\n", localCommand.Description)
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "Description: Local command (no description provided)\n")
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "Local File: %s\n", localCommand.Path)
+
+	// Display allowed-tools information
+	renderAllowedTools(cmd.OutOrStdout(), localCommand.AllowedTools)
+
+	// For local commands, they are always "installed" at their location
+	fmt.Fprintf(cmd.OutOrStdout(), "Installation Status: Local command at %s\n", localCommand.Path)
+
+	// Display detailed content if requested
+	if detailed {
+		fmt.Fprintf(cmd.OutOrStdout(), "\nContent Preview:\n")
+		parsed, err := parseCommandContent(localCommand.Content)
+		if err == nil {
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", parsed.String())
+		} else {
+			// If parsing fails, show raw content (truncated)
+			content := localCommand.Content
+			if len(content) > 500 {
+				content = content[:500] + "\n\n[... content truncated ...]"
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", content)
+		}
+	}
+
+	return nil
+}
+
+// displayDetailedRepositoryContent fetches and displays the detailed command content from repository
+func displayDetailedRepositoryContent(cmd *cobra.Command, fs afero.Fs, command *cache.Command, config *infoConfig) error {
+	// Get current language for repository content
+	lang := getCurrentLanguage(fs)
 	// Sanitize file path to prevent path traversal attacks
 	cleanFile := filepath.ToSlash(path.Clean("/" + command.File))[1:]
 	if strings.Contains(cleanFile, "..") {
@@ -266,4 +358,99 @@ func parseCommandContent(content string) (commandContent, error) {
 		frontmatter: frontmatterRaw,
 		body:        body,
 	}, nil
+}
+
+// parseLocalCommand reads and parses a local command file to extract metadata.
+// It handles YAML frontmatter parsing and extracts description and allowed-tools fields.
+func parseLocalCommand(fs afero.Fs, commandPath string) (*LocalCommand, error) {
+	// Read the command file
+	content, err := afero.ReadFile(fs, commandPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read command file: %w", err)
+	}
+
+	contentStr := string(content)
+	commandName := strings.TrimSuffix(filepath.Base(commandPath), ".md")
+
+	// Initialize local command with basic info
+	localCmd := &LocalCommand{
+		Name:    commandName,
+		Path:    commandPath,
+		Content: contentStr,
+	}
+
+	// Parse YAML frontmatter if present
+	parsed, err := parseCommandContent(contentStr)
+	if err != nil {
+		// If parsing fails, return command with just basic info
+		return localCmd, nil
+	}
+
+	// Extract metadata from frontmatter
+	if parsed.frontmatter != "" {
+		var frontmatterData map[string]interface{}
+		if err := yaml.Unmarshal([]byte(parsed.frontmatter), &frontmatterData); err == nil {
+			// Extract description
+			if desc, ok := frontmatterData["description"].(string); ok {
+				localCmd.Description = desc
+			}
+
+			// Extract allowed-tools using the same parsing logic as the manifest
+			if allowedTools, ok := frontmatterData["allowed-tools"]; ok {
+				localCmd.AllowedTools = parseAllowedToolsFromInterface(allowedTools)
+			}
+		}
+	}
+
+	return localCmd, nil
+}
+
+// parseAllowedToolsFromInterface handles parsing allowed-tools from YAML frontmatter.
+// This is a wrapper around the existing parseAllowedTools function from manifest.go
+// to handle local command YAML parsing.
+func parseAllowedToolsFromInterface(allowedTools interface{}) []string {
+	if allowedTools == nil {
+		return nil
+	}
+
+	switch v := allowedTools.(type) {
+	case string:
+		// Handle comma-separated string format
+		if strings.TrimSpace(v) == "" {
+			return nil
+		}
+		var result []string
+		for _, tool := range strings.Split(v, ",") {
+			tool = strings.TrimSpace(tool)
+			if tool != "" {
+				result = append(result, tool)
+			}
+		}
+		return result
+	case []interface{}:
+		// Handle array format (from YAML)
+		var result []string
+		for _, item := range v {
+			if str, ok := item.(string); ok {
+				tool := strings.TrimSpace(str)
+				if tool != "" {
+					result = append(result, tool)
+				}
+			}
+		}
+		return result
+	case []string:
+		// Handle direct string slice
+		var result []string
+		for _, tool := range v {
+			tool = strings.TrimSpace(tool)
+			if tool != "" {
+				result = append(result, tool)
+			}
+		}
+		return result
+	default:
+		// Unsupported format, return empty slice
+		return nil
+	}
 }
