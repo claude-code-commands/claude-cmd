@@ -202,7 +202,7 @@ func (c commandContent) String() string {
 	if c.frontmatter != "" {
 		result.WriteString("---\n")
 		result.WriteString(c.frontmatter)
-		result.WriteString("---\n\n")
+		result.WriteString("\n---\n\n")
 	}
 
 	// Apply intelligent truncation for content preview
