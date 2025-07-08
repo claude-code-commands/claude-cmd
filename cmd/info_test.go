@@ -408,3 +408,143 @@ func TestInfoCommand_DetailedNetworkError(t *testing.T) {
 		t.Error("expected warning message about failed detailed content fetch")
 	}
 }
+
+// RED PHASE: Test allowed-tools display in basic info mode
+func TestInfoCommand_AllowedToolsDisplay(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a mock cache manager with test data including allowed-tools
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version: "1.0.0",
+			Commands: []cache.Command{
+				{
+					Name:         "debug-help",
+					Description:  "Provide systematic debugging assistance for code issues",
+					File:         "debug-help.md",
+					AllowedTools: []string{"Read", "Bash(git:*)", "Edit(src/**)"}, // This will fail since info command doesn't display this yet
+				},
+			},
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	cmd.SetArgs([]string{"debug-help"})
+	err := cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for valid command, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Verify the output contains allowed-tools information
+	if !strings.Contains(outputStr, "Allowed Tools:") {
+		t.Error("expected output to contain 'Allowed Tools:' section")
+	}
+
+	if !strings.Contains(outputStr, "Read") {
+		t.Error("expected output to contain 'Read' tool")
+	}
+
+	if !strings.Contains(outputStr, "Bash(git:*)") {
+		t.Error("expected output to contain 'Bash(git:*)' tool")
+	}
+
+	if !strings.Contains(outputStr, "Edit(src/**)") {
+		t.Error("expected output to contain 'Edit(src/**)' tool")
+	}
+}
+
+// RED PHASE: Test allowed-tools display when empty
+func TestInfoCommand_EmptyAllowedTools(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a mock cache manager with test data with empty allowed-tools
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version: "1.0.0",
+			Commands: []cache.Command{
+				{
+					Name:         "debug-help",
+					Description:  "Provide systematic debugging assistance for code issues",
+					File:         "debug-help.md",
+					AllowedTools: []string{}, // Empty allowed-tools
+				},
+			},
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	cmd.SetArgs([]string{"debug-help"})
+	err := cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for valid command, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Should show appropriate message for empty allowed-tools
+	if !strings.Contains(outputStr, "Allowed Tools:") {
+		t.Error("expected output to contain 'Allowed Tools:' section")
+	}
+
+	if !strings.Contains(outputStr, "None specified") {
+		t.Error("expected output to contain 'None specified' for empty allowed-tools")
+	}
+}
+
+// RED PHASE: Test allowed-tools display when nil
+func TestInfoCommand_NilAllowedTools(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a mock cache manager with test data with nil allowed-tools
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version: "1.0.0",
+			Commands: []cache.Command{
+				{
+					Name:         "debug-help",
+					Description:  "Provide systematic debugging assistance for code issues",
+					File:         "debug-help.md",
+					AllowedTools: nil, // nil allowed-tools
+				},
+			},
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	cmd.SetArgs([]string{"debug-help"})
+	err := cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for valid command, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Should show appropriate message for nil allowed-tools
+	if !strings.Contains(outputStr, "Allowed Tools:") {
+		t.Error("expected output to contain 'Allowed Tools:' section")
+	}
+
+	if !strings.Contains(outputStr, "None specified") {
+		t.Error("expected output to contain 'None specified' for nil allowed-tools")
+	}
+}

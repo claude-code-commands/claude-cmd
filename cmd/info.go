@@ -121,6 +121,9 @@ func runInfoCommand(cmd *cobra.Command, fs afero.Fs, commandName string, detaile
 	fmt.Fprintf(cmd.OutOrStdout(), "Description: %s\n", targetCommand.Description)
 	fmt.Fprintf(cmd.OutOrStdout(), "Repository File: %s\n", targetCommand.File)
 
+	// Display allowed-tools information
+	renderAllowedTools(cmd.OutOrStdout(), targetCommand.AllowedTools)
+
 	// Check installation status using shared utility
 	location, err := install.FindInstalledCommand(fs, commandName)
 	if err != nil {
@@ -226,6 +229,17 @@ const (
 	maxPreviewCharacters = 500
 	contentTruncateMsg   = "\n\n[... content truncated ...]"
 )
+
+// renderAllowedTools displays allowed-tools information in a consistent format.
+// This function centralizes the rendering logic for allowed-tools to maintain
+// consistency and enable reuse across different commands.
+func renderAllowedTools(w io.Writer, tools []string) {
+	if len(tools) > 0 {
+		fmt.Fprintf(w, "Allowed Tools: %s\n", strings.Join(tools, ", "))
+	} else {
+		fmt.Fprintf(w, "Allowed Tools: None specified\n")
+	}
+}
 
 // parseCommandContent parses YAML frontmatter and markdown content.
 // Handles both files with and without YAML frontmatter gracefully.
