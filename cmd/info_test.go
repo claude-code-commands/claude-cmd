@@ -686,3 +686,152 @@ This is a local command for debugging.
 		t.Error("expected output to contain command content in detailed mode")
 	}
 }
+
+// Test info command with namespaced command
+func TestInfoCommand_NamespacedLocalCommand(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a namespaced local command file in project directory
+	frontendDir := ".claude/commands/frontend"
+	err := fs.MkdirAll(frontendDir, 0755)
+	if err != nil {
+		t.Fatalf("failed to create frontend directory: %v", err)
+	}
+
+	namespacedCommandPath := frontendDir + "/component.md"
+	namespacedCommandContent := `---
+description: Frontend component generator command
+allowed-tools: Read, Edit, Bash(npm:*)
+---
+
+## Your task
+
+Generate React components with proper TypeScript definitions.
+`
+
+	// Write namespaced command file
+	err = afero.WriteFile(fs, namespacedCommandPath, []byte(namespacedCommandContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to write namespaced command file: %v", err)
+	}
+
+	// Create a mock cache manager that returns empty manifest (no repository commands)
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version:  "1.0.0",
+			Commands: []cache.Command{}, // Empty repository
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Test with namespaced command name
+	cmd.SetArgs([]string{"project:frontend:component"})
+	err = cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for namespaced command, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Verify namespaced command information is displayed
+	if !strings.Contains(outputStr, "Command: project:frontend:component") {
+		t.Error("expected output to contain namespaced command name")
+	}
+
+	if !strings.Contains(outputStr, "Source: Local") {
+		t.Error("expected output to contain 'Source: Local'")
+	}
+
+	if !strings.Contains(outputStr, "Frontend component generator command") {
+		t.Error("expected output to contain namespaced command description")
+	}
+
+	if !strings.Contains(outputStr, "Read, Edit, Bash(npm:*)") {
+		t.Error("expected output to contain namespaced command allowed-tools")
+	}
+
+	if !strings.Contains(outputStr, "Namespace: frontend") {
+		t.Error("expected output to show namespace information")
+	}
+}
+
+// Test info command with namespaced command (detailed mode)
+func TestInfoCommand_NamespacedLocalCommandDetailed(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create a namespaced local command file
+	backendDir := ".claude/commands/backend"
+	err := fs.MkdirAll(backendDir, 0755)
+	if err != nil {
+		t.Fatalf("failed to create backend directory: %v", err)
+	}
+
+	namespacedCommandPath := backendDir + "/api.md"
+	namespacedCommandContent := `---
+description: Backend API generator command
+allowed-tools: Read, Edit, Write, Bash(git:*)
+---
+
+## Your task
+
+Generate REST API endpoints with proper validation and error handling.
+
+### Implementation steps:
+1. Create controller files
+2. Add route definitions
+3. Implement validation middleware
+`
+
+	// Write namespaced command file
+	err = afero.WriteFile(fs, namespacedCommandPath, []byte(namespacedCommandContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to write namespaced command file: %v", err)
+	}
+
+	// Create a mock cache manager that returns empty manifest
+	mockCacheManager := &MockCacheManager{
+		manifest: &cache.Manifest{
+			Version:  "1.0.0",
+			Commands: []cache.Command{}, // Empty repository
+		},
+	}
+
+	cmd := newInfoCommand(fs, WithInfoCacheManager(mockCacheManager))
+
+	var output strings.Builder
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Test with namespaced command name and detailed flag
+	cmd.SetArgs([]string{"project:backend:api", "--detailed"})
+	err = cmd.Execute()
+
+	if err != nil {
+		t.Fatalf("expected no error for namespaced command detailed, got: %v", err)
+	}
+
+	outputStr := output.String()
+
+	// Verify namespaced command information is displayed
+	if !strings.Contains(outputStr, "Source: Local") {
+		t.Error("expected output to contain 'Source: Local'")
+	}
+
+	if !strings.Contains(outputStr, "Content Preview:") {
+		t.Error("expected output to contain 'Content Preview:' in detailed mode")
+	}
+
+	if !strings.Contains(outputStr, "Generate REST API endpoints") {
+		t.Error("expected output to contain command content in detailed mode")
+	}
+
+	if !strings.Contains(outputStr, "Implementation steps:") {
+		t.Error("expected output to contain implementation steps in detailed mode")
+	}
+}

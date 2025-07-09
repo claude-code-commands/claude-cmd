@@ -750,3 +750,190 @@ func TestListInstalledCommands_NoDirectories(t *testing.T) {
 		t.Errorf("Expected no commands when directories don't exist, got %d", len(commands))
 	}
 }
+
+// RED PHASE: Test namespace support for namespaced commands in subdirectories
+func TestListInstalledCommands_WithNamespaces(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with namespaced commands
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	// Create frontend namespace directory
+	frontendDir := filepath.Join(projectDir, "frontend")
+	err = fs.MkdirAll(frontendDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create frontend namespace directory: %v", err)
+	}
+
+	// Create backend namespace directory
+	backendDir := filepath.Join(projectDir, "backend")
+	err = fs.MkdirAll(backendDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create backend namespace directory: %v", err)
+	}
+
+	// Add namespaced commands
+	namespacedCommands := map[string]string{
+		"frontend/component.md": "# Component command",
+		"frontend/styles.md":    "# Styles command",
+		"backend/api.md":        "# API command",
+		"backend/database.md":   "# Database command",
+	}
+
+	for path, content := range namespacedCommands {
+		fullPath := filepath.Join(projectDir, path)
+		err = afero.WriteFile(fs, fullPath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write namespaced command %s: %v", path, err)
+		}
+	}
+
+	// Add a non-namespaced command for comparison
+	err = afero.WriteFile(fs, filepath.Join(projectDir, "regular-command.md"), []byte("# Regular command"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write regular command: %v", err)
+	}
+
+	// Test listing commands with namespace support
+	commands, err := ListInstalledCommands(fs)
+	if err != nil {
+		t.Fatalf("Expected ListInstalledCommands to succeed, got error: %v", err)
+	}
+
+	// Should find 5 commands total (4 namespaced + 1 regular)
+	expectedCount := 5
+	if len(commands) != expectedCount {
+		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
+	}
+
+	// Verify namespaced commands have correct full names
+	expectedNamespaces := map[string]string{
+		"project:frontend:component": filepath.Join(projectDir, "frontend", "component.md"),
+		"project:frontend:styles":    filepath.Join(projectDir, "frontend", "styles.md"),
+		"project:backend:api":        filepath.Join(projectDir, "backend", "api.md"),
+		"project:backend:database":   filepath.Join(projectDir, "backend", "database.md"),
+		"regular-command":            filepath.Join(projectDir, "regular-command.md"),
+	}
+
+	foundCommands := make(map[string]string)
+	for _, cmd := range commands {
+		// This will fail until we implement namespace support
+		foundCommands[cmd.FullName] = cmd.Path
+	}
+
+	for expectedName, expectedPath := range expectedNamespaces {
+		if foundPath, exists := foundCommands[expectedName]; !exists {
+			t.Errorf("Expected to find command %s", expectedName)
+		} else if foundPath != expectedPath {
+			t.Errorf("Expected command %s at path %s, got %s", expectedName, expectedPath, foundPath)
+		}
+	}
+}
+
+// RED PHASE: Test namespace extraction from file paths
+func TestExtractNamespaceFromPath(t *testing.T) {
+	testCases := []struct {
+		name         string
+		basePath     string
+		fullPath     string
+		expectedName string
+		expectedNS   string
+	}{
+		{
+			name:         "Frontend component",
+			basePath:     ".claude/commands",
+			fullPath:     ".claude/commands/frontend/component.md",
+			expectedName: "project:frontend:component",
+			expectedNS:   "frontend",
+		},
+		{
+			name:         "Backend API",
+			basePath:     ".claude/commands",
+			fullPath:     ".claude/commands/backend/api.md",
+			expectedName: "project:backend:api",
+			expectedNS:   "backend",
+		},
+		{
+			name:         "Regular command (no namespace)",
+			basePath:     ".claude/commands",
+			fullPath:     ".claude/commands/regular.md",
+			expectedName: "regular",
+			expectedNS:   "",
+		},
+		{
+			name:         "Personal directory frontend command",
+			basePath:     "/home/user/.claude/commands",
+			fullPath:     "/home/user/.claude/commands/frontend/component.md",
+			expectedName: "personal:frontend:component",
+			expectedNS:   "frontend",
+		},
+		{
+			name:         "Nested namespace",
+			basePath:     ".claude/commands",
+			fullPath:     ".claude/commands/frontend/components/button.md",
+			expectedName: "project:frontend:components:button",
+			expectedNS:   "frontend/components",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// This function doesn't exist yet - will fail until implemented
+			fullName, namespace := ExtractNamespaceFromPath(tc.basePath, tc.fullPath)
+
+			if fullName != tc.expectedName {
+				t.Errorf("Expected full name %s, got %s", tc.expectedName, fullName)
+			}
+
+			if namespace != tc.expectedNS {
+				t.Errorf("Expected namespace %s, got %s", tc.expectedNS, namespace)
+			}
+		})
+	}
+}
+
+// RED PHASE: Test finding namespaced commands
+func TestFindInstalledCommand_WithNamespace(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with namespaced command
+	projectDir := "./.claude/commands"
+	frontendDir := filepath.Join(projectDir, "frontend")
+	err := fs.MkdirAll(frontendDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create frontend directory: %v", err)
+	}
+
+	// Add a namespaced command
+	commandPath := filepath.Join(frontendDir, "component.md")
+	err = afero.WriteFile(fs, commandPath, []byte("# Component command"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write command: %v", err)
+	}
+
+	// Test finding command with namespace format
+	location, err := FindInstalledCommand(fs, "project:frontend:component")
+	if err != nil {
+		t.Fatalf("Expected FindInstalledCommand to succeed, got error: %v", err)
+	}
+
+	if !location.Installed {
+		t.Error("Expected namespaced command to be found")
+	}
+
+	if location.Path != commandPath {
+		t.Errorf("Expected path %s, got %s", commandPath, location.Path)
+	}
+
+	if location.FullName != "project:frontend:component" {
+		t.Errorf("Expected full name 'project:frontend:component', got %s", location.FullName)
+	}
+
+	if location.Namespace != "frontend" {
+		t.Errorf("Expected namespace 'frontend', got %s", location.Namespace)
+	}
+}

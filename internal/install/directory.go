@@ -23,6 +23,10 @@ const CommandsSubPath = ".claude/commands"
 // to prevent path traversal attacks. Only letters, numbers, underscores, and hyphens are allowed.
 var validCommandName = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
+// validNamespacedCommandName validates namespaced command names in the format prefix:namespace:command
+// or prefix:namespace:subnamespace:command. Each component must contain only safe characters.
+var validNamespacedCommandName = regexp.MustCompile(`^(personal|project)(:([a-zA-Z0-9_-]+))+$`)
+
 // GetPersonalDir returns the path to the personal Claude Code commands directory.
 // The personal directory is located at ~/.claude/commands/ and is used when
 // no project-specific directory is available.
@@ -214,15 +218,18 @@ type CommandLocation struct {
 	Installed bool   // Whether the command is installed
 	Path      string // Full path to the command file
 	Location  string // Human-readable location description
+	Namespace string // Namespace for the command (e.g., "frontend", "backend")
+	FullName  string // Full namespaced name (e.g., "project:frontend:component")
 }
 
 // FindInstalledCommand searches for an installed command in both project and personal directories.
 // It follows the same precedence order as SelectInstallDir: project directory first, then personal directory.
 // This function consolidates the command-finding logic used by multiple commands.
+// Now supports both regular command names and namespaced command names (e.g., "project:frontend:component").
 //
 // Parameters:
 //   - fs: Filesystem abstraction for testing and production use
-//   - commandName: The name of the command to find (will be validated for security)
+//   - commandName: The name of the command to find (regular or namespaced format)
 //
 // Returns:
 //   - CommandLocation: Information about the command's installation status and location
@@ -231,6 +238,7 @@ type CommandLocation struct {
 // Example:
 //
 //	location, err := FindInstalledCommand(fs, "debug-issue")
+//	location, err := FindInstalledCommand(fs, "project:frontend:component")
 //	if err != nil {
 //	    // handle error
 //	}
@@ -238,7 +246,12 @@ type CommandLocation struct {
 //	    // command found at location.Path
 //	}
 func FindInstalledCommand(fs afero.Fs, commandName string) (CommandLocation, error) {
-	// Validate command name to prevent path traversal attacks
+	// Handle namespaced commands
+	if isNamespacedCommand(commandName) {
+		return findNamespacedCommand(fs, commandName)
+	}
+
+	// Validate regular command name to prevent path traversal attacks
 	if !validCommandName.MatchString(commandName) {
 		return CommandLocation{}, fmt.Errorf("invalid command name %q: only letters, numbers, underscores, and hyphens are allowed", commandName)
 	}
@@ -258,10 +271,14 @@ func FindInstalledCommand(fs afero.Fs, commandName string) (CommandLocation, err
 			return CommandLocation{}, fmt.Errorf("checking project command file: %w", err)
 		}
 		if exists {
+			// Extract namespace information for consistency
+			fullName, namespace := ExtractNamespaceFromPath(projectDir, projectPath)
 			return CommandLocation{
 				Installed: true,
 				Path:      projectPath,
 				Location:  projectPath,
+				Namespace: namespace,
+				FullName:  fullName,
 			}, nil
 		}
 	}
@@ -278,10 +295,75 @@ func FindInstalledCommand(fs afero.Fs, commandName string) (CommandLocation, err
 		return CommandLocation{}, fmt.Errorf("checking personal command file: %w", err)
 	}
 	if exists {
+		// Extract namespace information for consistency
+		fullName, namespace := ExtractNamespaceFromPath(personalDir, personalPath)
 		return CommandLocation{
 			Installed: true,
 			Path:      personalPath,
 			Location:  personalPath,
+			Namespace: namespace,
+			FullName:  fullName,
+		}, nil
+	}
+
+	return CommandLocation{Installed: false}, nil
+}
+
+// findNamespacedCommand searches for a command using namespaced format
+func findNamespacedCommand(fs afero.Fs, namespacedName string) (CommandLocation, error) {
+	prefix, namespaceComponents, commandName := parseNamespacedCommand(namespacedName)
+
+	// Validate individual components
+	if !validCommandName.MatchString(commandName) {
+		return CommandLocation{}, fmt.Errorf("invalid command name in %q: only letters, numbers, underscores, and hyphens are allowed", namespacedName)
+	}
+
+	for _, component := range namespaceComponents {
+		if !validCommandName.MatchString(component) {
+			return CommandLocation{}, fmt.Errorf("invalid namespace component %q in %q: only letters, numbers, underscores, and hyphens are allowed", component, namespacedName)
+		}
+	}
+
+	// Determine which directory to search based on prefix
+	var baseDir string
+	var err error
+
+	switch prefix {
+	case "project":
+		projectDir, exists, dirErr := GetProjectDir(fs)
+		if dirErr != nil {
+			return CommandLocation{}, fmt.Errorf("checking project directory: %w", dirErr)
+		}
+		if !exists {
+			return CommandLocation{Installed: false}, nil
+		}
+		baseDir = projectDir
+	case "personal":
+		baseDir, err = GetPersonalDir()
+		if err != nil {
+			return CommandLocation{}, fmt.Errorf("getting personal directory: %w", err)
+		}
+	default:
+		return CommandLocation{}, fmt.Errorf("invalid namespace prefix %q: must be 'project' or 'personal'", prefix)
+	}
+
+	// Construct the command path
+	namespace := strings.Join(namespaceComponents, ":")
+	commandPath := constructCommandPath(baseDir, namespace, commandName)
+
+	// Check if the command file exists
+	exists, err := afero.Exists(fs, commandPath)
+	if err != nil {
+		return CommandLocation{}, fmt.Errorf("checking namespaced command file: %w", err)
+	}
+
+	if exists {
+		return CommandLocation{
+			Installed: true,
+			Path:      commandPath,
+			Location:  commandPath,
+			Namespace: strings.Join(namespaceComponents, "/"), // Use forward slashes for display
+			FullName:  namespacedName,
 		}, nil
 	}
 
@@ -343,6 +425,7 @@ type CommandFileFilter struct {
 	Extension        string // File extension to match (e.g., ".md")
 	HiddenPrefix     string // Prefix for hidden files to skip (e.g., ".")
 	IncludeOnlyFiles bool   // Whether to include only files (not directories)
+	Recursive        bool   // Whether to scan subdirectories recursively for namespace support
 }
 
 // DefaultCommandFileFilter returns the standard filter for Claude Code command files
@@ -351,12 +434,22 @@ func DefaultCommandFileFilter() CommandFileFilter {
 		Extension:        ".md",
 		HiddenPrefix:     ".",
 		IncludeOnlyFiles: true,
+		Recursive:        true, // Enable recursive scanning for namespace support
 	}
 }
 
 // ScanDirectoryWithFilter scans a directory for files matching the given filter.
 // This is a shared utility function used by both command listing and counting operations.
+// When Recursive is enabled, it scans subdirectories to support namespace functionality.
 func ScanDirectoryWithFilter(fs afero.Fs, dir string, filter CommandFileFilter) ([]string, error) {
+	if filter.Recursive {
+		return scanDirectoryRecursive(fs, dir, filter)
+	}
+	return scanDirectoryShallow(fs, dir, filter)
+}
+
+// scanDirectoryShallow performs non-recursive directory scanning (original behavior)
+func scanDirectoryShallow(fs afero.Fs, dir string, filter CommandFileFilter) ([]string, error) {
 	files, err := afero.ReadDir(fs, dir)
 	if err != nil {
 		return nil, err
@@ -385,8 +478,49 @@ func ScanDirectoryWithFilter(fs afero.Fs, dir string, filter CommandFileFilter) 
 	return matchingFiles, nil
 }
 
+// scanDirectoryRecursive performs recursive directory scanning to support namespaces
+func scanDirectoryRecursive(fs afero.Fs, dir string, filter CommandFileFilter) ([]string, error) {
+	var matchingFiles []string
+
+	err := afero.Walk(fs, dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip the root directory itself
+		if path == dir {
+			return nil
+		}
+
+		name := info.Name()
+
+		// Skip hidden files and directories
+		if filter.HiddenPrefix != "" && strings.HasPrefix(name, filter.HiddenPrefix) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Only process files if IncludeOnlyFiles is set
+		if filter.IncludeOnlyFiles && info.IsDir() {
+			return nil
+		}
+
+		// Check extension for files
+		if !info.IsDir() && filter.Extension != "" && strings.HasSuffix(strings.ToLower(name), filter.Extension) {
+			matchingFiles = append(matchingFiles, path)
+		}
+
+		return nil
+	})
+
+	return matchingFiles, err
+}
+
 // scanDirectoryForCommands scans a directory for .md files and returns CommandLocation structs.
 // This is a helper function used by ListInstalledCommands.
+// It now supports namespace extraction for commands in subdirectories.
 func scanDirectoryForCommands(fs afero.Fs, dir string) ([]CommandLocation, error) {
 	filePaths, err := ScanDirectoryWithFilter(fs, dir, DefaultCommandFileFilter())
 	if err != nil {
@@ -395,10 +529,15 @@ func scanDirectoryForCommands(fs afero.Fs, dir string) ([]CommandLocation, error
 
 	var commands []CommandLocation
 	for _, filePath := range filePaths {
+		// Extract namespace information from file path
+		fullName, namespace := ExtractNamespaceFromPath(dir, filePath)
+
 		commands = append(commands, CommandLocation{
 			Installed: true,
 			Path:      filePath,
 			Location:  filePath,
+			Namespace: namespace,
+			FullName:  fullName,
 		})
 	}
 
@@ -414,4 +553,113 @@ func sortCommandsByName(commands []CommandLocation) {
 		nameJ := strings.TrimSuffix(filepath.Base(commands[j].Path), ".md")
 		return nameI < nameJ
 	})
+}
+
+// ExtractNamespaceFromPath extracts namespace information from a command file path.
+// It returns the full namespaced command name and the namespace component.
+//
+// For commands in subdirectories, it creates namespaced names in the format:
+//   - Project commands: "project:namespace:command" or "project:namespace:subnamespace:command"
+//   - Personal commands: "personal:namespace:command" or "personal:namespace:subnamespace:command"
+//   - Regular commands: "command" (no namespace)
+//
+// Parameters:
+//   - basePath: The base commands directory path (e.g., ".claude/commands" or "/home/user/.claude/commands")
+//   - fullPath: The full path to the command file
+//
+// Returns:
+//   - string: The full namespaced command name
+//   - string: The namespace component (empty for non-namespaced commands)
+//
+// Example:
+//
+//	basePath: ".claude/commands"
+//	fullPath: ".claude/commands/frontend/component.md"
+//	returns: "project:frontend:component", "frontend"
+func ExtractNamespaceFromPath(basePath, fullPath string) (string, string) {
+	// Clean paths to ensure consistent comparison
+	basePath = filepath.Clean(basePath)
+	fullPath = filepath.Clean(fullPath)
+
+	// Get relative path from base to full path
+	relPath, err := filepath.Rel(basePath, fullPath)
+	if err != nil {
+		// Fallback: extract command name from filename only
+		commandName := strings.TrimSuffix(filepath.Base(fullPath), ".md")
+		return commandName, ""
+	}
+
+	// Split the relative path into components
+	pathComponents := strings.Split(filepath.ToSlash(relPath), "/")
+
+	// Extract command name (last component without .md extension)
+	commandName := strings.TrimSuffix(pathComponents[len(pathComponents)-1], ".md")
+
+	// Determine prefix based on base path
+	var prefix string
+	if strings.Contains(basePath, ".claude/commands") &&
+		(strings.HasPrefix(basePath, "./") || strings.HasPrefix(basePath, ".claude/") || !strings.HasPrefix(basePath, "/")) {
+		prefix = "project"
+	} else {
+		prefix = "personal"
+	}
+
+	// If only one component (command file directly in base directory), no namespace
+	if len(pathComponents) == 1 {
+		return commandName, ""
+	}
+
+	// Build namespace from directory components (excluding the command file)
+	namespaceComponents := pathComponents[:len(pathComponents)-1]
+	namespace := strings.Join(namespaceComponents, "/")
+
+	// Build full namespaced name
+	fullName := prefix + ":" + strings.Join(namespaceComponents, ":") + ":" + commandName
+
+	return fullName, namespace
+}
+
+// isNamespacedCommand determines if a command name is in namespaced format
+func isNamespacedCommand(commandName string) bool {
+	return validNamespacedCommandName.MatchString(commandName) || strings.Contains(commandName, ":")
+}
+
+// parseNamespacedCommand parses a namespaced command name into its components.
+// Returns prefix, namespace components, and command name.
+//
+// Example:
+//
+//	"project:frontend:component" -> "project", ["frontend"], "component"
+//	"personal:backend:api:create" -> "personal", ["backend", "api"], "create"
+func parseNamespacedCommand(namespacedName string) (prefix string, namespaceComponents []string, commandName string) {
+	parts := strings.Split(namespacedName, ":")
+	if len(parts) < 2 {
+		// Not a valid namespaced command
+		return "", nil, namespacedName
+	}
+
+	prefix = parts[0]
+	if len(parts) == 2 {
+		// Format: "prefix:command" (no namespace)
+		return prefix, nil, parts[1]
+	}
+
+	// Format: "prefix:namespace:...:command"
+	commandName = parts[len(parts)-1]
+	namespaceComponents = parts[1 : len(parts)-1]
+
+	return prefix, namespaceComponents, commandName
+}
+
+// constructCommandPath builds the file path for a namespaced command.
+// It takes a base directory and namespace information to construct the full path.
+func constructCommandPath(baseDir, namespace, commandName string) string {
+	if namespace == "" {
+		// Non-namespaced command
+		return filepath.Join(baseDir, commandName+".md")
+	}
+
+	// Convert namespace to directory path
+	namespacePath := strings.ReplaceAll(namespace, ":", string(filepath.Separator))
+	return filepath.Join(baseDir, namespacePath, commandName+".md")
 }

@@ -237,3 +237,92 @@ func TestInstalledCommand_PersonalOnly(t *testing.T) {
 		t.Errorf("Expected no project commands, but found some in output: %s", outputStr)
 	}
 }
+
+// TestInstalledCommand_WithNamespaces tests namespace display functionality
+func TestInstalledCommand_WithNamespaces(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	// Create project directory with namespaced commands
+	projectDir := "./.claude/commands"
+	err := fs.MkdirAll(projectDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create project directory: %v", err)
+	}
+
+	// Create frontend namespace directory
+	frontendDir := filepath.Join(projectDir, "frontend")
+	err = fs.MkdirAll(frontendDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create frontend namespace directory: %v", err)
+	}
+
+	// Create backend namespace directory
+	backendDir := filepath.Join(projectDir, "backend")
+	err = fs.MkdirAll(backendDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create backend namespace directory: %v", err)
+	}
+
+	// Add namespaced commands
+	namespacedCommands := map[string]string{
+		"frontend/component.md": "# Component command",
+		"frontend/styles.md":    "# Styles command",
+		"backend/api.md":        "# API command",
+	}
+
+	for path, content := range namespacedCommands {
+		fullPath := filepath.Join(projectDir, path)
+		err = afero.WriteFile(fs, fullPath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write namespaced command %s: %v", path, err)
+		}
+	}
+
+	// Add a regular command for comparison
+	err = afero.WriteFile(fs, filepath.Join(projectDir, "regular-command.md"), []byte("# Regular command"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write regular command: %v", err)
+	}
+
+	// Create installed command
+	cmd := newInstalledCommand(fs)
+
+	// Capture output
+	var output bytes.Buffer
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Execute command
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatalf("Expected command to succeed, got error: %v", err)
+	}
+
+	// Verify output
+	outputStr := output.String()
+
+	// Should show 4 commands total
+	if !strings.Contains(outputStr, "4 total") {
+		t.Errorf("Expected output to contain '4 total' commands, got: %s", outputStr)
+	}
+
+	// Should display namespaced command names
+	expectedNamespaces := []string{
+		"project:frontend:component",
+		"project:frontend:styles",
+		"project:backend:api",
+		"regular-command", // Non-namespaced command
+	}
+
+	for _, expectedName := range expectedNamespaces {
+		if !strings.Contains(outputStr, expectedName) {
+			t.Errorf("Expected output to contain command %s, got: %s", expectedName, outputStr)
+		}
+	}
+
+	// All should be marked as project commands
+	projectCount := strings.Count(outputStr, "(project)")
+	if projectCount != 4 {
+		t.Errorf("Expected 4 project commands, found %d in output: %s", projectCount, outputStr)
+	}
+}

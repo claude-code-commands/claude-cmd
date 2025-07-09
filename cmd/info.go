@@ -25,6 +25,8 @@ type LocalCommand struct {
 	AllowedTools []string // Allowed tools from YAML frontmatter
 	Path         string   // Full path to the command file
 	Content      string   // Raw file content
+	Namespace    string   // Namespace for the command (e.g., "frontend", "backend")
+	FullName     string   // Full namespaced name (e.g., "project:frontend:component")
 }
 
 // InfoOption configures the info command
@@ -160,6 +162,10 @@ func findLocalCommand(fs afero.Fs, commandName string) (*LocalCommand, error) {
 		return nil, fmt.Errorf("failed to parse local command: %w", err)
 	}
 
+	// Add namespace information from the location
+	localCommand.Namespace = location.Namespace
+	localCommand.FullName = location.FullName
+
 	return localCommand, nil
 }
 
@@ -203,8 +209,14 @@ func displayRepositoryCommandInfo(cmd *cobra.Command, fs afero.Fs, targetCommand
 
 // displayLocalCommandInfo displays information for a local command
 func displayLocalCommandInfo(cmd *cobra.Command, fs afero.Fs, localCommand *LocalCommand, detailed bool) error {
-	// Display basic command information
-	fmt.Fprintf(cmd.OutOrStdout(), "Command: %s\n", localCommand.Name)
+	// Display basic command information - use full name if available
+	var displayName string
+	if localCommand.FullName != "" {
+		displayName = localCommand.FullName
+	} else {
+		displayName = localCommand.Name
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Command: %s\n", displayName)
 	fmt.Fprintf(cmd.OutOrStdout(), "Source: Local\n")
 
 	// Display description (or placeholder if not available)
@@ -215,6 +227,11 @@ func displayLocalCommandInfo(cmd *cobra.Command, fs afero.Fs, localCommand *Loca
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Local File: %s\n", localCommand.Path)
+
+	// Display namespace information if available
+	if localCommand.Namespace != "" {
+		fmt.Fprintf(cmd.OutOrStdout(), "Namespace: %s\n", localCommand.Namespace)
+	}
 
 	// Display allowed-tools information
 	renderAllowedTools(cmd.OutOrStdout(), localCommand.AllowedTools)

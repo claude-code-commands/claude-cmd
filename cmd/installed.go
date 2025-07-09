@@ -64,11 +64,18 @@ func renderInstalledList(w io.Writer, commands []install.CommandLocation) {
 	// Display commands with count summary
 	fmt.Fprintf(w, "Installed Claude Code commands (%d total):\n\n", len(commands))
 
-	// Display each command with its location
+	// Display each command with its location, using full name for namespaced commands
 	for _, command := range commands {
-		commandName := strings.TrimSuffix(filepath.Base(command.Path), ".md")
+		var displayName string
+		if command.FullName != "" {
+			displayName = command.FullName
+		} else {
+			// Fallback for legacy commands without FullName
+			displayName = strings.TrimSuffix(filepath.Base(command.Path), ".md")
+		}
+
 		location := getLocationLabel(command.Path)
-		fmt.Fprintf(w, "  %-20s (%s)\n", commandName, location)
+		fmt.Fprintf(w, "  %-30s (%s)\n", displayName, location)
 	}
 }
 
