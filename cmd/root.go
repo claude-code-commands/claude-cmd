@@ -6,6 +6,7 @@ import (
 
 	"github.com/claude-code-commands/claude-cmd/internal/interfaces"
 	"github.com/claude-code-commands/claude-cmd/internal/status"
+	"github.com/claude-code-commands/claude-cmd/pkg/config"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +21,7 @@ type rootConfig struct {
 	statusEnabled bool                             // Enable status dashboard display on root command
 	statusFormat  string                           // Output format for status (default, compact, detailed, json)
 	cacheManager  interfaces.CacheManagerInterface // Custom cache manager for dependency injection
+	showVersion   bool                             // Show version information
 }
 
 // WithStatusEnabled enables or disables status display on root command.
@@ -50,6 +52,15 @@ func WithStatusCacheManager(cm interfaces.CacheManagerInterface) RootOption {
 	return func(config *rootConfig) {
 		config.cacheManager = cm
 	}
+}
+
+// GetFullVersion returns the full version string including build information.
+// This method provides a convenient way to access version information from the root config.
+//
+// Returns:
+//   - string: A formatted version string with all build information
+func (c *rootConfig) GetFullVersion() string {
+	return config.GetFullVersion()
 }
 
 // rootCmd will be initialized in init() with status functionality enabled
@@ -121,6 +132,9 @@ way to extend Claude Code with community-contributed commands.`,
 		},
 	}
 
+	// Add version flag
+	cmd.Flags().BoolVarP(&config.showVersion, "version", "v", false, "Show version information")
+
 	// Add format flag when status is enabled
 	if config.statusEnabled {
 		cmd.Flags().StringVar(&config.statusFormat, "format", "default", "Output format (default, compact, json)")
@@ -152,6 +166,12 @@ way to extend Claude Code with community-contributed commands.`,
 // Returns:
 //   - error: Any error encountered during execution (nil for help output)
 func runRootCommand(cmd *cobra.Command, fs afero.Fs, config *rootConfig) error {
+	// Check if version flag is set
+	if config.showVersion {
+		fmt.Fprintln(cmd.OutOrStdout(), config.GetFullVersion())
+		return nil
+	}
+
 	if config.statusEnabled {
 		return runRootCommandWithStatus(cmd, fs, config)
 	}
