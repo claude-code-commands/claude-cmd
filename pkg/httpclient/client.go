@@ -39,11 +39,11 @@ func NewClient(opts ...ClientOption) *Client {
 			Timeout: 30 * time.Second, // reasonable default
 		},
 	}
-	
+
 	for _, opt := range opts {
 		opt(c)
 	}
-	
+
 	return c
 }
 

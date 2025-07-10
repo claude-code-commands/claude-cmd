@@ -8,7 +8,7 @@ import (
 
 func TestCommandError(t *testing.T) {
 	baseErr := errors.New("base error")
-	
+
 	tests := []struct {
 		name      string
 		operation string
@@ -30,14 +30,14 @@ func TestCommandError(t *testing.T) {
 			want:      "parse JSON failed: base error (malformed data)",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmdErr := NewCommandError(tt.operation, tt.err, tt.context...)
 			if cmdErr.Error() != tt.want {
 				t.Errorf("CommandError.Error() = %q, want %q", cmdErr.Error(), tt.want)
 			}
-			
+
 			// Test unwrapping
 			if !errors.Is(cmdErr, baseErr) {
 				t.Error("CommandError should wrap the base error")
@@ -48,19 +48,19 @@ func TestCommandError(t *testing.T) {
 
 func TestWrap(t *testing.T) {
 	baseErr := errors.New("base error")
-	
+
 	wrappedErr := Wrap(baseErr, "additional context")
 	expected := "additional context: base error"
-	
+
 	if wrappedErr.Error() != expected {
 		t.Errorf("Wrap() = %q, want %q", wrappedErr.Error(), expected)
 	}
-	
+
 	// Test that it preserves error chain
 	if !errors.Is(wrappedErr, baseErr) {
 		t.Error("Wrap() should preserve error chain")
 	}
-	
+
 	// Test with nil error
 	if Wrap(nil, "message") != nil {
 		t.Error("Wrap(nil, message) should return nil")
@@ -105,7 +105,7 @@ func TestErrorTypeCheckers(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.checker(tt.err)
@@ -153,7 +153,7 @@ func TestUserFriendlyError(t *testing.T) {
 			want: "generic error",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := UserFriendlyError(tt.err)

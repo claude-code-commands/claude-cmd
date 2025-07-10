@@ -20,11 +20,11 @@ func testManifest(opts ...func(*Manifest)) *Manifest {
 			},
 		},
 	}
-	
+
 	for _, opt := range opts {
 		opt(manifest)
 	}
-	
+
 	return manifest
 }
 
@@ -56,7 +56,7 @@ func invalidCommand(missingFields ...string) Command {
 		Description: "A test command",
 		File:        "test-command.md",
 	}
-	
+
 	for _, field := range missingFields {
 		switch field {
 		case "name":
@@ -67,7 +67,7 @@ func invalidCommand(missingFields ...string) Command {
 			cmd.File = ""
 		}
 	}
-	
+
 	return cmd
 }
 

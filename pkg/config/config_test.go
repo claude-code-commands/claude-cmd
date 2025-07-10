@@ -19,7 +19,7 @@ func TestDefaultLanguage(t *testing.T) {
 	}
 	// Ensure it's a valid two-letter language code
 	if len(DefaultLanguage) != 2 {
-		t.Errorf("DefaultLanguage should be a 2-character ISO 639-1 code, got %q with length %d", 
+		t.Errorf("DefaultLanguage should be a 2-character ISO 639-1 code, got %q with length %d",
 			DefaultLanguage, len(DefaultLanguage))
 	}
 }
@@ -30,19 +30,19 @@ func TestDefaultRepositoryURL(t *testing.T) {
 	if DefaultRepositoryURL == "" {
 		t.Error("DefaultRepositoryURL should not be empty")
 	}
-	
+
 	// Should be a GitHub raw content URL
 	expectedPrefix := "https://raw.githubusercontent.com/"
 	if !strings.HasPrefix(DefaultRepositoryURL, expectedPrefix) {
 		t.Errorf("DefaultRepositoryURL should start with %q, got %q", expectedPrefix, DefaultRepositoryURL)
 	}
-	
+
 	// Should point to the commands repository
 	if !strings.Contains(DefaultRepositoryURL, "claude-code-commands/commands") {
-		t.Errorf("DefaultRepositoryURL should reference claude-code-commands/commands repository, got %q", 
+		t.Errorf("DefaultRepositoryURL should reference claude-code-commands/commands repository, got %q",
 			DefaultRepositoryURL)
 	}
-	
+
 	// Should point to main branch
 	if !strings.Contains(DefaultRepositoryURL, "/main") {
 		t.Errorf("DefaultRepositoryURL should reference main branch, got %q", DefaultRepositoryURL)
@@ -60,10 +60,10 @@ func TestConstantsAreExported(t *testing.T) {
 // TestConfig_LoadSave tests the Config struct with YAML marshal/unmarshal functionality
 func TestConfig_LoadSave(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         Config
-		expectedYAML   string
-		shouldFail     bool
+		name         string
+		config       Config
+		expectedYAML string
+		shouldFail   bool
 	}{
 		{
 			name: "Default configuration",
@@ -84,8 +84,8 @@ func TestConfig_LoadSave(t *testing.T) {
 			shouldFail:   false,
 		},
 		{
-			name: "Empty configuration should use defaults",
-			config: Config{},
+			name:         "Empty configuration should use defaults",
+			config:       Config{},
 			expectedYAML: "language: \"\"\nrepository_url: \"\"\n",
 			shouldFail:   false,
 		},
@@ -99,14 +99,14 @@ func TestConfig_LoadSave(t *testing.T) {
 			// Test Save functionality
 			configPath := "/test/config.yaml"
 			err := tt.config.Save(fs, configPath)
-			
+
 			if tt.shouldFail {
 				if err == nil {
 					t.Error("Save() expected error, got nil")
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Errorf("Save() unexpected error: %v", err)
 				return
@@ -145,7 +145,7 @@ func TestConfig_LoadSave(t *testing.T) {
 func TestConfig_LoadMissingFile(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	var config Config
-	
+
 	err := config.Load(fs, "/nonexistent/config.yaml")
 	if err == nil {
 		t.Error("Load() expected error for missing file, got nil")
@@ -156,10 +156,10 @@ func TestConfig_SaveInvalidPath(t *testing.T) {
 	// Use a read-only filesystem to simulate permission error
 	fs := afero.NewReadOnlyFs(afero.NewMemMapFs())
 	config := Config{
-		Language: "en",
+		Language:      "en",
 		RepositoryURL: "https://example.com",
 	}
-	
+
 	// Try to save to read-only filesystem
 	err := config.Save(fs, "/config.yaml")
 	if err == nil {
@@ -210,7 +210,7 @@ func TestConfig_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.shouldFail && err == nil {
 				t.Error("Validate() expected error, got nil")
 			}
@@ -228,24 +228,24 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 	defer func() { userConfigDir = originalUserConfigDir }()
 
 	tests := []struct {
-		name                 string
+		name                string
 		setupFiles          map[string]string // path -> content
-		mockConfigDir       string           // mocked user config directory
-		mockConfigDirError  error            // error to return from userConfigDir
-		expectedProjectPath  string
-		expectedGlobalPath   string
+		mockConfigDir       string            // mocked user config directory
+		mockConfigDirError  error             // error to return from userConfigDir
+		expectedProjectPath string
+		expectedGlobalPath  string
 		expectError         bool
 	}{
 		{
 			name: "Both project and global config exist",
 			setupFiles: map[string]string{
-				".claude/config.yaml":                      "language: en\n",
+				".claude/config.yaml":                       "language: en\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\n",
 			},
 			mockConfigDir:       "/home/user/.config",
 			expectedProjectPath: ".claude/config.yaml",
 			expectedGlobalPath:  "/home/user/.config/claude-cmd/config.yaml",
-			expectError:        false,
+			expectError:         false,
 		},
 		{
 			name: "Only project config exists",
@@ -255,7 +255,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 			mockConfigDir:       "/home/user/.config",
 			expectedProjectPath: ".claude/config.yaml",
 			expectedGlobalPath:  "",
-			expectError:        false,
+			expectError:         false,
 		},
 		{
 			name: "Only global config exists",
@@ -265,15 +265,15 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 			mockConfigDir:       "/home/user/.config",
 			expectedProjectPath: "",
 			expectedGlobalPath:  "/home/user/.config/claude-cmd/config.yaml",
-			expectError:        false,
+			expectError:         false,
 		},
 		{
 			name:                "No config files exist",
-			setupFiles:         map[string]string{},
+			setupFiles:          map[string]string{},
 			mockConfigDir:       "/home/user/.config",
 			expectedProjectPath: "",
 			expectedGlobalPath:  "",
-			expectError:        false,
+			expectError:         false,
 		},
 		{
 			name: "User config directory unavailable",
@@ -283,7 +283,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 			mockConfigDirError:  errors.New("user config dir not available"),
 			expectedProjectPath: ".claude/config.yaml",
 			expectedGlobalPath:  "",
-			expectError:        false,
+			expectError:         false,
 		},
 	}
 
@@ -291,7 +291,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create in-memory filesystem for testing
 			fs := afero.NewMemMapFs()
-			
+
 			// Mock userConfigDir function
 			userConfigDir = func() (string, error) {
 				if tt.mockConfigDirError != nil {
@@ -299,7 +299,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 				}
 				return tt.mockConfigDir, nil
 			}
-			
+
 			// Set up test files
 			for path, content := range tt.setupFiles {
 				err := afero.WriteFile(fs, path, []byte(content), 0644)
@@ -310,7 +310,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 
 			// Call FindConfigFiles function
 			projectPath, globalPath, err := FindConfigFiles(fs)
-			
+
 			if tt.expectError && err == nil {
 				t.Error("FindConfigFiles() expected error, got nil")
 				return
@@ -325,7 +325,7 @@ func TestFindConfigFiles_ProjectAndGlobal(t *testing.T) {
 				t.Errorf("FindConfigFiles() project path = %q, expected %q", projectPath, tt.expectedProjectPath)
 			}
 
-			// Verify global path  
+			// Verify global path
 			if globalPath != tt.expectedGlobalPath {
 				t.Errorf("FindConfigFiles() global path = %q, expected %q", globalPath, tt.expectedGlobalPath)
 			}
@@ -342,19 +342,19 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupFiles     map[string]string // path -> content
-		mockConfigDir  string           // mocked user config directory
+		mockConfigDir  string            // mocked user config directory
 		expectedConfig Config
 		expectError    bool
 	}{
 		{
 			name: "Project config overrides global config",
 			setupFiles: map[string]string{
-				".claude/config.yaml": "language: en\nrepository_url: https://project.example.com\n",
+				".claude/config.yaml":                       "language: en\nrepository_url: https://project.example.com\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\nrepository_url: https://global.example.com\n",
 			},
 			mockConfigDir: "/home/user/.config",
 			expectedConfig: Config{
-				Language:      "en",  // from project config
+				Language:      "en",                          // from project config
 				RepositoryURL: "https://project.example.com", // from project config
 			},
 			expectError: false,
@@ -374,19 +374,19 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 		{
 			name: "Project config only (partial) merged with global config",
 			setupFiles: map[string]string{
-				".claude/config.yaml": "language: en\n", // missing repository_url
+				".claude/config.yaml":                       "language: en\n", // missing repository_url
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\nrepository_url: https://global.example.com\n",
 			},
 			mockConfigDir: "/home/user/.config",
 			expectedConfig: Config{
-				Language:      "en", // from project config
+				Language:      "en",                         // from project config
 				RepositoryURL: "https://global.example.com", // from global config
 			},
 			expectError: false,
 		},
 		{
-			name: "Defaults used when no config files exist",
-			setupFiles: map[string]string{},
+			name:          "Defaults used when no config files exist",
+			setupFiles:    map[string]string{},
 			mockConfigDir: "/home/user/.config",
 			expectedConfig: Config{
 				Language:      DefaultLanguage,
@@ -397,21 +397,21 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 		{
 			name: "Invalid project config should fail",
 			setupFiles: map[string]string{
-				".claude/config.yaml": "language: invalid-lang\nrepository_url: https://project.example.com\n",
+				".claude/config.yaml":                       "language: invalid-lang\nrepository_url: https://project.example.com\n",
 				"/home/user/.config/claude-cmd/config.yaml": "language: fr\nrepository_url: https://global.example.com\n",
 			},
-			mockConfigDir: "/home/user/.config",
+			mockConfigDir:  "/home/user/.config",
 			expectedConfig: Config{}, // should not be populated due to error
-			expectError: true,
+			expectError:    true,
 		},
 		{
 			name: "Invalid global config should fail",
 			setupFiles: map[string]string{
 				"/home/user/.config/claude-cmd/config.yaml": "language: invalid-lang\nrepository_url: not-a-url\n",
 			},
-			mockConfigDir: "/home/user/.config",
+			mockConfigDir:  "/home/user/.config",
 			expectedConfig: Config{}, // should not be populated due to error
-			expectError: true,
+			expectError:    true,
 		},
 	}
 
@@ -419,12 +419,12 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create in-memory filesystem for testing
 			fs := afero.NewMemMapFs()
-			
+
 			// Mock userConfigDir function
 			userConfigDir = func() (string, error) {
 				return tt.mockConfigDir, nil
 			}
-			
+
 			// Set up test files
 			for path, content := range tt.setupFiles {
 				err := afero.WriteFile(fs, path, []byte(content), 0644)
@@ -435,7 +435,7 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 
 			// Call LoadConfig function
 			config, err := LoadConfig(fs)
-			
+
 			if tt.expectError && err == nil {
 				t.Error("LoadConfig() expected error, got nil")
 				return
@@ -444,7 +444,7 @@ func TestLoadConfig_MergeOrder(t *testing.T) {
 				t.Errorf("LoadConfig() unexpected error: %v", err)
 				return
 			}
-			
+
 			if tt.expectError {
 				return // Skip config verification for error cases
 			}
