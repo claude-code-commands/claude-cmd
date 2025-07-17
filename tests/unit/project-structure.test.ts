@@ -1,9 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { existsSync } from "node:fs";
 
 describe("Project Structure", () => {
-  const projectRoot = join(__dirname, "../../");
+  const projectRoot = join(import.meta.dir, "../../");
   
   it("should have all required directories", () => {
     const requiredDirectories = [
@@ -20,17 +20,17 @@ describe("Project Structure", () => {
       "docs"
     ];
 
-    requiredDirectories.forEach(dir => {
+    for (const dir of requiredDirectories) {
       const dirPath = join(projectRoot, dir);
-      expect(existsSync(dirPath)).toBe(true);
-    });
+      expect(existsSync(dirPath), `${dirPath} doesn't exist`).toBe(true);
+    }
   });
 
-  it("should have package.json with correct configuration", () => {
+  it("should have package.json with correct configuration", async () => {
     const packageJsonPath = join(projectRoot, "package.json");
-    expect(existsSync(packageJsonPath)).toBe(true);
+    expect(await Bun.file(packageJsonPath).exists()).toBe(true);
     
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    const packageJson = await Bun.file(packageJsonPath).json();
     expect(packageJson.name).toBe("claude-cmd");
     expect(packageJson.type).toBe("module");
     expect(packageJson.scripts).toHaveProperty("test");
@@ -38,23 +38,23 @@ describe("Project Structure", () => {
     expect(packageJson.scripts).toHaveProperty("start");
   });
 
-  it("should have TypeScript configuration", () => {
+  it("should have TypeScript configuration", async () => {
     const tsconfigPath = join(projectRoot, "tsconfig.json");
-    expect(existsSync(tsconfigPath)).toBe(true);
+    expect(await Bun.file(tsconfigPath).exists()).toBe(true);
     
-    const tsconfig = JSON.parse(readFileSync(tsconfigPath, "utf-8"));
+    const tsconfig = await Bun.file(tsconfigPath).json();
     expect(tsconfig.compilerOptions).toHaveProperty("target");
     expect(tsconfig.compilerOptions).toHaveProperty("module");
     expect(tsconfig.compilerOptions).toHaveProperty("moduleResolution");
   });
 
-  it("should have main entry point", () => {
+  it("should have main entry point", async () => {
     const mainPath = join(projectRoot, "src/main.ts");
-    expect(existsSync(mainPath)).toBe(true);
+    expect(await Bun.file(mainPath).exists()).toBe(true);
   });
 
-  it("should have gitignore file", () => {
+  it("should have gitignore file", async () => {
     const gitignorePath = join(projectRoot, ".gitignore");
-    expect(existsSync(gitignorePath)).toBe(true);
+    expect(await Bun.file(gitignorePath).exists()).toBe(true);
   });
 });
