@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
 export const infoCommand = new Command("info")
-  .description("Info displays detailed information about a Claude Code slash command from the repository.\nShows command description, installation status, and optionally the full command content.")
+  .description("Display detailed information about a Claude Code slash command from the repository.")
   .argument("<command-name>", "Name of the command to show info for")
   .option("-d, --detailed", "Show detailed command content with full file preview")
   .action((commandName, options) => {

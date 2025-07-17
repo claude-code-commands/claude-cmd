@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
 export const completionCommand = new Command("completion")
-  .description("Generate the autocompletion script for claude-cmd for the specified shell.\nSee each sub-command's help for details on how to use the generated script.");
+  .description("Generate the autocompletion script for claude-cmd for the specified shell.");
 
 completionCommand
   .command("bash")

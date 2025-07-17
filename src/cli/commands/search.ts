@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
 export const searchCommand = new Command("search")
-  .description("Search finds Claude Code commands by name or description.\nYou can search by partial matches in command names or descriptions.")
+  .description("Find Claude Code commands by name or description.")
   .argument("<query>", "Search query")
   .option("-c, --category <category>", "Filter results by category")
   .action((query, options) => {

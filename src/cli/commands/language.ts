@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
 export const languageCommand = new Command("language")
-  .description("Manage language settings for claude-cmd.\nLanguage settings determine which language-specific command repository\nto use for command retrieval. The language can be set at the global level\nvia configuration files or overridden per-command via CLI flags.");
+  .description("Manage language settings for claude-cmd.");
 
 languageCommand
   .command("list")

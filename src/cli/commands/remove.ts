@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
 export const removeCommand = new Command("remove")
-  .description("Remove an installed Claude Code command from your local system.\nThis command will search for the specified command in both project-specific\n(./.claude/commands/) and personal (~/.claude/commands/) directories and\nremove it after confirmation.")
+  .description("Remove an installed Claude Code command from your local system.")
   .argument("<command-name>", "Name of the command to remove")
   .option("-y, --yes", "Skip confirmation prompt")
   .action((commandName, options) => {
