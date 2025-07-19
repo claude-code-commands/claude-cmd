@@ -12,25 +12,41 @@ class InMemoryFileService implements IFileService {
 		this.fs = {};
 		// Convert legacy file format to new entry format
 		for (const [path, content] of Object.entries(initialFiles)) {
+			if (path.endsWith("/")) {
+				this.fs[path] = { type: "directory" };
+				continue;
+			}
 			this.fs[path] = { type: "file", content };
 		}
 	}
 	readFile(path: string): Promise<string> {
 		const entry = this.fs[path];
 		if (!entry || entry.type !== "file") {
-			throw new Error(`File not found: ${path}`);
+			return Promise.reject(`File not found: ${path}`);
 		}
 		return Promise.resolve(entry.content);
 	}
 
 	writeFile(path: string, content: string): Promise<void> {
-		this.fs[path] = { type: "file", content };
+		// Check for collision with directory at same logical location
+		const dirPath = path.endsWith("/") ? path : path + "/";
+		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
+		
+		if (this.fs[filePath]?.type === "directory" || this.fs[dirPath]?.type === "directory") {
+			return Promise.reject(`Cannot write file: ${path} conflicts with directory`);
+		}
+
+		this.fs[filePath] = { type: "file", content };
 		return Promise.resolve();
 	}
 
 	exists(path: string): Promise<boolean> {
+		// Normalize paths for consistent lookups
+		const dirPath = path.endsWith("/") ? path : path + "/";
+		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
+		
 		// Direct match (file or explicitly created directory)
-		if (path in this.fs) {
+		if (this.fs[filePath] || this.fs[dirPath]) {
 			return Promise.resolve(true);
 		}
 
@@ -47,10 +63,21 @@ class InMemoryFileService implements IFileService {
 	}
 
 	mkdir(path: string): Promise<void> {
-		if (path in this.fs) {
+		// Normalize paths for collision detection
+		const dirPath = path.endsWith("/") ? path : path + "/";
+		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
+		
+		// Check if directory already exists (idempotent)
+		if (this.fs[dirPath]?.type === "directory") {
 			return Promise.resolve();
 		}
-		this.fs[path] = { type: "directory" };
+		
+		// Check for collision with file at same logical location
+		if (this.fs[filePath]?.type === "file") {
+			return Promise.reject(`Cannot create directory: ${path} conflicts with file`);
+		}
+		
+		this.fs[dirPath] = { type: "directory" };
 		return Promise.resolve();
 	}
 }

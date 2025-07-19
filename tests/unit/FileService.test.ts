@@ -27,9 +27,8 @@ describe("In Memory FileService", () => {
 		test("should override file content", async () => {
 			expect(await fileService.readFile("/path/to/file")).toBe("file content");
 			expect(
-				async () =>
-					await fileService.writeFile("/path/to/file", "new file content"),
-			).not.toThrow();
+				fileService.writeFile("/path/to/file", "new file content"),
+			).resolves.toBeUndefined();
 			expect(await fileService.readFile("/path/to/file")).toBe(
 				"new file content",
 			);
@@ -38,10 +37,19 @@ describe("In Memory FileService", () => {
 		test("should create file if it doesn't exist", async () => {
 			expect(await fileService.exists("/path/to/new-file")).toBe(false);
 			expect(
-				async () =>
-					await fileService.writeFile("/path/to/new-file", "new file content"),
-			).not.toThrow();
+				fileService.writeFile("/path/to/new-file", "new file content"),
+			).resolves.toBeUndefined();
 			expect(await fileService.exists("/path/to/new-file")).toBe(true);
+		});
+
+		test("shouldn't work when a directory already exists", async () => {
+			const fileService = new InMemoryFileService({
+				"/path/to/": "",
+			});
+			expect(await fileService.exists("/path/to/")).toBe(true);
+			expect(
+				fileService.writeFile("/path/to", "new file content"),
+			).rejects.toThrow(`Cannot write file: /path/to conflicts with directory`);
 		});
 	});
 
@@ -83,6 +91,16 @@ describe("In Memory FileService", () => {
 			expect(await fileService.exists("/path/to/dir")).toBe(true);
 			expect(async () => await fileService.mkdir("/path/to/dir")).not.toThrow();
 			expect(await fileService.exists("/path/to/dir")).toBe(true);
+		});
+
+		test("shouldn't work when a file already exists", async () => {
+			const fileService = new InMemoryFileService({
+				"/path/to/existing": "file content",
+			});
+			expect(await fileService.exists("/path/to/existing")).toBe(true);
+			expect(fileService.mkdir("/path/to/existing/")).rejects.toThrow(
+				`Cannot create directory: /path/to/existing/ conflicts with file`,
+			);
 		});
 	});
 });
