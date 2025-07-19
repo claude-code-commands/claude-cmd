@@ -1,31 +1,32 @@
 {
-  "name": "claude-cmd",
-  "version": "0.1.0",
-  "description": "CLI package manager for Claude Code slash commands",
-  "type": "module",
-  "main": "dist/main.js",
-  "bin": {
-    "claude-cmd": "dist/main.js"
-  },
-  "scripts": {
-    "test": "bun test",
-    "build": "bun build src/main.ts --outdir=dist --target=bun",
-    "start": "bun src/main.ts",
-    "dev": "bun --watch src/main.ts"
-  },
-  "keywords": [
-    "claude",
-    "cli",
-    "commands",
-    "package-manager"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "commander": "^14.0.0"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5"
-  }
+	"name": "claude-cmd",
+	"version": "0.1.0",
+	"description": "CLI package manager for Claude Code slash commands",
+	"type": "module",
+	"main": "dist/main.js",
+	"bin": {
+		"claude-cmd": "dist/main.js"
+	},
+	"scripts": {
+		"test": "bun test",
+		"build": "bun build src/main.ts --outdir=dist --target=bun",
+		"start": "bun src/main.ts",
+		"dev": "bun --watch src/main.ts"
+	},
+	"keywords": [
+		"claude",
+		"cli",
+		"commands",
+		"package-manager"
+	],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"commander": "^14.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.1.2",
+		"@types/bun": "latest",
+		"typescript": "^5"
+	}
 }
