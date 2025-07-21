@@ -36,6 +36,36 @@ export default class MockHTTPClient implements IHTTPClient {
 							description: "Provide systematic debugging assistance for code issues",
 							file: "debug-help.md",
 							"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"]
+						},
+						{
+							name: "frontend:component",
+							description: "Generate React components with best practices",
+							file: "frontend-component.md",
+							"allowed-tools": "Write,Edit,Read"
+						},
+						{
+							name: "backend:api",
+							description: "Create REST API endpoints with proper structure",
+							file: "backend-api.md",
+							"allowed-tools": ["Write", "Edit", "Bash"]
+						},
+						{
+							name: "code-review",
+							description: "Systematic code review assistance",
+							file: "code-review.md",
+							"allowed-tools": ["Read", "Grep", "Edit"]
+						},
+						{
+							name: "test-gen",
+							description: "Generate comprehensive test suites",
+							file: "test-gen.md",
+							"allowed-tools": ["Read", "Write", "Edit", "Bash"]
+						},
+						{
+							name: "content-error",
+							description: "Command that simulates content error",
+							file: "content-error.md",
+							"allowed-tools": ["Read"]
 						}
 					]
 				}),
@@ -54,9 +84,21 @@ export default class MockHTTPClient implements IHTTPClient {
 					commands: [
 						{
 							name: "debug-help",
-							description: "Fournir une assistance de débogage systématique",
+							description: "Fournir une assistance de débogage systématique pour les problèmes de code",
 							file: "debug-help.md",
 							"allowed-tools": ["Read", "Glob", "Grep", "Edit"]
+						},
+						{
+							name: "missing-file",
+							description: "Command that simulates missing file error",
+							file: "missing-file.md",
+							"allowed-tools": ["Read"]
+						},
+						{
+							name: "frontend:component",
+							description: "Générer des composants React avec les meilleures pratiques",
+							file: "frontend-component.md",
+							"allowed-tools": ["Write", "Edit", "Read"]
 						}
 					]
 				}),
@@ -64,14 +106,74 @@ export default class MockHTTPClient implements IHTTPClient {
 			};
 		}
 		
-		if (url.includes('/debug-help.md')) {
+		// Handle command content requests
+		if (url.includes('/en/debug-help.md')) {
 			return {
 				status: 200,
 				statusText: 'OK',
 				headers: { 'content-type': 'text/markdown' },
-				body: "# Debug Help\n\nThis command provides systematic debugging assistance for code issues.",
+				body: "# Debug Help\n\nThis command provides systematic debugging assistance for code issues.\n\n## Usage\n\nUse this command when you need debugging assistance.",
 				url
 			};
+		}
+		
+		if (url.includes('/fr/debug-help.md')) {
+			return {
+				status: 200,
+				statusText: 'OK',
+				headers: { 'content-type': 'text/markdown' },
+				body: "# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique.\n\n## Utilisation\n\nUtilisez cette commande pour obtenir de l'aide.",
+				url
+			};
+		}
+		
+		if (url.includes('/en/frontend-component.md')) {
+			return {
+				status: 200,
+				statusText: 'OK',
+				headers: { 'content-type': 'text/markdown' },
+				body: "# Frontend Component\n\nGenerate React components with best practices.",
+				url
+			};
+		}
+		
+		if (url.includes('/en/backend-api.md')) {
+			return {
+				status: 200,
+				statusText: 'OK',
+				headers: { 'content-type': 'text/markdown' },
+				body: "# Backend API\n\nCreate REST API endpoints with proper structure.",
+				url
+			};
+		}
+		
+		if (url.includes('/en/code-review.md')) {
+			return {
+				status: 200,
+				statusText: 'OK',
+				headers: { 'content-type': 'text/markdown' },
+				body: "# Code Review\n\nSystematic code review assistance.",
+				url
+			};
+		}
+		
+		if (url.includes('/en/test-gen.md')) {
+			return {
+				status: 200,
+				statusText: 'OK',
+				headers: { 'content-type': 'text/markdown' },
+				body: "# Test Generation\n\nGenerate comprehensive test suites.",
+				url
+			};
+		}
+		
+		// Error simulation for specific commands
+		if (url.includes('/en/content-error.md')) {
+			throw new HTTPNetworkError(url, 'File corrupted');
+		}
+		
+		if (url.includes('/fr/missing-file.md')) {
+			throw new HTTPStatusError(url, 404, 'File not found on server');
 		}
 		
 		// Simulate various error conditions for testing

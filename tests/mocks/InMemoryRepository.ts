@@ -145,7 +145,7 @@ class InMemoryRepository implements IRepository {
 
 		this.manifests.set("en", enManifest);
 
-		// French manifest with fewer commands
+		// French manifest with fewer commands (matches MockHTTPClient)
 		const frManifest: Manifest = {
 			version: "1.0.0",
 			updated: "2025-07-08T12:00:00Z",
@@ -157,16 +157,16 @@ class InMemoryRepository implements IRepository {
 					"allowed-tools": ["Read", "Glob", "Grep", "Edit"]
 				},
 				{
-					name: "code-review",
-					description: "Effectuer une révision de code complète avec des suggestions de meilleures pratiques",
-					file: "code-review.md",
-					"allowed-tools": ["Read", "Glob", "Grep", "Edit"]
-				},
-				{
 					name: "missing-file",
-					description: "Test command for missing file scenarios",
+					description: "Command that simulates missing file error",
 					file: "missing-file.md",
 					"allowed-tools": ["Read"]
+				},
+				{
+					name: "frontend:component",
+					description: "Générer des composants React avec les meilleures pratiques",
+					file: "frontend-component.md",
+					"allowed-tools": ["Write", "Edit", "Read"]
 				}
 			]
 		};
@@ -198,17 +198,18 @@ class InMemoryRepository implements IRepository {
 			"# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique pour les problèmes de code.\n\n## Utilisation\n\nDécrivez votre problème et je vous aiderai à le déboguer étape par étape."
 		);
 
-		this.commands.set("fr:code-review", 
-			"# Révision de code\n\nCette commande effectue une révision de code complète avec des suggestions.\n\n## Utilisation\n\nPartagez votre code et je fournirai des commentaires détaillés."
+		this.commands.set("fr:frontend:component", 
+			"# Composant Frontend\n\nCette commande génère des composants React avec les meilleures pratiques.\n\n## Utilisation\n\nDécrivez le composant dont vous avez besoin et je le créerai."
 		);
 
-		// Error scenarios
+		// Error scenarios for manifests
 		this.manifests.set("invalid-lang", new ManifestError("invalid-lang", "Language not supported"));
 		this.manifests.set("network-error", new ManifestError("network-error", "Network connection failed"));
 		this.manifests.set("timeout", new ManifestError("timeout", "Request timed out"));
 
-		this.commands.set("en:non-existent", new CommandNotFoundError("non-existent", "en"));
+		// Error scenarios for commands - these should be exceptions for specific test cases
 		this.commands.set("en:content-error", new CommandContentError("content-error", "en", "File corrupted"));
+		// missing-file command in French should throw error instead of returning content
 		this.commands.set("fr:missing-file", new CommandContentError("missing-file", "fr", "File not found on server"));
 	}
 
@@ -340,17 +341,27 @@ class InMemoryRepository implements IRepository {
 	 * @throws CommandContentError when command file cannot be retrieved
 	 */
 	async getCommand(commandName: string, language: string, options?: RepositoryOptions): Promise<string> {
+		// First verify the command exists in the manifest - ALWAYS do this check
+		const manifest = await this.getManifest(language, options);
+		const command = manifest.commands.find(cmd => cmd.name === commandName);
+
+		if (!command) {
+			// Record the request even for validation failures
+			this.addToRequestHistory({ 
+				method: "getCommand", 
+				language, 
+				commandName, 
+				options, 
+				httpCalled: false, 
+				fileCalled: false 
+			});
+			throw new CommandNotFoundError(commandName, language);
+		}
+
 		let httpCalled = false;
 		let fileCalled = false;
 
 		try {
-			// First verify the command exists in the manifest
-			const manifest = await this.getManifest(language, options);
-			const command = manifest.commands.find(cmd => cmd.name === commandName);
-
-			if (!command) {
-				throw new CommandNotFoundError(commandName, language);
-			}
 
 			// Simulate cache check using FileService
 			const cacheKey = `command-${language}-${commandName}.md`;

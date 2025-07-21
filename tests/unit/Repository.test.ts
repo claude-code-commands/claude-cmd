@@ -373,9 +373,10 @@ describe("Repository Interface", () => {
 		});
 
 		test("should use injected FileService for caching operations", async () => {
-			await repository.getManifest("en", { forceRefresh: true });
+			// First call should trigger cache check (exists) and write to cache 
+			await repository.getManifest("en");
 
-			// Verify FileService was used for caching
+			// Verify FileService was used for both cache checking and writing
 			const fileHistory = mockFileService.getOperationHistory();
 			expect(fileHistory.length).toBeGreaterThan(0);
 			expect(fileHistory.some((op) => op.operation === "exists")).toBe(true);
