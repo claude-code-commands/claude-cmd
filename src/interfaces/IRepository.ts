@@ -1,4 +1,18 @@
 import type { Manifest, RepositoryOptions } from "../types/Command.js";
+import type IHTTPClient from "./IHTTPClient.js";
+import type IFileService from "./IFileService.js";
+
+/**
+ * Cache configuration for repository operations
+ */
+export interface CacheConfig {
+	/** Directory path for cached files */
+	readonly cacheDir: string;
+	/** Time-to-live in milliseconds for cached content */
+	readonly ttl: number;
+	/** Maximum cache size in bytes (optional) */
+	readonly maxSize?: number;
+}
 
 /**
  * Repository interface for command manifest and content operations
@@ -8,6 +22,9 @@ import type { Manifest, RepositoryOptions } from "../types/Command.js";
  * caching optimizations.
  * 
  * All operations are language-aware and support caching hints for performance optimization.
+ * 
+ * Implementations must accept HTTPClient and FileService dependencies for proper
+ * testability and adherence to the abstracted I/O architecture.
  */
 export default interface IRepository {
 	/**
@@ -40,4 +57,32 @@ export default interface IRepository {
 	 * @throws RepositoryError for other repository-related failures
 	 */
 	getCommand(commandName: string, language: string, options?: RepositoryOptions): Promise<string>;
+}
+
+/**
+ * Factory interface for creating Repository instances with proper dependency injection
+ * 
+ * This ensures all Repository implementations accept the required HTTPClient and FileService
+ * dependencies for proper testability and adherence to abstracted I/O principles.
+ */
+export interface IRepositoryFactory {
+	/**
+	 * Create a new Repository instance with injected dependencies
+	 * 
+	 * @param httpClient - HTTP client for network operations
+	 * @param fileService - File service for local caching operations
+	 * @param cacheConfig - Optional cache configuration
+	 * @returns Repository instance ready for use
+	 */
+	create(httpClient: IHTTPClient, fileService: IFileService, cacheConfig?: CacheConfig): IRepository;
+}
+
+/**
+ * Constructor interface for Repository implementations
+ * 
+ * All Repository implementations should accept these dependencies in their constructor
+ * to enable proper dependency injection and testing.
+ */
+export interface IRepositoryConstructor {
+	new (httpClient: IHTTPClient, fileService: IFileService, cacheConfig?: CacheConfig): IRepository;
 }
