@@ -28,7 +28,10 @@ export interface HTTPResponse {
  * Base class for all HTTP-related errors
  */
 export abstract class HTTPError extends Error {
-	constructor(message: string, public readonly url: string) {
+	constructor(
+		message: string,
+		public readonly url: string,
+	) {
 		super(message);
 		this.name = this.constructor.name;
 	}
@@ -78,14 +81,14 @@ export class HTTPStatusError extends HTTPError {
 
 /**
  * HTTP client interface for network operations
- * 
+ *
  * Provides a simple abstraction for HTTP GET requests with timeout support.
  * Designed to be minimal but extensible for future HTTP methods.
  */
 export default interface IHTTPClient {
 	/**
 	 * Perform an HTTP GET request
-	 * 
+	 *
 	 * @param url - The URL to request
 	 * @param options - Optional request configuration
 	 * @returns Promise resolving to HTTP response

@@ -2,7 +2,10 @@
  * Base class for all file system operation errors
  */
 export abstract class FileSystemError extends Error {
-	constructor(message: string, public readonly path: string) {
+	constructor(
+		message: string,
+		public readonly path: string,
+	) {
 		super(message);
 		this.name = this.constructor.name;
 	}
@@ -43,14 +46,14 @@ export class FileIOError extends FileSystemError {
 
 /**
  * File service interface for local file system operations
- * 
+ *
  * Provides abstractions for file operations needed by repository caching.
  * All methods are async and may throw FileSystemError subclasses.
- * 
+ *
  * @example
  * ```typescript
  * const fileService: IFileService = new BunFileService();
- * 
+ *
  * try {
  *   const content = await fileService.readFile('/path/to/file.txt');
  * } catch (error) {
@@ -63,7 +66,7 @@ export class FileIOError extends FileSystemError {
 export default interface IFileService {
 	/**
 	 * Read content from a file
-	 * 
+	 *
 	 * @param path - Absolute or relative path to the file
 	 * @returns Promise resolving to file content as string
 	 * @throws FileNotFoundError when file doesn't exist
@@ -74,7 +77,7 @@ export default interface IFileService {
 
 	/**
 	 * Write content to a file, creating directories as needed
-	 * 
+	 *
 	 * @param path - Absolute or relative path to the file
 	 * @param content - Content to write to the file
 	 * @returns Promise that resolves when write is complete
@@ -85,7 +88,7 @@ export default interface IFileService {
 
 	/**
 	 * Check if a file or directory exists
-	 * 
+	 *
 	 * @param path - Absolute or relative path to check
 	 * @returns Promise resolving to true if path exists, false otherwise
 	 * @throws FileIOError for unexpected I/O failures during check
@@ -94,7 +97,7 @@ export default interface IFileService {
 
 	/**
 	 * Create a directory, including parent directories as needed
-	 * 
+	 *
 	 * @param path - Absolute or relative path to the directory
 	 * @returns Promise that resolves when directory is created
 	 * @throws FilePermissionError when create access is denied

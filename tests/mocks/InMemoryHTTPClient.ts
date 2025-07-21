@@ -1,18 +1,21 @@
 import type IHTTPClient from "../../src/interfaces/IHTTPClient.ts";
-import type { HTTPOptions, HTTPResponse } from "../../src/interfaces/IHTTPClient.ts";
+import type {
+	HTTPOptions,
+	HTTPResponse,
+} from "../../src/interfaces/IHTTPClient.ts";
 import {
-	HTTPTimeoutError,
 	HTTPNetworkError,
 	HTTPStatusError,
+	HTTPTimeoutError,
 } from "../../src/interfaces/IHTTPClient.ts";
 
 /**
  * In-memory HTTP client implementation for testing
- * 
+ *
  * Simulates HTTP responses based on URL patterns and can trigger various error conditions
  * for comprehensive testing scenarios. Provides a deterministic mock for unit testing
  * without requiring actual network connectivity.
- * 
+ *
  * @example
  * ```typescript
  * const client = new InMemoryHTTPClient();
@@ -24,7 +27,10 @@ class InMemoryHTTPClient implements IHTTPClient {
 	/** Pre-configured responses mapped by URL */
 	private readonly responses: Map<string, HTTPResponse | Error>;
 	/** History of all requests made to this client instance */
-	private readonly requestHistory: Array<{ url: string; options?: HTTPOptions }>;
+	private readonly requestHistory: Array<{
+		url: string;
+		options?: HTTPOptions;
+	}>;
 
 	constructor() {
 		this.responses = new Map();
@@ -42,7 +48,7 @@ class InMemoryHTTPClient implements IHTTPClient {
 			statusText: "OK",
 			headers: {
 				"content-type": "application/json",
-				"server": "nginx/1.18.0",
+				server: "nginx/1.18.0",
 			},
 			body: '{"message": "Hello, World!", "data": [1, 2, 3]}',
 			url: "https://api.example.com/data",
@@ -89,36 +95,50 @@ class InMemoryHTTPClient implements IHTTPClient {
 		});
 
 		// HTTP status error responses
-		this.responses.set("https://api.example.com/not-found", 
-			new HTTPStatusError("https://api.example.com/not-found", 404, "Not Found")
+		this.responses.set(
+			"https://api.example.com/not-found",
+			new HTTPStatusError(
+				"https://api.example.com/not-found",
+				404,
+				"Not Found",
+			),
 		);
 
-		this.responses.set("https://api.example.com/server-error", 
-			new HTTPStatusError("https://api.example.com/server-error", 500, "Internal Server Error")
+		this.responses.set(
+			"https://api.example.com/server-error",
+			new HTTPStatusError(
+				"https://api.example.com/server-error",
+				500,
+				"Internal Server Error",
+			),
 		);
 
-		this.responses.set("https://invalid-domain-that-does-not-exist.com", 
-			new HTTPNetworkError("https://invalid-domain-that-does-not-exist.com", "DNS lookup failed")
+		this.responses.set(
+			"https://invalid-domain-that-does-not-exist.com",
+			new HTTPNetworkError(
+				"https://invalid-domain-that-does-not-exist.com",
+				"DNS lookup failed",
+			),
 		);
 
 		// Network timeout simulation
-		this.responses.set("https://api.example.com/slow", 
-			new HTTPTimeoutError("https://api.example.com/slow", 100)
+		this.responses.set(
+			"https://api.example.com/slow",
+			new HTTPTimeoutError("https://api.example.com/slow", 100),
 		);
 
 		// Invalid URL format responses
-		this.responses.set("not-a-valid-url", 
-			new HTTPNetworkError("not-a-valid-url", "Invalid URL format")
+		this.responses.set(
+			"not-a-valid-url",
+			new HTTPNetworkError("not-a-valid-url", "Invalid URL format"),
 		);
 
-		this.responses.set("", 
-			new HTTPNetworkError("", "Empty URL")
-		);
+		this.responses.set("", new HTTPNetworkError("", "Empty URL"));
 	}
 
 	/**
 	 * Perform an HTTP GET request using pre-configured response mappings
-	 * 
+	 *
 	 * @param url - The URL to request
 	 * @param options - Optional request configuration
 	 * @returns Promise resolving to HTTP response or throwing configured error
@@ -132,7 +152,7 @@ class InMemoryHTTPClient implements IHTTPClient {
 
 		// Extract timeout with sensible default
 		const timeout = options?.timeout ?? 5000;
-		
+
 		// Simulate timeout behavior for slow endpoint
 		if (url === "https://api.example.com/slow" && timeout < 1000) {
 			throw new HTTPTimeoutError(url, timeout);
@@ -151,14 +171,14 @@ class InMemoryHTTPClient implements IHTTPClient {
 		}
 
 		// Simulate minimal network delay for realism
-		await new Promise(resolve => setTimeout(resolve, 1));
+		await new Promise((resolve) => setTimeout(resolve, 1));
 
 		return response;
 	}
 
 	/**
 	 * Get the history of requests made to this client (for testing verification)
-	 * 
+	 *
 	 * @returns Copy of request history to prevent external modification
 	 */
 	getRequestHistory(): Array<{ url: string; options?: HTTPOptions }> {
@@ -174,7 +194,7 @@ class InMemoryHTTPClient implements IHTTPClient {
 
 	/**
 	 * Add a custom response mapping for dynamic testing scenarios
-	 * 
+	 *
 	 * @param url - The URL to map
 	 * @param response - The response or error to return for this URL
 	 */

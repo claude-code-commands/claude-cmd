@@ -29,11 +29,16 @@ class InMemoryFileService implements IFileService {
 
 	writeFile(path: string, content: string): Promise<void> {
 		// Check for collision with directory at same logical location
-		const dirPath = path.endsWith("/") ? path : path + "/";
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
-		
-		if (this.fs[filePath]?.type === "directory" || this.fs[dirPath]?.type === "directory") {
-			return Promise.reject(`Cannot write file: ${path} conflicts with directory`);
+
+		if (
+			this.fs[filePath]?.type === "directory" ||
+			this.fs[dirPath]?.type === "directory"
+		) {
+			return Promise.reject(
+				`Cannot write file: ${path} conflicts with directory`,
+			);
 		}
 
 		this.fs[filePath] = { type: "file", content };
@@ -42,9 +47,9 @@ class InMemoryFileService implements IFileService {
 
 	exists(path: string): Promise<boolean> {
 		// Normalize paths for consistent lookups
-		const dirPath = path.endsWith("/") ? path : path + "/";
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
-		
+
 		// Direct match (file or explicitly created directory)
 		if (this.fs[filePath] || this.fs[dirPath]) {
 			return Promise.resolve(true);
@@ -64,19 +69,21 @@ class InMemoryFileService implements IFileService {
 
 	mkdir(path: string): Promise<void> {
 		// Normalize paths for collision detection
-		const dirPath = path.endsWith("/") ? path : path + "/";
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
-		
+
 		// Check if directory already exists (idempotent)
 		if (this.fs[dirPath]?.type === "directory") {
 			return Promise.resolve();
 		}
-		
+
 		// Check for collision with file at same logical location
 		if (this.fs[filePath]?.type === "file") {
-			return Promise.reject(`Cannot create directory: ${path} conflicts with file`);
+			return Promise.reject(
+				`Cannot create directory: ${path} conflicts with file`,
+			);
 		}
-		
+
 		this.fs[dirPath] = { type: "directory" };
 		return Promise.resolve();
 	}

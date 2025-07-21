@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type IHTTPClient from "../../src/interfaces/IHTTPClient.ts";
 import {
-	HTTPTimeoutError,
 	HTTPNetworkError,
 	HTTPStatusError,
+	HTTPTimeoutError,
 } from "../../src/interfaces/IHTTPClient.ts";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.ts";
 
@@ -17,7 +17,7 @@ describe("InMemory HTTPClient", () => {
 	describe("get method", () => {
 		test("should perform successful GET request", async () => {
 			const response = await httpClient.get("https://api.example.com/data");
-			
+
 			expect(response.status).toBe(200);
 			expect(response.statusText).toBe("OK");
 			expect(response.body).toBeTruthy();
@@ -28,7 +28,7 @@ describe("InMemory HTTPClient", () => {
 		test("should handle custom headers in request", async () => {
 			const headers = {
 				"User-Agent": "claude-cmd/1.0",
-				"Accept": "application/json",
+				Accept: "application/json",
 			};
 
 			const response = await httpClient.get("https://api.example.com/data", {
@@ -104,7 +104,7 @@ describe("InMemory HTTPClient", () => {
 
 		test("should include URL in all error types", async () => {
 			const url = "https://api.example.com/not-found";
-			
+
 			try {
 				await httpClient.get(url);
 			} catch (error) {
@@ -114,15 +114,11 @@ describe("InMemory HTTPClient", () => {
 		});
 
 		test("should handle malformed URLs", async () => {
-			expect(
-				httpClient.get("not-a-valid-url"),
-			).rejects.toThrow();
+			expect(httpClient.get("not-a-valid-url")).rejects.toThrow();
 		});
 
 		test("should handle empty URL", async () => {
-			expect(
-				httpClient.get(""),
-			).rejects.toThrow();
+			expect(httpClient.get("")).rejects.toThrow();
 		});
 	});
 
@@ -140,7 +136,7 @@ describe("InMemory HTTPClient", () => {
 
 		test("should include timeout value in timeout error message", async () => {
 			const timeout = 100;
-			
+
 			try {
 				await httpClient.get("https://api.example.com/slow", { timeout });
 			} catch (error) {
@@ -187,7 +183,7 @@ describe("InMemory HTTPClient", () => {
 
 		test("should preserve request headers", async () => {
 			const headers = {
-				"Authorization": "Bearer token123",
+				Authorization: "Bearer token123",
 				"Content-Type": "application/json",
 			};
 

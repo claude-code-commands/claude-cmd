@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type IRepository from "../../src/interfaces/IRepository.js";
-import type { Manifest, RepositoryOptions } from "../../src/types/Command.js";
+import type { RepositoryOptions } from "../../src/types/Command.js";
 import {
 	CommandContentError,
 	CommandNotFoundError,
@@ -373,7 +372,7 @@ describe("Repository Interface", () => {
 		});
 
 		test("should use injected FileService for caching operations", async () => {
-			// First call should trigger cache check (exists) and write to cache 
+			// First call should trigger cache check (exists) and write to cache
 			await repository.getManifest("en");
 
 			// Verify FileService was used for both cache checking and writing

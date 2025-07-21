@@ -1,25 +1,13 @@
+import type IFileService from "../../src/interfaces/IFileService.js";
+import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
 import type IRepository from "../../src/interfaces/IRepository.js";
 import type { CacheConfig } from "../../src/interfaces/IRepository.js";
-import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
-import type IFileService from "../../src/interfaces/IFileService.js";
 import type { Manifest, RepositoryOptions } from "../../src/types/Command.js";
 import {
-	ManifestError,
-	CommandNotFoundError,
 	CommandContentError,
+	CommandNotFoundError,
+	ManifestError,
 } from "../../src/types/Command.js";
-import {
-	HTTPError,
-	HTTPTimeoutError,
-	HTTPNetworkError,
-	HTTPStatusError,
-} from "../../src/interfaces/IHTTPClient.js";
-import {
-	FileSystemError,
-	FileNotFoundError,
-	FilePermissionError,
-	FileIOError,
-} from "../../src/interfaces/IFileService.js";
 
 /**
  * Request history entry for tracking Repository method calls and dependency usage
@@ -41,14 +29,14 @@ export interface RepositoryRequestHistoryEntry {
 
 /**
  * In-memory repository implementation for testing
- * 
+ *
  * Simulates repository responses based on language and command parameters.
  * Can trigger various error conditions for comprehensive testing scenarios.
  * Provides deterministic mock for unit testing without requiring network connectivity.
- * 
+ *
  * Now accepts HTTPClient and FileService dependencies to simulate real repository behavior
  * and verify that dependencies are used correctly in tests.
- * 
+ *
  * @example
  * ```typescript
  * const httpClient = new MockHTTPClient();
@@ -65,7 +53,7 @@ class InMemoryRepository implements IRepository {
 	private readonly fileService: IFileService;
 	/** Cache configuration */
 	private readonly cacheConfig: CacheConfig;
-	
+
 	/** Pre-configured manifests mapped by language */
 	private readonly manifests: Map<string, Manifest | Error>;
 	/** Pre-configured command content mapped by language:commandName */
@@ -78,11 +66,12 @@ class InMemoryRepository implements IRepository {
 	constructor(
 		httpClient: IHTTPClient,
 		fileService: IFileService,
-		cacheConfig?: CacheConfig
+		cacheConfig?: CacheConfig,
 	) {
 		this.httpClient = httpClient;
 		this.fileService = fileService;
-		this.cacheConfig = cacheConfig ?? InMemoryRepository.createDefaultCacheConfig();
+		this.cacheConfig =
+			cacheConfig ?? InMemoryRepository.createDefaultCacheConfig();
 		this.manifests = new Map();
 		this.commands = new Map();
 		this.requestHistory = [];
@@ -95,10 +84,13 @@ class InMemoryRepository implements IRepository {
 	 */
 	private addToRequestHistory(entry: RepositoryRequestHistoryEntry): void {
 		this.requestHistory.push(entry);
-		
+
 		// Trim to max size if exceeded
 		if (this.requestHistory.length > this.maxHistoryEntries) {
-			this.requestHistory.splice(0, this.requestHistory.length - this.maxHistoryEntries);
+			this.requestHistory.splice(
+				0,
+				this.requestHistory.length - this.maxHistoryEntries,
+			);
 		}
 	}
 
@@ -110,59 +102,8 @@ class InMemoryRepository implements IRepository {
 		return {
 			cacheDir: "/tmp/claude-cmd-cache",
 			ttl: 3600000, // 1 hour in milliseconds
-			maxSize: 10485760 // 10MB
+			maxSize: 10485760, // 10MB
 		};
-	}
-
-	/**
-	 * Convert HTTP errors to appropriate Repository errors
-	 * Maintains proper error chain while providing domain-specific error types
-	 */
-	private convertHTTPError(error: HTTPError, language: string, context: string): ManifestError | CommandContentError {
-		let cause: string;
-
-		if (error instanceof HTTPTimeoutError) {
-			cause = `Request timed out after ${error.timeout}ms`;
-		} else if (error instanceof HTTPNetworkError) {
-			cause = `Network error: ${error.cause || "Connection failed"}`;
-		} else if (error instanceof HTTPStatusError) {
-			cause = `Server returned ${error.status}: ${error.statusText}`;
-		} else {
-			cause = error.message;
-		}
-
-		// Return appropriate error based on context
-		if (context === "manifest") {
-			return new ManifestError(language, cause);
-		} else {
-			// For command context, we need commandName which should be available in calling context
-			return new ManifestError(language, cause); // Will be converted to CommandContentError in caller
-		}
-	}
-
-	/**
-	 * Convert FileService errors to appropriate Repository errors
-	 * Maintains proper error chain while providing domain-specific error types
-	 */
-	private convertFileSystemError(error: FileSystemError, language: string, context: string): ManifestError | CommandContentError {
-		let cause: string;
-
-		if (error instanceof FileNotFoundError) {
-			cause = `Cache file not found: ${error.path}`;
-		} else if (error instanceof FilePermissionError) {
-			cause = `Permission denied for ${error.operation} on: ${error.path}`;
-		} else if (error instanceof FileIOError) {
-			cause = `File I/O error: ${error.cause || "Unknown error"}`;
-		} else {
-			cause = error.message;
-		}
-
-		// Return appropriate error based on context  
-		if (context === "manifest") {
-			return new ManifestError(language, `Cache error: ${cause}`);
-		} else {
-			return new ManifestError(language, `Cache error: ${cause}`); // Will be converted in caller
-		}
 	}
 
 	/**
@@ -177,41 +118,44 @@ class InMemoryRepository implements IRepository {
 			commands: [
 				{
 					name: "debug-help",
-					description: "Provide systematic debugging assistance for code issues",
+					description:
+						"Provide systematic debugging assistance for code issues",
 					file: "debug-help.md",
-					"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"]
+					"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"],
 				},
 				{
 					name: "code-review",
-					description: "Perform comprehensive code review with best practices suggestions",
+					description:
+						"Perform comprehensive code review with best practices suggestions",
 					file: "code-review.md",
-					"allowed-tools": ["Read", "Glob", "Grep", "Edit"]
+					"allowed-tools": ["Read", "Glob", "Grep", "Edit"],
 				},
 				{
 					name: "test-gen",
 					description: "Generate comprehensive test suites for your code",
 					file: "test-gen.md",
-					"allowed-tools": ["Read", "Glob", "Grep", "Write", "Edit"]
+					"allowed-tools": ["Read", "Glob", "Grep", "Write", "Edit"],
 				},
 				{
 					name: "frontend:component",
 					description: "Generate React components with TypeScript definitions",
 					file: "frontend/component.md",
-					"allowed-tools": "Read, Edit, Write, Bash(npm:*)"
+					"allowed-tools": "Read, Edit, Write, Bash(npm:*)",
 				},
 				{
 					name: "backend:api",
-					description: "Generate REST API endpoints with validation and error handling",
+					description:
+						"Generate REST API endpoints with validation and error handling",
 					file: "backend/api.md",
-					"allowed-tools": "Read, Edit, Write, Bash(npm:*, yarn:*)"
+					"allowed-tools": "Read, Edit, Write, Bash(npm:*, yarn:*)",
 				},
 				{
 					name: "content-error",
 					description: "Test command for content error scenarios",
 					file: "content-error.md",
-					"allowed-tools": ["Read"]
-				}
-			]
+					"allowed-tools": ["Read"],
+				},
+			],
 		};
 
 		this.manifests.set("en", enManifest);
@@ -223,76 +167,103 @@ class InMemoryRepository implements IRepository {
 			commands: [
 				{
 					name: "debug-help",
-					description: "Fournir une assistance de débogage systématique pour les problèmes de code",
+					description:
+						"Fournir une assistance de débogage systématique pour les problèmes de code",
 					file: "debug-help.md",
-					"allowed-tools": ["Read", "Glob", "Grep", "Edit"]
+					"allowed-tools": ["Read", "Glob", "Grep", "Edit"],
 				},
 				{
 					name: "missing-file",
 					description: "Command that simulates missing file error",
 					file: "missing-file.md",
-					"allowed-tools": ["Read"]
+					"allowed-tools": ["Read"],
 				},
 				{
 					name: "frontend:component",
-					description: "Générer des composants React avec les meilleures pratiques",
+					description:
+						"Générer des composants React avec les meilleures pratiques",
 					file: "frontend-component.md",
-					"allowed-tools": ["Write", "Edit", "Read"]
-				}
-			]
+					"allowed-tools": ["Write", "Edit", "Read"],
+				},
+			],
 		};
 
 		this.manifests.set("fr", frManifest);
 
 		// Sample command content
-		this.commands.set("en:debug-help", 
-			"# Debug Help\n\nThis command provides systematic debugging assistance for code issues.\n\n## Usage\n\nProvide details about your bug and I'll help you debug it step by step."
+		this.commands.set(
+			"en:debug-help",
+			"# Debug Help\n\nThis command provides systematic debugging assistance for code issues.\n\n## Usage\n\nProvide details about your bug and I'll help you debug it step by step.",
 		);
 
-		this.commands.set("en:code-review", 
-			"# Code Review\n\nThis command performs comprehensive code review with best practices suggestions.\n\n## Usage\n\nShare your code and I'll provide detailed feedback."
+		this.commands.set(
+			"en:code-review",
+			"# Code Review\n\nThis command performs comprehensive code review with best practices suggestions.\n\n## Usage\n\nShare your code and I'll provide detailed feedback.",
 		);
 
-		this.commands.set("en:test-gen", 
-			"# Test Generation\n\nThis command generates comprehensive test suites for your code.\n\n## Usage\n\nProvide your code and I'll create appropriate tests."
+		this.commands.set(
+			"en:test-gen",
+			"# Test Generation\n\nThis command generates comprehensive test suites for your code.\n\n## Usage\n\nProvide your code and I'll create appropriate tests.",
 		);
 
-		this.commands.set("en:frontend:component", 
-			"# Frontend Component\n\nThis command generates React components with TypeScript definitions.\n\n## Usage\n\nDescribe the component you need and I'll create it."
+		this.commands.set(
+			"en:frontend:component",
+			"# Frontend Component\n\nThis command generates React components with TypeScript definitions.\n\n## Usage\n\nDescribe the component you need and I'll create it.",
 		);
 
-		this.commands.set("en:backend:api", 
-			"# Backend API\n\nThis command generates REST API endpoints with validation and error handling.\n\n## Usage\n\nDescribe your API requirements and I'll create the endpoints."
+		this.commands.set(
+			"en:backend:api",
+			"# Backend API\n\nThis command generates REST API endpoints with validation and error handling.\n\n## Usage\n\nDescribe your API requirements and I'll create the endpoints.",
 		);
 
-		this.commands.set("fr:debug-help", 
-			"# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique pour les problèmes de code.\n\n## Utilisation\n\nDécrivez votre problème et je vous aiderai à le déboguer étape par étape."
+		this.commands.set(
+			"fr:debug-help",
+			"# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique pour les problèmes de code.\n\n## Utilisation\n\nDécrivez votre problème et je vous aiderai à le déboguer étape par étape.",
 		);
 
-		this.commands.set("fr:frontend:component", 
-			"# Composant Frontend\n\nCette commande génère des composants React avec les meilleures pratiques.\n\n## Utilisation\n\nDécrivez le composant dont vous avez besoin et je le créerai."
+		this.commands.set(
+			"fr:frontend:component",
+			"# Composant Frontend\n\nCette commande génère des composants React avec les meilleures pratiques.\n\n## Utilisation\n\nDécrivez le composant dont vous avez besoin et je le créerai.",
 		);
 
 		// Error scenarios for manifests
-		this.manifests.set("invalid-lang", new ManifestError("invalid-lang", "Language not supported"));
-		this.manifests.set("network-error", new ManifestError("network-error", "Network connection failed"));
-		this.manifests.set("timeout", new ManifestError("timeout", "Request timed out"));
+		this.manifests.set(
+			"invalid-lang",
+			new ManifestError("invalid-lang", "Language not supported"),
+		);
+		this.manifests.set(
+			"network-error",
+			new ManifestError("network-error", "Network connection failed"),
+		);
+		this.manifests.set(
+			"timeout",
+			new ManifestError("timeout", "Request timed out"),
+		);
 
 		// Error scenarios for commands - these should be exceptions for specific test cases
-		this.commands.set("en:content-error", new CommandContentError("content-error", "en", "File corrupted"));
+		this.commands.set(
+			"en:content-error",
+			new CommandContentError("content-error", "en", "File corrupted"),
+		);
 		// missing-file command in French should throw error instead of returning content
-		this.commands.set("fr:missing-file", new CommandContentError("missing-file", "fr", "File not found on server"));
+		this.commands.set(
+			"fr:missing-file",
+			new CommandContentError("missing-file", "fr", "File not found on server"),
+		);
 	}
 
 	/**
 	 * Retrieve the command manifest for a specific language
-	 * 
+	 *
 	 * @param language - ISO 639-1 language code (e.g., "en", "fr", "es")
 	 * @param options - Optional caching and refresh configuration
 	 * @returns Promise resolving to the complete manifest for the language
 	 * @throws ManifestError when manifest cannot be retrieved or parsed
 	 */
-	async getManifest(language: string, options?: RepositoryOptions): Promise<Manifest> {
+	async getManifest(
+		language: string,
+		options?: RepositoryOptions,
+	): Promise<Manifest> {
 		let httpCalled = false;
 		let fileCalled = false;
 
@@ -300,28 +271,28 @@ class InMemoryRepository implements IRepository {
 			// Simulate cache check first using FileService
 			const cacheKey = `manifest-${language}.json`;
 			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
-			
+
 			// Check if cached file exists and is not expired (unless force refresh)
 			if (!options?.forceRefresh) {
 				try {
 					const cacheExists = await this.fileService.exists(cachePath);
 					fileCalled = true;
-					
+
 					if (cacheExists) {
 						const cachedContent = await this.fileService.readFile(cachePath);
 						try {
 							const cachedData = JSON.parse(cachedContent);
-							
+
 							// Check TTL
 							const cacheAge = Date.now() - cachedData.timestamp;
 							if (cacheAge < this.cacheConfig.ttl) {
 								// Return cached manifest
-								this.addToRequestHistory({ 
-									method: "getManifest", 
-									language, 
-									options, 
-									httpCalled, 
-									fileCalled: true 
+								this.addToRequestHistory({
+									method: "getManifest",
+									language,
+									options,
+									httpCalled,
+									fileCalled: true,
 								});
 								return cachedData.manifest;
 							}
@@ -347,45 +318,49 @@ class InMemoryRepository implements IRepository {
 					// Cache the result using FileService
 					const cacheData = {
 						manifest,
-						timestamp: Date.now()
+						timestamp: Date.now(),
 					};
-					await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+					await this.fileService.writeFile(
+						cachePath,
+						JSON.stringify(cacheData, null, 2),
+					);
 					fileCalled = true;
 
-					this.addToRequestHistory({ 
-						method: "getManifest", 
-						language, 
-						options, 
-						httpCalled: true, 
-						fileCalled 
+					this.addToRequestHistory({
+						method: "getManifest",
+						language,
+						options,
+						httpCalled: true,
+						fileCalled,
 					});
 
 					return manifest;
-				} catch (parseError) {
+				} catch (_parseError) {
 					// Malformed JSON response, convert to ManifestError
-					throw new ManifestError(language, "Invalid manifest format received from server");
+					throw new ManifestError(
+						language,
+						"Invalid manifest format received from server",
+					);
 				}
-
-			} catch (error) {
+			} catch (_error) {
 				// HTTP failed or JSON parse failed, fall back to pre-configured data for testing
 				httpCalled = true;
 			}
-
-		} catch (error) {
+		} catch (_error) {
 			// Dependency call failed, fall back to pre-configured data
 		}
 
 		// Record the request with dependency usage tracking
-		this.addToRequestHistory({ 
-			method: "getManifest", 
-			language, 
-			options, 
-			httpCalled, 
-			fileCalled 
+		this.addToRequestHistory({
+			method: "getManifest",
+			language,
+			options,
+			httpCalled,
+			fileCalled,
 		});
 
 		// Simulate network delay for realism
-		await new Promise(resolve => setTimeout(resolve, 1));
+		await new Promise((resolve) => setTimeout(resolve, 1));
 
 		// Fall back to pre-configured manifest or error for testing
 		const manifest = this.manifests.get(language);
@@ -403,7 +378,7 @@ class InMemoryRepository implements IRepository {
 
 	/**
 	 * Retrieve the content of a specific command file
-	 * 
+	 *
 	 * @param commandName - Name of the command as it appears in the manifest
 	 * @param language - ISO 639-1 language code (e.g., "en", "fr", "es")
 	 * @param options - Optional caching and refresh configuration
@@ -411,20 +386,24 @@ class InMemoryRepository implements IRepository {
 	 * @throws CommandNotFoundError when command doesn't exist in the manifest
 	 * @throws CommandContentError when command file cannot be retrieved
 	 */
-	async getCommand(commandName: string, language: string, options?: RepositoryOptions): Promise<string> {
+	async getCommand(
+		commandName: string,
+		language: string,
+		options?: RepositoryOptions,
+	): Promise<string> {
 		// First verify the command exists in the manifest - ALWAYS do this check
 		const manifest = await this.getManifest(language, options);
-		const command = manifest.commands.find(cmd => cmd.name === commandName);
+		const command = manifest.commands.find((cmd) => cmd.name === commandName);
 
 		if (!command) {
 			// Record the request even for validation failures
-			this.addToRequestHistory({ 
-				method: "getCommand", 
-				language, 
-				commandName, 
-				options, 
-				httpCalled: false, 
-				fileCalled: false 
+			this.addToRequestHistory({
+				method: "getCommand",
+				language,
+				commandName,
+				options,
+				httpCalled: false,
+				fileCalled: false,
 			});
 			throw new CommandNotFoundError(commandName, language);
 		}
@@ -433,7 +412,6 @@ class InMemoryRepository implements IRepository {
 		let fileCalled = false;
 
 		try {
-
 			// Simulate cache check using FileService
 			const cacheKey = `command-${language}-${commandName}.md`;
 			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
@@ -452,13 +430,13 @@ class InMemoryRepository implements IRepository {
 							// Check TTL
 							const cacheAge = Date.now() - cachedData.timestamp;
 							if (cacheAge < this.cacheConfig.ttl) {
-								this.addToRequestHistory({ 
-									method: "getCommand", 
-									language, 
-									commandName, 
-									options, 
-									httpCalled, 
-									fileCalled: true 
+								this.addToRequestHistory({
+									method: "getCommand",
+									language,
+									commandName,
+									options,
+									httpCalled,
+									fileCalled: true,
 								});
 								return cachedData.content;
 							}
@@ -482,50 +460,55 @@ class InMemoryRepository implements IRepository {
 				// Cache the result using FileService
 				const cacheData = {
 					content,
-					timestamp: Date.now()
+					timestamp: Date.now(),
 				};
-				await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+				await this.fileService.writeFile(
+					cachePath,
+					JSON.stringify(cacheData, null, 2),
+				);
 				fileCalled = true;
 
-				this.addToRequestHistory({ 
-					method: "getCommand", 
-					language, 
-					commandName, 
-					options, 
-					httpCalled: true, 
-					fileCalled 
+				this.addToRequestHistory({
+					method: "getCommand",
+					language,
+					commandName,
+					options,
+					httpCalled: true,
+					fileCalled,
 				});
 
 				return content;
-
-			} catch (error) {
+			} catch (_error) {
 				// HTTP failed, fall back to pre-configured data
 				httpCalled = true;
 			}
-
-		} catch (error) {
+		} catch (_error) {
 			// Dependency call failed or manifest error, fall back to pre-configured data
 		}
 
 		// Record the request with dependency usage tracking
-		this.addToRequestHistory({ 
-			method: "getCommand", 
-			language, 
-			commandName, 
-			options, 
-			httpCalled, 
-			fileCalled 
+		this.addToRequestHistory({
+			method: "getCommand",
+			language,
+			commandName,
+			options,
+			httpCalled,
+			fileCalled,
 		});
 
 		// Simulate network delay for realism
-		await new Promise(resolve => setTimeout(resolve, 1));
+		await new Promise((resolve) => setTimeout(resolve, 1));
 
 		// Fall back to pre-configured command content or error for testing
 		const commandKey = `${language}:${commandName}`;
 		const content = this.commands.get(commandKey);
 
 		if (!content) {
-			throw new CommandContentError(commandName, language, "Command file not found in repository");
+			throw new CommandContentError(
+				commandName,
+				language,
+				"Command file not found in repository",
+			);
 		}
 
 		if (content instanceof Error) {
@@ -537,7 +520,7 @@ class InMemoryRepository implements IRepository {
 
 	/**
 	 * Get the history of requests made to this repository (for testing verification)
-	 * 
+	 *
 	 * @returns Copy of request history to prevent external modification
 	 */
 	getRequestHistory(): Array<RepositoryRequestHistoryEntry> {
@@ -553,7 +536,7 @@ class InMemoryRepository implements IRepository {
 
 	/**
 	 * Add a custom manifest for dynamic testing scenarios
-	 * 
+	 *
 	 * @param language - The language code to map
 	 * @param manifest - The manifest or error to return for this language
 	 */
@@ -563,12 +546,16 @@ class InMemoryRepository implements IRepository {
 
 	/**
 	 * Add custom command content for dynamic testing scenarios
-	 * 
+	 *
 	 * @param commandName - The command name
 	 * @param language - The language code
 	 * @param content - The content or error to return for this command
 	 */
-	setCommand(commandName: string, language: string, content: string | Error): void {
+	setCommand(
+		commandName: string,
+		language: string,
+		content: string | Error,
+	): void {
 		const commandKey = `${language}:${commandName}`;
 		this.commands.set(commandKey, content);
 	}
