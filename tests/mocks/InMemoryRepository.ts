@@ -222,20 +222,24 @@ class InMemoryRepository implements IRepository {
 					
 					if (cacheExists) {
 						const cachedContent = await this.fileService.readFile(cachePath);
-						const cachedData = JSON.parse(cachedContent);
-						
-						// Check TTL
-						const cacheAge = Date.now() - cachedData.timestamp;
-						if (cacheAge < this.cacheConfig.ttl) {
-							// Return cached manifest
-							this.requestHistory.push({ 
-								method: "getManifest", 
-								language, 
-								options, 
-								httpCalled, 
-								fileCalled: true 
-							});
-							return cachedData.manifest;
+						try {
+							const cachedData = JSON.parse(cachedContent);
+							
+							// Check TTL
+							const cacheAge = Date.now() - cachedData.timestamp;
+							if (cacheAge < this.cacheConfig.ttl) {
+								// Return cached manifest
+								this.requestHistory.push({ 
+									method: "getManifest", 
+									language, 
+									options, 
+									httpCalled, 
+									fileCalled: true 
+								});
+								return cachedData.manifest;
+							}
+						} catch {
+							// Malformed cache data, treat as cache miss and continue
 						}
 					}
 				} catch {
@@ -249,29 +253,34 @@ class InMemoryRepository implements IRepository {
 				const response = await this.httpClient.get(manifestUrl);
 				httpCalled = true;
 
-				// Parse manifest from HTTP response
-				const manifest = JSON.parse(response.body);
+				// Parse manifest from HTTP response with error handling
+				try {
+					const manifest = JSON.parse(response.body);
 
-				// Cache the result using FileService
-				const cacheData = {
-					manifest,
-					timestamp: Date.now()
-				};
-				await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
-				fileCalled = true;
+					// Cache the result using FileService
+					const cacheData = {
+						manifest,
+						timestamp: Date.now()
+					};
+					await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+					fileCalled = true;
 
-				this.requestHistory.push({ 
-					method: "getManifest", 
-					language, 
-					options, 
-					httpCalled: true, 
-					fileCalled 
-				});
+					this.requestHistory.push({ 
+						method: "getManifest", 
+						language, 
+						options, 
+						httpCalled: true, 
+						fileCalled 
+					});
 
-				return manifest;
+					return manifest;
+				} catch (parseError) {
+					// Malformed JSON response, convert to ManifestError
+					throw new ManifestError(language, "Invalid manifest format received from server");
+				}
 
 			} catch (error) {
-				// HTTP failed, fall back to pre-configured data for testing
+				// HTTP failed or JSON parse failed, fall back to pre-configured data for testing
 				httpCalled = true;
 			}
 
@@ -340,20 +349,24 @@ class InMemoryRepository implements IRepository {
 
 					if (cacheExists) {
 						const cachedContent = await this.fileService.readFile(cachePath);
-						const cachedData = JSON.parse(cachedContent);
+						try {
+							const cachedData = JSON.parse(cachedContent);
 
-						// Check TTL
-						const cacheAge = Date.now() - cachedData.timestamp;
-						if (cacheAge < this.cacheConfig.ttl) {
-							this.requestHistory.push({ 
-								method: "getCommand", 
-								language, 
-								commandName, 
-								options, 
-								httpCalled, 
-								fileCalled: true 
-							});
-							return cachedData.content;
+							// Check TTL
+							const cacheAge = Date.now() - cachedData.timestamp;
+							if (cacheAge < this.cacheConfig.ttl) {
+								this.requestHistory.push({ 
+									method: "getCommand", 
+									language, 
+									commandName, 
+									options, 
+									httpCalled, 
+									fileCalled: true 
+								});
+								return cachedData.content;
+							}
+						} catch {
+							// Malformed cache data, treat as cache miss and continue
 						}
 					}
 				} catch {
