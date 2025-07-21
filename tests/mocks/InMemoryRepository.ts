@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type IFileService from "../../src/interfaces/IFileService.js";
 import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
 import type IRepository from "../../src/interfaces/IRepository.js";
@@ -104,6 +105,79 @@ class InMemoryRepository implements IRepository {
 			ttl: 3600000, // 1 hour in milliseconds
 			maxSize: 10485760, // 10MB
 		};
+	}
+
+	/**
+	 * Sanitize path components to prevent directory traversal attacks
+	 * Removes potentially dangerous characters that could escape cache directory
+	 */
+	private static sanitizePathComponent(component: string): string {
+		// Remove path traversal patterns, null bytes, and other dangerous characters
+		return component.replace(/[./\\:\0]/g, "").replace(/\.\./g, "");
+	}
+
+	/**
+	 * Generic cache utility that handles cache check, validation, and TTL logic
+	 * Eliminates code duplication between getManifest and getCommand
+	 */
+	private async getCachedData<T>(
+		cacheKey: string,
+		dataFetcher: () => Promise<T>,
+		dataValidator: (data: any) => boolean,
+		options?: RepositoryOptions,
+	): Promise<{ data: T; httpCalled: boolean; fileCalled: boolean }> {
+		const cachePath = join(this.cacheConfig.cacheDir, cacheKey);
+		let httpCalled = false;
+		let fileCalled = false;
+
+		// 1. Check cache first (unless force refresh)
+		if (!options?.forceRefresh) {
+			try {
+				const cacheExists = await this.fileService.exists(cachePath);
+				fileCalled = true;
+
+				if (cacheExists) {
+					const cachedContent = await this.fileService.readFile(cachePath);
+					try {
+						const cachedData = JSON.parse(cachedContent);
+
+						// Validate cached data structure
+						if (typeof cachedData !== 'object' || 
+							!cachedData.timestamp || 
+							typeof cachedData.timestamp !== 'number' ||
+							!dataValidator(cachedData)) {
+							throw new Error('Invalid cached data structure');
+						}
+
+						// Check TTL
+						const cacheAge = Date.now() - cachedData.timestamp;
+						if (cacheAge < this.cacheConfig.ttl) {
+							return { data: cachedData.data, httpCalled, fileCalled };
+						}
+					} catch (error) {
+						// Malformed cache data, treat as cache miss but log the issue
+						console.warn(`Failed to parse cache file ${cachePath}:`, error);
+					}
+				}
+			} catch {
+				// Cache miss or error, continue to fetch fresh data
+			}
+		}
+
+		// 2. Fetch fresh data
+		const freshData = await dataFetcher();
+		httpCalled = true;
+
+		// 3. Cache the result
+		try {
+			const cacheData = { data: freshData, timestamp: Date.now() };
+			await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+			fileCalled = true;
+		} catch (error) {
+			console.error(`Cache write failed for ${cacheKey}:`, error);
+		}
+
+		return { data: freshData, httpCalled, fileCalled };
 	}
 
 	/**
@@ -264,116 +338,75 @@ class InMemoryRepository implements IRepository {
 		language: string,
 		options?: RepositoryOptions,
 	): Promise<Manifest> {
-		let httpCalled = false;
-		let fileCalled = false;
-
 		try {
-			// Simulate cache check first using FileService
-			const cacheKey = `manifest-${language}.json`;
-			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
+			// Use the generic cache utility for consistent caching behavior
+			const sanitizedLanguage = InMemoryRepository.sanitizePathComponent(language);
+			const cacheKey = `manifest-${sanitizedLanguage}.json`;
+			
+			const manifestValidator = (cachedData: any): boolean => {
+				return cachedData && cachedData.data && typeof cachedData.data === 'object';
+			};
 
-			// Check if cached file exists and is not expired (unless force refresh)
-			if (!options?.forceRefresh) {
+			const manifestFetcher = async (): Promise<Manifest> => {
 				try {
-					const cacheExists = await this.fileService.exists(cachePath);
-					fileCalled = true;
-
-					if (cacheExists) {
-						const cachedContent = await this.fileService.readFile(cachePath);
-						try {
-							const cachedData = JSON.parse(cachedContent);
-
-							// Check TTL
-							const cacheAge = Date.now() - cachedData.timestamp;
-							if (cacheAge < this.cacheConfig.ttl) {
-								// Return cached manifest
-								this.addToRequestHistory({
-									method: "getManifest",
-									language,
-									options,
-									httpCalled,
-									fileCalled: true,
-								});
-								return cachedData.manifest;
-							}
-						} catch {
-							// Malformed cache data, treat as cache miss and continue
-						}
+					const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/index.json`;
+					const response = await this.httpClient.get(manifestUrl);
+					
+					// Parse manifest from HTTP response with error handling
+					try {
+						const manifest = JSON.parse(response.body);
+						return manifest;
+					} catch (_parseError) {
+						// Malformed JSON response, convert to ManifestError
+						throw new ManifestError(
+							language,
+							"Invalid manifest format received from server",
+						);
 					}
-				} catch {
-					// Cache miss or error, continue to HTTP
+				} catch (_error) {
+					// HTTP failed, fall back to pre-configured data for testing
+					throw new Error("HTTP fetch failed, falling back to pre-configured data");
 				}
+			};
+
+			const result = await this.getCachedData(cacheKey, manifestFetcher, manifestValidator, options);
+			
+			this.addToRequestHistory({
+				method: "getManifest",
+				language,
+				options,
+				httpCalled: result.httpCalled,
+				fileCalled: result.fileCalled,
+			});
+
+			return result.data;
+
+		} catch (error) {
+			// If cache utility fails, fall back to pre-configured data
+			this.addToRequestHistory({
+				method: "getManifest",
+				language,
+				options,
+				httpCalled: false,
+				fileCalled: false,
+			});
+
+			// Simulate network delay for realism
+			await new Promise((resolve) => setTimeout(resolve, 1));
+
+			// Fall back to pre-configured manifest or error for testing
+			const manifest = this.manifests.get(language);
+
+			if (!manifest) {
+				throw new ManifestError(language, "Language not supported by repository");
 			}
 
-			// Simulate HTTP request using HTTPClient
-			try {
-				const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/index.json`;
-				const response = await this.httpClient.get(manifestUrl);
-				httpCalled = true;
-
-				// Parse manifest from HTTP response with error handling
-				try {
-					const manifest = JSON.parse(response.body);
-
-					// Cache the result using FileService
-					const cacheData = {
-						manifest,
-						timestamp: Date.now(),
-					};
-					await this.fileService.writeFile(
-						cachePath,
-						JSON.stringify(cacheData, null, 2),
-					);
-					fileCalled = true;
-
-					this.addToRequestHistory({
-						method: "getManifest",
-						language,
-						options,
-						httpCalled: true,
-						fileCalled,
-					});
-
-					return manifest;
-				} catch (_parseError) {
-					// Malformed JSON response, convert to ManifestError
-					throw new ManifestError(
-						language,
-						"Invalid manifest format received from server",
-					);
-				}
-			} catch (_error) {
-				// HTTP failed or JSON parse failed, fall back to pre-configured data for testing
-				httpCalled = true;
+			if (manifest instanceof Error) {
+				throw manifest;
 			}
-		} catch (_error) {
-			// Dependency call failed, fall back to pre-configured data
+
+			return manifest;
 		}
-
-		// Record the request with dependency usage tracking
-		this.addToRequestHistory({
-			method: "getManifest",
-			language,
-			options,
-			httpCalled,
-			fileCalled,
-		});
-
-		// Simulate network delay for realism
-		await new Promise((resolve) => setTimeout(resolve, 1));
-
-		// Fall back to pre-configured manifest or error for testing
-		const manifest = this.manifests.get(language);
-
-		if (!manifest) {
-			throw new ManifestError(language, "Language not supported by repository");
-		}
-
-		if (manifest instanceof Error) {
-			throw manifest;
-		}
-
-		return manifest;
 	}
 
 	/**
@@ -408,114 +441,72 @@ class InMemoryRepository implements IRepository {
 			throw new CommandNotFoundError(commandName, language);
 		}
 
-		let httpCalled = false;
-		let fileCalled = false;
-
 		try {
-			// Simulate cache check using FileService
-			const cacheKey = `command-${language}-${commandName}.md`;
-			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
+			// Use the generic cache utility for consistent caching behavior
+			const sanitizedLanguage = InMemoryRepository.sanitizePathComponent(language);
+			const sanitizedCommandName = InMemoryRepository.sanitizePathComponent(commandName);
+			const cacheKey = `command-${sanitizedLanguage}-${sanitizedCommandName}.md`;
+			
+			const contentValidator = (cachedData: any): boolean => {
+				return cachedData && cachedData.data && typeof cachedData.data === 'string';
+			};
 
-			// Check cache first (unless force refresh)
-			if (!options?.forceRefresh) {
+			const contentFetcher = async (): Promise<string> => {
 				try {
-					const cacheExists = await this.fileService.exists(cachePath);
-					fileCalled = true;
-
-					if (cacheExists) {
-						const cachedContent = await this.fileService.readFile(cachePath);
-						try {
-							const cachedData = JSON.parse(cachedContent);
-
-							// Check TTL
-							const cacheAge = Date.now() - cachedData.timestamp;
-							if (cacheAge < this.cacheConfig.ttl) {
-								this.addToRequestHistory({
-									method: "getCommand",
-									language,
-									commandName,
-									options,
-									httpCalled,
-									fileCalled: true,
-								});
-								return cachedData.content;
-							}
-						} catch {
-							// Malformed cache data, treat as cache miss and continue
-						}
-					}
-				} catch {
-					// Cache miss or error, continue to HTTP
+					const commandUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/${command.file}`;
+					const response = await this.httpClient.get(commandUrl);
+					return response.body;
+				} catch (_error) {
+					// HTTP failed, fall back to pre-configured data for testing
+					throw new Error("HTTP fetch failed, falling back to pre-configured data");
 				}
-			}
+			};
 
-			// Simulate HTTP request for command content using HTTPClient
-			try {
-				const commandUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/${command.file}`;
-				const response = await this.httpClient.get(commandUrl);
-				httpCalled = true;
-
-				const content = response.body;
-
-				// Cache the result using FileService
-				const cacheData = {
-					content,
-					timestamp: Date.now(),
-				};
-				await this.fileService.writeFile(
-					cachePath,
-					JSON.stringify(cacheData, null, 2),
-				);
-				fileCalled = true;
-
-				this.addToRequestHistory({
-					method: "getCommand",
-					language,
-					commandName,
-					options,
-					httpCalled: true,
-					fileCalled,
-				});
-
-				return content;
-			} catch (_error) {
-				// HTTP failed, fall back to pre-configured data
-				httpCalled = true;
-			}
-		} catch (_error) {
-			// Dependency call failed or manifest error, fall back to pre-configured data
-		}
-
-		// Record the request with dependency usage tracking
-		this.addToRequestHistory({
-			method: "getCommand",
-			language,
-			commandName,
-			options,
-			httpCalled,
-			fileCalled,
-		});
-
-		// Simulate network delay for realism
-		await new Promise((resolve) => setTimeout(resolve, 1));
-
-		// Fall back to pre-configured command content or error for testing
-		const commandKey = `${language}:${commandName}`;
-		const content = this.commands.get(commandKey);
-
-		if (!content) {
-			throw new CommandContentError(
-				commandName,
+			const result = await this.getCachedData(cacheKey, contentFetcher, contentValidator, options);
+			
+			this.addToRequestHistory({
+				method: "getCommand",
 				language,
-				"Command file not found in repository",
-			);
-		}
+				commandName,
+				options,
+				httpCalled: result.httpCalled,
+				fileCalled: result.fileCalled,
+			});
 
-		if (content instanceof Error) {
-			throw content;
-		}
+			return result.data;
 
-		return content;
+		} catch (error) {
+			// If cache utility fails, fall back to pre-configured data
+			this.addToRequestHistory({
+				method: "getCommand",
+				language,
+				commandName,
+				options,
+				httpCalled: false,
+				fileCalled: false,
+			});
+
+			// Simulate network delay for realism
+			await new Promise((resolve) => setTimeout(resolve, 1));
+
+			// Fall back to pre-configured command content or error for testing
+			const commandKey = `${language}:${commandName}`;
+			const content = this.commands.get(commandKey);
+
+			if (!content) {
+				throw new CommandContentError(
+					commandName,
+					language,
+					"Command file not found in repository",
+				);
+			}
+
+			if (content instanceof Error) {
+				throw content;
+			}
+
+			return content;
+		}
 	}
 
 	/**
