@@ -8,6 +8,18 @@ import {
 	CommandNotFoundError,
 	CommandContentError,
 } from "../../src/types/Command.js";
+import {
+	HTTPError,
+	HTTPTimeoutError,
+	HTTPNetworkError,
+	HTTPStatusError,
+} from "../../src/interfaces/IHTTPClient.js";
+import {
+	FileSystemError,
+	FileNotFoundError,
+	FilePermissionError,
+	FileIOError,
+} from "../../src/interfaces/IFileService.js";
 
 /**
  * Request history entry for tracking Repository method calls and dependency usage
@@ -66,15 +78,11 @@ class InMemoryRepository implements IRepository {
 	constructor(
 		httpClient: IHTTPClient,
 		fileService: IFileService,
-		cacheConfig: CacheConfig = {
-			cacheDir: "/tmp/claude-cmd-cache",
-			ttl: 3600000, // 1 hour
-			maxSize: 10485760 // 10MB
-		}
+		cacheConfig?: CacheConfig
 	) {
 		this.httpClient = httpClient;
 		this.fileService = fileService;
-		this.cacheConfig = cacheConfig;
+		this.cacheConfig = cacheConfig ?? InMemoryRepository.createDefaultCacheConfig();
 		this.manifests = new Map();
 		this.commands = new Map();
 		this.requestHistory = [];
@@ -91,6 +99,69 @@ class InMemoryRepository implements IRepository {
 		// Trim to max size if exceeded
 		if (this.requestHistory.length > this.maxHistoryEntries) {
 			this.requestHistory.splice(0, this.requestHistory.length - this.maxHistoryEntries);
+		}
+	}
+
+	/**
+	 * Create default cache configuration with sensible defaults
+	 * Provides fallback values that work for most testing scenarios
+	 */
+	private static createDefaultCacheConfig(): CacheConfig {
+		return {
+			cacheDir: "/tmp/claude-cmd-cache",
+			ttl: 3600000, // 1 hour in milliseconds
+			maxSize: 10485760 // 10MB
+		};
+	}
+
+	/**
+	 * Convert HTTP errors to appropriate Repository errors
+	 * Maintains proper error chain while providing domain-specific error types
+	 */
+	private convertHTTPError(error: HTTPError, language: string, context: string): ManifestError | CommandContentError {
+		let cause: string;
+
+		if (error instanceof HTTPTimeoutError) {
+			cause = `Request timed out after ${error.timeout}ms`;
+		} else if (error instanceof HTTPNetworkError) {
+			cause = `Network error: ${error.cause || "Connection failed"}`;
+		} else if (error instanceof HTTPStatusError) {
+			cause = `Server returned ${error.status}: ${error.statusText}`;
+		} else {
+			cause = error.message;
+		}
+
+		// Return appropriate error based on context
+		if (context === "manifest") {
+			return new ManifestError(language, cause);
+		} else {
+			// For command context, we need commandName which should be available in calling context
+			return new ManifestError(language, cause); // Will be converted to CommandContentError in caller
+		}
+	}
+
+	/**
+	 * Convert FileService errors to appropriate Repository errors
+	 * Maintains proper error chain while providing domain-specific error types
+	 */
+	private convertFileSystemError(error: FileSystemError, language: string, context: string): ManifestError | CommandContentError {
+		let cause: string;
+
+		if (error instanceof FileNotFoundError) {
+			cause = `Cache file not found: ${error.path}`;
+		} else if (error instanceof FilePermissionError) {
+			cause = `Permission denied for ${error.operation} on: ${error.path}`;
+		} else if (error instanceof FileIOError) {
+			cause = `File I/O error: ${error.cause || "Unknown error"}`;
+		} else {
+			cause = error.message;
+		}
+
+		// Return appropriate error based on context  
+		if (context === "manifest") {
+			return new ManifestError(language, `Cache error: ${cause}`);
+		} else {
+			return new ManifestError(language, `Cache error: ${cause}`); // Will be converted in caller
 		}
 	}
 

@@ -4,13 +4,38 @@ import type IFileService from "./IFileService.js";
 
 /**
  * Cache configuration for repository operations
+ * 
+ * Controls how repository content is cached locally to improve performance
+ * and reduce network requests. All settings use sensible defaults for typical usage.
+ * 
+ * @example
+ * ```typescript
+ * const cacheConfig: CacheConfig = {
+ *   cacheDir: "~/.claude/cache",
+ *   ttl: 3600000, // 1 hour
+ *   maxSize: 10485760 // 10MB
+ * };
+ * ```
  */
 export interface CacheConfig {
-	/** Directory path for cached files */
+	/** 
+	 * Directory path for cached files 
+	 * @default "/tmp/claude-cmd-cache" or "~/.claude/cache"
+	 */
 	readonly cacheDir: string;
-	/** Time-to-live in milliseconds for cached content */
+	
+	/** 
+	 * Time-to-live in milliseconds for cached content
+	 * After this time, cache entries are considered stale and will be refreshed
+	 * @default 3600000 (1 hour)
+	 */
 	readonly ttl: number;
-	/** Maximum cache size in bytes (optional) */
+	
+	/** 
+	 * Maximum cache size in bytes (optional)
+	 * When exceeded, oldest entries will be removed to maintain size limit
+	 * @default 10485760 (10MB)
+	 */
 	readonly maxSize?: number;
 }
 
@@ -62,17 +87,27 @@ export default interface IRepository {
 /**
  * Factory interface for creating Repository instances with proper dependency injection
  * 
+ * Provides a standardized way to create Repository instances with required dependencies.
  * This ensures all Repository implementations accept the required HTTPClient and FileService
  * dependencies for proper testability and adherence to abstracted I/O principles.
+ * 
+ * @example
+ * ```typescript
+ * const factory: IRepositoryFactory = new GitHubRepositoryFactory();
+ * const httpClient = new BunHTTPClient();
+ * const fileService = new BunFileService();
+ * const repo = factory.create(httpClient, fileService);
+ * ```
  */
 export interface IRepositoryFactory {
 	/**
 	 * Create a new Repository instance with injected dependencies
 	 * 
-	 * @param httpClient - HTTP client for network operations
-	 * @param fileService - File service for local caching operations
-	 * @param cacheConfig - Optional cache configuration
-	 * @returns Repository instance ready for use
+	 * @param httpClient - HTTP client for network operations (manifest and command fetching)
+	 * @param fileService - File service for local caching operations (cache read/write)
+	 * @param cacheConfig - Optional cache configuration (defaults applied if not provided)
+	 * @returns Repository instance ready for use with dependency injection properly configured
+	 * @throws Error if dependencies are invalid or incompatible
 	 */
 	create(httpClient: IHTTPClient, fileService: IFileService, cacheConfig?: CacheConfig): IRepository;
 }
@@ -80,9 +115,29 @@ export interface IRepositoryFactory {
 /**
  * Constructor interface for Repository implementations
  * 
- * All Repository implementations should accept these dependencies in their constructor
- * to enable proper dependency injection and testing.
+ * Defines the required constructor signature that all Repository implementations must follow
+ * to enable proper dependency injection and testing. This interface ensures consistent
+ * instantiation patterns across different repository types (in-memory, GitHub, etc.).
+ * 
+ * @example
+ * ```typescript
+ * // All repository implementations must follow this pattern:
+ * class GitHubRepository implements IRepository {
+ *   constructor(
+ *     httpClient: IHTTPClient, 
+ *     fileService: IFileService, 
+ *     cacheConfig?: CacheConfig
+ *   ) { ... }
+ * }
+ * ```
  */
 export interface IRepositoryConstructor {
+	/**
+	 * Repository constructor with dependency injection
+	 * 
+	 * @param httpClient - HTTP client for network operations
+	 * @param fileService - File service for local caching operations  
+	 * @param cacheConfig - Optional cache configuration with sensible defaults
+	 */
 	new (httpClient: IHTTPClient, fileService: IFileService, cacheConfig?: CacheConfig): IRepository;
 }
