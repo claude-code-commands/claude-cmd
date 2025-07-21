@@ -58,8 +58,10 @@ class InMemoryRepository implements IRepository {
 	private readonly manifests: Map<string, Manifest | Error>;
 	/** Pre-configured command content mapped by language:commandName */
 	private readonly commands: Map<string, string | Error>;
-	/** History of all requests made to this repository instance */
+	/** History of all requests made to this repository instance (capped at 1000 entries) */
 	private readonly requestHistory: Array<RepositoryRequestHistoryEntry>;
+	/** Maximum number of request history entries to maintain */
+	private readonly maxHistoryEntries = 1000;
 
 	constructor(
 		httpClient: IHTTPClient,
@@ -77,6 +79,19 @@ class InMemoryRepository implements IRepository {
 		this.commands = new Map();
 		this.requestHistory = [];
 		this.setupDefaultData();
+	}
+
+	/**
+	 * Add request history entry while maintaining size limit
+	 * Keeps most recent entries, discarding oldest when limit exceeded
+	 */
+	private addToRequestHistory(entry: RepositoryRequestHistoryEntry): void {
+		this.requestHistory.push(entry);
+		
+		// Trim to max size if exceeded
+		if (this.requestHistory.length > this.maxHistoryEntries) {
+			this.requestHistory.splice(0, this.requestHistory.length - this.maxHistoryEntries);
+		}
 	}
 
 	/**
@@ -229,7 +244,7 @@ class InMemoryRepository implements IRepository {
 							const cacheAge = Date.now() - cachedData.timestamp;
 							if (cacheAge < this.cacheConfig.ttl) {
 								// Return cached manifest
-								this.requestHistory.push({ 
+								this.addToRequestHistory({ 
 									method: "getManifest", 
 									language, 
 									options, 
@@ -265,7 +280,7 @@ class InMemoryRepository implements IRepository {
 					await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
 					fileCalled = true;
 
-					this.requestHistory.push({ 
+					this.addToRequestHistory({ 
 						method: "getManifest", 
 						language, 
 						options, 
@@ -289,7 +304,7 @@ class InMemoryRepository implements IRepository {
 		}
 
 		// Record the request with dependency usage tracking
-		this.requestHistory.push({ 
+		this.addToRequestHistory({ 
 			method: "getManifest", 
 			language, 
 			options, 
@@ -355,7 +370,7 @@ class InMemoryRepository implements IRepository {
 							// Check TTL
 							const cacheAge = Date.now() - cachedData.timestamp;
 							if (cacheAge < this.cacheConfig.ttl) {
-								this.requestHistory.push({ 
+								this.addToRequestHistory({ 
 									method: "getCommand", 
 									language, 
 									commandName, 
@@ -390,7 +405,7 @@ class InMemoryRepository implements IRepository {
 				await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
 				fileCalled = true;
 
-				this.requestHistory.push({ 
+				this.addToRequestHistory({ 
 					method: "getCommand", 
 					language, 
 					commandName, 
@@ -411,7 +426,7 @@ class InMemoryRepository implements IRepository {
 		}
 
 		// Record the request with dependency usage tracking
-		this.requestHistory.push({ 
+		this.addToRequestHistory({ 
 			method: "getCommand", 
 			language, 
 			commandName, 
