@@ -1,4 +1,7 @@
 import type IRepository from "../../src/interfaces/IRepository.js";
+import type { CacheConfig } from "../../src/interfaces/IRepository.js";
+import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
+import type IFileService from "../../src/interfaces/IFileService.js";
 import type { Manifest, RepositoryOptions } from "../../src/types/Command.js";
 import {
 	ManifestError,
@@ -7,28 +10,69 @@ import {
 } from "../../src/types/Command.js";
 
 /**
+ * Request history entry for tracking Repository method calls and dependency usage
+ */
+export interface RepositoryRequestHistoryEntry {
+	/** The method that was called (getManifest, getCommand) */
+	method: string;
+	/** The language parameter passed to the method */
+	language: string;
+	/** The command name (for getCommand calls only) */
+	commandName?: string;
+	/** The options parameter passed to the method */
+	options?: RepositoryOptions;
+	/** Whether HTTPClient was called during this request */
+	httpCalled?: boolean;
+	/** Whether FileService was called during this request */
+	fileCalled?: boolean;
+}
+
+/**
  * In-memory repository implementation for testing
  * 
  * Simulates repository responses based on language and command parameters.
  * Can trigger various error conditions for comprehensive testing scenarios.
  * Provides deterministic mock for unit testing without requiring network connectivity.
  * 
+ * Now accepts HTTPClient and FileService dependencies to simulate real repository behavior
+ * and verify that dependencies are used correctly in tests.
+ * 
  * @example
  * ```typescript
- * const repo = new InMemoryRepository();
+ * const httpClient = new MockHTTPClient();
+ * const fileService = new MockFileService();
+ * const repo = new InMemoryRepository(httpClient, fileService);
  * const manifest = await repo.getManifest('en');
- * console.log(manifest.commands.length); // 5 (default test commands)
+ * console.log(manifest.commands.length); // 6 (default test commands)
  * ```
  */
 class InMemoryRepository implements IRepository {
+	/** Injected HTTP client for network operations */
+	private readonly httpClient: IHTTPClient;
+	/** Injected file service for caching operations */
+	private readonly fileService: IFileService;
+	/** Cache configuration */
+	private readonly cacheConfig: CacheConfig;
+	
 	/** Pre-configured manifests mapped by language */
 	private readonly manifests: Map<string, Manifest | Error>;
 	/** Pre-configured command content mapped by language:commandName */
 	private readonly commands: Map<string, string | Error>;
 	/** History of all requests made to this repository instance */
-	private readonly requestHistory: Array<{ method: string; language: string; commandName?: string; options?: RepositoryOptions }>;
+	private readonly requestHistory: Array<RepositoryRequestHistoryEntry>;
 
-	constructor() {
+	constructor(
+		httpClient: IHTTPClient,
+		fileService: IFileService,
+		cacheConfig: CacheConfig = {
+			cacheDir: "/tmp/claude-cmd-cache",
+			ttl: 3600000, // 1 hour
+			maxSize: 10485760 // 10MB
+		}
+	) {
+		this.httpClient = httpClient;
+		this.fileService = fileService;
+		this.cacheConfig = cacheConfig;
 		this.manifests = new Map();
 		this.commands = new Map();
 		this.requestHistory = [];
@@ -162,23 +206,95 @@ class InMemoryRepository implements IRepository {
 	 * @throws ManifestError when manifest cannot be retrieved or parsed
 	 */
 	async getManifest(language: string, options?: RepositoryOptions): Promise<Manifest> {
-		// Record request for verification in tests
-		this.requestHistory.push({ method: "getManifest", language, options });
+		let httpCalled = false;
+		let fileCalled = false;
+
+		try {
+			// Simulate cache check first using FileService
+			const cacheKey = `manifest-${language}.json`;
+			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
+			
+			// Check if cached file exists and is not expired (unless force refresh)
+			if (!options?.forceRefresh) {
+				try {
+					const cacheExists = await this.fileService.exists(cachePath);
+					fileCalled = true;
+					
+					if (cacheExists) {
+						const cachedContent = await this.fileService.readFile(cachePath);
+						const cachedData = JSON.parse(cachedContent);
+						
+						// Check TTL
+						const cacheAge = Date.now() - cachedData.timestamp;
+						if (cacheAge < this.cacheConfig.ttl) {
+							// Return cached manifest
+							this.requestHistory.push({ 
+								method: "getManifest", 
+								language, 
+								options, 
+								httpCalled, 
+								fileCalled: true 
+							});
+							return cachedData.manifest;
+						}
+					}
+				} catch {
+					// Cache miss or error, continue to HTTP
+				}
+			}
+
+			// Simulate HTTP request using HTTPClient
+			try {
+				const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/index.json`;
+				const response = await this.httpClient.get(manifestUrl);
+				httpCalled = true;
+
+				// Parse manifest from HTTP response
+				const manifest = JSON.parse(response.body);
+
+				// Cache the result using FileService
+				const cacheData = {
+					manifest,
+					timestamp: Date.now()
+				};
+				await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+				fileCalled = true;
+
+				this.requestHistory.push({ 
+					method: "getManifest", 
+					language, 
+					options, 
+					httpCalled: true, 
+					fileCalled 
+				});
+
+				return manifest;
+
+			} catch (error) {
+				// HTTP failed, fall back to pre-configured data for testing
+				httpCalled = true;
+			}
+
+		} catch (error) {
+			// Dependency call failed, fall back to pre-configured data
+		}
+
+		// Record the request with dependency usage tracking
+		this.requestHistory.push({ 
+			method: "getManifest", 
+			language, 
+			options, 
+			httpCalled, 
+			fileCalled 
+		});
 
 		// Simulate network delay for realism
 		await new Promise(resolve => setTimeout(resolve, 1));
 
-		// Handle force refresh option
-		if (options?.forceRefresh) {
-			// In a real implementation, this would bypass cache
-			// For testing, we just record the option was used
-		}
-
-		// Retrieve pre-configured manifest or error for this language
+		// Fall back to pre-configured manifest or error for testing
 		const manifest = this.manifests.get(language);
 
 		if (!manifest) {
-			// Default behavior for unmapped languages
 			throw new ManifestError(language, "Language not supported by repository");
 		}
 
@@ -200,26 +316,105 @@ class InMemoryRepository implements IRepository {
 	 * @throws CommandContentError when command file cannot be retrieved
 	 */
 	async getCommand(commandName: string, language: string, options?: RepositoryOptions): Promise<string> {
-		// Record request for verification in tests
-		this.requestHistory.push({ method: "getCommand", language, commandName, options });
+		let httpCalled = false;
+		let fileCalled = false;
+
+		try {
+			// First verify the command exists in the manifest
+			const manifest = await this.getManifest(language, options);
+			const command = manifest.commands.find(cmd => cmd.name === commandName);
+
+			if (!command) {
+				throw new CommandNotFoundError(commandName, language);
+			}
+
+			// Simulate cache check using FileService
+			const cacheKey = `command-${language}-${commandName}.md`;
+			const cachePath = `${this.cacheConfig.cacheDir}/${cacheKey}`;
+
+			// Check cache first (unless force refresh)
+			if (!options?.forceRefresh) {
+				try {
+					const cacheExists = await this.fileService.exists(cachePath);
+					fileCalled = true;
+
+					if (cacheExists) {
+						const cachedContent = await this.fileService.readFile(cachePath);
+						const cachedData = JSON.parse(cachedContent);
+
+						// Check TTL
+						const cacheAge = Date.now() - cachedData.timestamp;
+						if (cacheAge < this.cacheConfig.ttl) {
+							this.requestHistory.push({ 
+								method: "getCommand", 
+								language, 
+								commandName, 
+								options, 
+								httpCalled, 
+								fileCalled: true 
+							});
+							return cachedData.content;
+						}
+					}
+				} catch {
+					// Cache miss or error, continue to HTTP
+				}
+			}
+
+			// Simulate HTTP request for command content using HTTPClient
+			try {
+				const commandUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/${command.file}`;
+				const response = await this.httpClient.get(commandUrl);
+				httpCalled = true;
+
+				const content = response.body;
+
+				// Cache the result using FileService
+				const cacheData = {
+					content,
+					timestamp: Date.now()
+				};
+				await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+				fileCalled = true;
+
+				this.requestHistory.push({ 
+					method: "getCommand", 
+					language, 
+					commandName, 
+					options, 
+					httpCalled: true, 
+					fileCalled 
+				});
+
+				return content;
+
+			} catch (error) {
+				// HTTP failed, fall back to pre-configured data
+				httpCalled = true;
+			}
+
+		} catch (error) {
+			// Dependency call failed or manifest error, fall back to pre-configured data
+		}
+
+		// Record the request with dependency usage tracking
+		this.requestHistory.push({ 
+			method: "getCommand", 
+			language, 
+			commandName, 
+			options, 
+			httpCalled, 
+			fileCalled 
+		});
 
 		// Simulate network delay for realism
 		await new Promise(resolve => setTimeout(resolve, 1));
 
-		// First verify the command exists in the manifest
-		const manifest = await this.getManifest(language, options);
-		const commandExists = manifest.commands.some(cmd => cmd.name === commandName);
-
-		if (!commandExists) {
-			throw new CommandNotFoundError(commandName, language);
-		}
-
-		// Retrieve pre-configured command content or error
+		// Fall back to pre-configured command content or error for testing
 		const commandKey = `${language}:${commandName}`;
 		const content = this.commands.get(commandKey);
 
 		if (!content) {
-			// Default behavior for unmapped commands
 			throw new CommandContentError(commandName, language, "Command file not found in repository");
 		}
 
@@ -235,7 +430,7 @@ class InMemoryRepository implements IRepository {
 	 * 
 	 * @returns Copy of request history to prevent external modification
 	 */
-	getRequestHistory(): Array<{ method: string; language: string; commandName?: string; options?: RepositoryOptions }> {
+	getRequestHistory(): Array<RepositoryRequestHistoryEntry> {
 		return [...this.requestHistory];
 	}
 
