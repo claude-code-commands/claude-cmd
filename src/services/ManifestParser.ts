@@ -134,7 +134,10 @@ export default class ManifestParser {
 						const command = commands[commandIndex] as Record<string, unknown>;
 						isMissingField = !(fieldName in command);
 					} else {
-						isMissingField = !commands || !Array.isArray(commands) || commands[commandIndex] === undefined;
+						isMissingField =
+							!commands ||
+							!Array.isArray(commands) ||
+							commands[commandIndex] === undefined;
 					}
 				}
 			}
@@ -190,7 +193,10 @@ export default class ManifestParser {
 						const command = commands[commandIndex] as Record<string, unknown>;
 						isMissingField = !(fieldName in command);
 					} else {
-						isMissingField = !commands || !Array.isArray(commands) || commands[commandIndex] === undefined;
+						isMissingField =
+							!commands ||
+							!Array.isArray(commands) ||
+							commands[commandIndex] === undefined;
 					}
 				} else {
 					isMissingField = true;

@@ -16,7 +16,7 @@ import {
 export default class MockHTTPClient implements IHTTPClient {
 	/** Track all requests made for test verification */
 	private requestHistory: Array<{ url: string; options?: HTTPOptions }> = [];
-	
+
 	/** Map of URL patterns to responses for easy maintenance */
 	private readonly responses: Map<string, HTTPResponse | Error> = new Map();
 
@@ -39,7 +39,8 @@ export default class MockHTTPClient implements IHTTPClient {
 				commands: [
 					{
 						name: "debug-help",
-						description: "Provide systematic debugging assistance for code issues",
+						description:
+							"Provide systematic debugging assistance for code issues",
 						file: "debug-help.md",
 						"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"],
 					},
@@ -89,7 +90,8 @@ export default class MockHTTPClient implements IHTTPClient {
 				commands: [
 					{
 						name: "debug-help",
-						description: "Fournir une assistance de débogage systématique pour les problèmes de code",
+						description:
+							"Fournir une assistance de débogage systématique pour les problèmes de code",
 						file: "debug-help.md",
 						"allowed-tools": ["Read", "Glob", "Grep", "Edit"],
 					},
@@ -101,7 +103,8 @@ export default class MockHTTPClient implements IHTTPClient {
 					},
 					{
 						name: "frontend:component",
-						description: "Générer des composants React avec les meilleures pratiques",
+						description:
+							"Générer des composants React avec les meilleures pratiques",
 						file: "frontend-component.md",
 						"allowed-tools": ["Write", "Edit", "Read"],
 					},
@@ -112,12 +115,30 @@ export default class MockHTTPClient implements IHTTPClient {
 
 		// Command content responses
 		const commandResponses: Array<[string, string]> = [
-			["/en/debug-help.md", "# Debug Help\n\nThis command provides systematic debugging assistance for code issues.\n\n## Usage\n\nUse this command when you need debugging assistance."],
-			["/fr/debug-help.md", "# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique.\n\n## Utilisation\n\nUtilisez cette commande pour obtenir de l'aide."],
-			["/en/frontend-component.md", "# Frontend Component\n\nGenerate React components with best practices."],
-			["/en/backend-api.md", "# Backend API\n\nCreate REST API endpoints with proper structure."],
-			["/en/code-review.md", "# Code Review\n\nSystematic code review assistance."],
-			["/en/test-gen.md", "# Test Generation\n\nGenerate comprehensive test suites."],
+			[
+				"/en/debug-help.md",
+				"# Debug Help\n\nThis command provides systematic debugging assistance for code issues.\n\n## Usage\n\nUse this command when you need debugging assistance.",
+			],
+			[
+				"/fr/debug-help.md",
+				"# Aide au débogage\n\nCette commande fournit une assistance de débogage systématique.\n\n## Utilisation\n\nUtilisez cette commande pour obtenir de l'aide.",
+			],
+			[
+				"/en/frontend-component.md",
+				"# Frontend Component\n\nGenerate React components with best practices.",
+			],
+			[
+				"/en/backend-api.md",
+				"# Backend API\n\nCreate REST API endpoints with proper structure.",
+			],
+			[
+				"/en/code-review.md",
+				"# Code Review\n\nSystematic code review assistance.",
+			],
+			[
+				"/en/test-gen.md",
+				"# Test Generation\n\nGenerate comprehensive test suites.",
+			],
 		];
 
 		commandResponses.forEach(([urlPattern, content]) => {
@@ -131,11 +152,27 @@ export default class MockHTTPClient implements IHTTPClient {
 		});
 
 		// Error scenarios
-		this.responses.set("/en/content-error.md", new HTTPNetworkError("/en/content-error.md", "File corrupted"));
-		this.responses.set("/fr/missing-file.md", new HTTPStatusError("/fr/missing-file.md", 404, "File not found on server"));
-		this.responses.set("network-error", new HTTPNetworkError("network-error", "Connection failed"));
+		this.responses.set(
+			"/en/content-error.md",
+			new HTTPNetworkError("/en/content-error.md", "File corrupted"),
+		);
+		this.responses.set(
+			"/fr/missing-file.md",
+			new HTTPStatusError(
+				"/fr/missing-file.md",
+				404,
+				"File not found on server",
+			),
+		);
+		this.responses.set(
+			"network-error",
+			new HTTPNetworkError("network-error", "Connection failed"),
+		);
 		this.responses.set("timeout", new HTTPTimeoutError("timeout", 5000));
-		this.responses.set("not-found", new HTTPStatusError("not-found", 404, "Not Found"));
+		this.responses.set(
+			"not-found",
+			new HTTPStatusError("not-found", 404, "Not Found"),
+		);
 	}
 
 	async get(url: string, options?: HTTPOptions): Promise<HTTPResponse> {

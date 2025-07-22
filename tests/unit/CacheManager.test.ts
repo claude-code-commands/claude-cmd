@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import type { Manifest } from "../../src/types/Command";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type IFileService from "../../src/interfaces/IFileService";
-import InMemoryFileService from "../mocks/InMemoryFileService";
 import { CacheManager } from "../../src/services/CacheManager";
+import type { Manifest } from "../../src/types/Command";
+import InMemoryFileService from "../mocks/InMemoryFileService";
 
 describe("CacheManager", () => {
 	let fileService: IFileService;
@@ -49,7 +49,7 @@ describe("CacheManager", () => {
 			await cacheManager.set("en", mockManifest);
 			const resultEn = await cacheManager.get("en");
 			const resultEs = await cacheManager.get("es");
-			
+
 			expect(resultEn).toEqual(mockManifest);
 			expect(resultEs).toBeNull();
 		});
@@ -127,11 +127,11 @@ describe("CacheManager", () => {
 		test("should handle custom max age parameter", async () => {
 			const recentTime = Date.now() - 30 * 60 * 1000; // 30 minutes ago
 			await cacheManager.set("en", mockManifest, recentTime);
-			
+
 			// Should not be expired with 1 hour max age
 			const notExpired = await cacheManager.isExpired("en", 60 * 60 * 1000);
 			expect(notExpired).toBe(false);
-			
+
 			// Should be expired with 15 minute max age
 			const expired = await cacheManager.isExpired("en", 15 * 60 * 1000);
 			expect(expired).toBe(true);
@@ -186,7 +186,7 @@ describe("CacheManager", () => {
 		test("should return different paths for different languages", () => {
 			const pathEn = cacheManager.getCachePath("en");
 			const pathEs = cacheManager.getCachePath("es");
-			
+
 			expect(pathEn).not.toEqual(pathEs);
 			expect(pathEn).toContain("en");
 			expect(pathEs).toContain("es");

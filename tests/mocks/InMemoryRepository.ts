@@ -142,11 +142,13 @@ class InMemoryRepository implements IRepository {
 						const cachedData = JSON.parse(cachedContent);
 
 						// Validate cached data structure
-						if (typeof cachedData !== 'object' || 
-							!cachedData.timestamp || 
-							typeof cachedData.timestamp !== 'number' ||
-							!dataValidator(cachedData)) {
-							throw new Error('Invalid cached data structure');
+						if (
+							typeof cachedData !== "object" ||
+							!cachedData.timestamp ||
+							typeof cachedData.timestamp !== "number" ||
+							!dataValidator(cachedData)
+						) {
+							throw new Error("Invalid cached data structure");
 						}
 
 						// Check TTL
@@ -171,7 +173,10 @@ class InMemoryRepository implements IRepository {
 		// 3. Cache the result
 		try {
 			const cacheData = { data: freshData, timestamp: Date.now() };
-			await this.fileService.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+			await this.fileService.writeFile(
+				cachePath,
+				JSON.stringify(cacheData, null, 2),
+			);
 			fileCalled = true;
 		} catch (error) {
 			console.error(`Cache write failed for ${cacheKey}:`, error);
@@ -340,18 +345,19 @@ class InMemoryRepository implements IRepository {
 	): Promise<Manifest> {
 		try {
 			// Use the generic cache utility for consistent caching behavior
-			const sanitizedLanguage = InMemoryRepository.sanitizePathComponent(language);
+			const sanitizedLanguage =
+				InMemoryRepository.sanitizePathComponent(language);
 			const cacheKey = `manifest-${sanitizedLanguage}.json`;
-			
+
 			const manifestValidator = (cachedData: any): boolean => {
-				return cachedData && cachedData.data && typeof cachedData.data === 'object';
+				return cachedData?.data && typeof cachedData.data === "object";
 			};
 
 			const manifestFetcher = async (): Promise<Manifest> => {
 				try {
 					const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/index.json`;
 					const response = await this.httpClient.get(manifestUrl);
-					
+
 					// Parse manifest from HTTP response with error handling
 					try {
 						const manifest = JSON.parse(response.body);
@@ -365,12 +371,19 @@ class InMemoryRepository implements IRepository {
 					}
 				} catch (_error) {
 					// HTTP failed, fall back to pre-configured data for testing
-					throw new Error("HTTP fetch failed, falling back to pre-configured data");
+					throw new Error(
+						"HTTP fetch failed, falling back to pre-configured data",
+					);
 				}
 			};
 
-			const result = await this.getCachedData(cacheKey, manifestFetcher, manifestValidator, options);
-			
+			const result = await this.getCachedData(
+				cacheKey,
+				manifestFetcher,
+				manifestValidator,
+				options,
+			);
+
 			this.addToRequestHistory({
 				method: "getManifest",
 				language,
@@ -380,8 +393,7 @@ class InMemoryRepository implements IRepository {
 			});
 
 			return result.data;
-
-		} catch (error) {
+		} catch (_error) {
 			// If cache utility fails, fall back to pre-configured data
 			this.addToRequestHistory({
 				method: "getManifest",
@@ -398,7 +410,10 @@ class InMemoryRepository implements IRepository {
 			const manifest = this.manifests.get(language);
 
 			if (!manifest) {
-				throw new ManifestError(language, "Language not supported by repository");
+				throw new ManifestError(
+					language,
+					"Language not supported by repository",
+				);
 			}
 
 			if (manifest instanceof Error) {
@@ -443,12 +458,14 @@ class InMemoryRepository implements IRepository {
 
 		try {
 			// Use the generic cache utility for consistent caching behavior
-			const sanitizedLanguage = InMemoryRepository.sanitizePathComponent(language);
-			const sanitizedCommandName = InMemoryRepository.sanitizePathComponent(commandName);
+			const sanitizedLanguage =
+				InMemoryRepository.sanitizePathComponent(language);
+			const sanitizedCommandName =
+				InMemoryRepository.sanitizePathComponent(commandName);
 			const cacheKey = `command-${sanitizedLanguage}-${sanitizedCommandName}.md`;
-			
+
 			const contentValidator = (cachedData: any): boolean => {
-				return cachedData && cachedData.data && typeof cachedData.data === 'string';
+				return cachedData?.data && typeof cachedData.data === "string";
 			};
 
 			const contentFetcher = async (): Promise<string> => {
@@ -458,12 +475,19 @@ class InMemoryRepository implements IRepository {
 					return response.body;
 				} catch (_error) {
 					// HTTP failed, fall back to pre-configured data for testing
-					throw new Error("HTTP fetch failed, falling back to pre-configured data");
+					throw new Error(
+						"HTTP fetch failed, falling back to pre-configured data",
+					);
 				}
 			};
 
-			const result = await this.getCachedData(cacheKey, contentFetcher, contentValidator, options);
-			
+			const result = await this.getCachedData(
+				cacheKey,
+				contentFetcher,
+				contentValidator,
+				options,
+			);
+
 			this.addToRequestHistory({
 				method: "getCommand",
 				language,
@@ -474,8 +498,7 @@ class InMemoryRepository implements IRepository {
 			});
 
 			return result.data;
-
-		} catch (error) {
+		} catch (_error) {
 			// If cache utility fails, fall back to pre-configured data
 			this.addToRequestHistory({
 				method: "getCommand",

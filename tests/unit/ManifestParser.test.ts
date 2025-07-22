@@ -18,11 +18,12 @@ describe("ManifestParser", () => {
 				commands: [
 					{
 						name: "debug-help",
-						description: "Provide systematic debugging assistance for code issues",
+						description:
+							"Provide systematic debugging assistance for code issues",
 						file: "debug-help.md",
-						"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"]
-					}
-				]
+						"allowed-tools": ["Read", "Glob", "Grep", "Bash(git:*)", "Edit"],
+					},
+				],
 			};
 
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
@@ -45,17 +46,20 @@ describe("ManifestParser", () => {
 				commands: [
 					{
 						name: "frontend:component",
-						description: "Generate React components with TypeScript definitions",
+						description:
+							"Generate React components with TypeScript definitions",
 						file: "frontend/component.md",
-						"allowed-tools": "Read, Edit, Write, Bash(npm:*)"
-					}
-				]
+						"allowed-tools": "Read, Edit, Write, Bash(npm:*)",
+					},
+				],
 			};
 
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
 
 			expect(result.commands[0]).toBeDefined();
-			expect(result.commands[0]?.["allowed-tools"]).toBe("Read, Edit, Write, Bash(npm:*)");
+			expect(result.commands[0]?.["allowed-tools"]).toBe(
+				"Read, Edit, Write, Bash(npm:*)",
+			);
 		});
 
 		test("should parse manifest with multiple commands", () => {
@@ -67,15 +71,15 @@ describe("ManifestParser", () => {
 						name: "debug-help",
 						description: "Debug assistance",
 						file: "debug-help.md",
-						"allowed-tools": ["Read", "Edit"]
+						"allowed-tools": ["Read", "Edit"],
 					},
 					{
 						name: "code-review",
 						description: "Code review assistance",
 						file: "code-review.md",
-						"allowed-tools": "Read, Edit, Glob"
-					}
-				]
+						"allowed-tools": "Read, Edit, Glob",
+					},
+				],
 			};
 
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
@@ -91,7 +95,7 @@ describe("ManifestParser", () => {
 			const validJson = {
 				version: "1.0.0",
 				updated: "2025-07-09T00:41:00Z",
-				commands: []
+				commands: [],
 			};
 
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
@@ -102,71 +106,99 @@ describe("ManifestParser", () => {
 		test("should throw ManifestError for invalid JSON", () => {
 			const invalidJson = '{"version": "1.0.1", invalid json}';
 
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow("Invalid JSON format");
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				ManifestError,
+			);
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				"Invalid JSON format",
+			);
 		});
 
 		test("should throw ManifestError for missing version field", () => {
 			const invalidManifest = {
 				updated: "2025-07-09T00:41:00Z",
-				commands: []
+				commands: [],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Missing required field: version");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Missing required field: version");
 		});
 
 		test("should throw ManifestError for missing updated field", () => {
 			const invalidManifest = {
 				version: "1.0.1",
-				commands: []
+				commands: [],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Missing required field: updated");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Missing required field: updated");
 		});
 
 		test("should throw ManifestError for missing commands field", () => {
 			const invalidManifest = {
 				version: "1.0.1",
-				updated: "2025-07-09T00:41:00Z"
+				updated: "2025-07-09T00:41:00Z",
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Missing required field: commands");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Missing required field: commands");
 		});
 
 		test("should throw ManifestError for invalid version type", () => {
 			const invalidManifest = {
 				version: 1.0,
 				updated: "2025-07-09T00:41:00Z",
-				commands: []
+				commands: [],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Invalid field type: version must be string");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Invalid field type: version must be string");
 		});
 
 		test("should throw ManifestError for invalid updated type", () => {
 			const invalidManifest = {
 				version: "1.0.1",
 				updated: 1641024000,
-				commands: []
+				commands: [],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Invalid field type: updated must be string");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Invalid field type: updated must be string");
 		});
 
 		test("should throw ManifestError for invalid commands type", () => {
 			const invalidManifest = {
 				version: "1.0.1",
 				updated: "2025-07-09T00:41:00Z",
-				commands: "not an array"
+				commands: "not an array",
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Invalid field type: commands must be array");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Invalid field type: commands must be array");
 		});
 
 		test("should throw ManifestError for command missing name", () => {
@@ -177,13 +209,17 @@ describe("ManifestParser", () => {
 					{
 						description: "Test command",
 						file: "test.md",
-						"allowed-tools": ["Read"]
-					}
-				]
+						"allowed-tools": ["Read"],
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Missing required field: name");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Command at index 0: Missing required field: name");
 		});
 
 		test("should throw ManifestError for command missing description", () => {
@@ -194,13 +230,17 @@ describe("ManifestParser", () => {
 					{
 						name: "test-command",
 						file: "test.md",
-						"allowed-tools": ["Read"]
-					}
-				]
+						"allowed-tools": ["Read"],
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Missing required field: description");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Command at index 0: Missing required field: description");
 		});
 
 		test("should throw ManifestError for command missing file", () => {
@@ -211,13 +251,17 @@ describe("ManifestParser", () => {
 					{
 						name: "test-command",
 						description: "Test command",
-						"allowed-tools": ["Read"]
-					}
-				]
+						"allowed-tools": ["Read"],
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Missing required field: file");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Command at index 0: Missing required field: file");
 		});
 
 		test("should throw ManifestError for command missing allowed-tools", () => {
@@ -228,13 +272,17 @@ describe("ManifestParser", () => {
 					{
 						name: "test-command",
 						description: "Test command",
-						file: "test.md"
-					}
-				]
+						file: "test.md",
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Missing required field: allowed-tools");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Command at index 0: Missing required field: allowed-tools");
 		});
 
 		test("should throw ManifestError for invalid command name type", () => {
@@ -246,13 +294,17 @@ describe("ManifestParser", () => {
 						name: 123,
 						description: "Test command",
 						file: "test.md",
-						"allowed-tools": ["Read"]
-					}
-				]
+						"allowed-tools": ["Read"],
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Invalid field type: name must be string");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow("Command at index 0: Invalid field type: name must be string");
 		});
 
 		test("should throw ManifestError for invalid allowed-tools type", () => {
@@ -264,13 +316,19 @@ describe("ManifestParser", () => {
 						name: "test-command",
 						description: "Test command",
 						file: "test.md",
-						"allowed-tools": 123
-					}
-				]
+						"allowed-tools": 123,
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Invalid field type: allowed-tools must be array or string");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(
+				"Command at index 0: Invalid field type: allowed-tools must be array or string",
+			);
 		});
 
 		test("should throw ManifestError for invalid allowed-tools array content", () => {
@@ -282,34 +340,52 @@ describe("ManifestParser", () => {
 						name: "test-command",
 						description: "Test command",
 						file: "test.md",
-						"allowed-tools": ["Read", 123, "Edit"]
-					}
-				]
+						"allowed-tools": ["Read", 123, "Edit"],
+					},
+				],
 			};
 
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(JSON.stringify(invalidManifest), "en")).toThrow("Command at index 0: Invalid allowed-tools array: all elements must be strings");
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(ManifestError);
+			expect(() =>
+				parser.parseManifest(JSON.stringify(invalidManifest), "en"),
+			).toThrow(
+				"Command at index 0: Invalid allowed-tools array: all elements must be strings",
+			);
 		});
 
 		test("should handle non-object JSON input", () => {
 			const invalidJson = '"just a string"';
 
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow("Manifest must be an object");
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				ManifestError,
+			);
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				"Manifest must be an object",
+			);
 		});
 
 		test("should handle null JSON input", () => {
-			const invalidJson = 'null';
+			const invalidJson = "null";
 
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow("Manifest must be an object");
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				ManifestError,
+			);
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				"Manifest must be an object",
+			);
 		});
 
 		test("should handle array JSON input", () => {
 			const invalidJson = '[{"name": "test"}]';
 
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(ManifestError);
-			expect(() => parser.parseManifest(invalidJson, "en")).toThrow("Manifest must be an object");
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				ManifestError,
+			);
+			expect(() => parser.parseManifest(invalidJson, "en")).toThrow(
+				"Manifest must be an object",
+			);
 		});
 
 		test("should include language in error messages", () => {
@@ -327,7 +403,7 @@ describe("ManifestParser", () => {
 		});
 
 		test("should preserve original cause in error messages", () => {
-			const invalidJson = '{broken json';
+			const invalidJson = "{broken json";
 
 			try {
 				parser.parseManifest(invalidJson, "en");
@@ -350,9 +426,9 @@ describe("ManifestParser", () => {
 						name: "debug-help",
 						description: "Debug assistance",
 						file: "debug-help.md",
-						"allowed-tools": ["Read", "Edit"]
-					}
-				]
+						"allowed-tools": ["Read", "Edit"],
+					},
+				],
 			};
 
 			const result = parser.validateManifest(validManifest);
@@ -362,7 +438,7 @@ describe("ManifestParser", () => {
 		test("should return false for manifest missing version", () => {
 			const invalidManifest = {
 				updated: "2025-07-09T00:41:00Z",
-				commands: []
+				commands: [],
 			} as any;
 
 			const result = parser.validateManifest(invalidManifest);
@@ -375,10 +451,10 @@ describe("ManifestParser", () => {
 				updated: "2025-07-09T00:41:00Z",
 				commands: [
 					{
-						name: "test-command"
+						name: "test-command",
 						// missing description, file, allowed-tools
-					}
-				]
+					},
+				],
 			} as any;
 
 			const result = parser.validateManifest(invalidManifest);
