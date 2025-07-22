@@ -12,7 +12,9 @@
 		"build": "bun build src/main.ts --outdir=dist --target=bun",
 		"start": "bun src/main.ts",
 		"dev": "bun --watch src/main.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"check": "bun run biome check",
+		"check-fix": "bun run biome check --write --unsafe"
 	},
 	"keywords": [
 		"claude",

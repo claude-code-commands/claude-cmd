@@ -1,2 +1,3 @@
 - The project uses Bun instead of Node.js. Before *any* use of Bun or Node.js, use Context7 with the library ID `oven-sh/bun` to ensure you use the proper Bun API, of you fall back properly on Node.js.
 - To run the test use `bun test`
+- To run the TypeScript type checking use `bun run typecheck`
