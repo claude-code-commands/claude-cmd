@@ -46,6 +46,7 @@ export class CacheError extends Error {
 export class CacheManager {
 	private readonly cacheDir: string;
 	private readonly defaultMaxAge: number = 60 * 60 * 1000; // 1 hour in milliseconds
+	private readonly languageDetector = new LanguageDetector();
 
 	/**
 	 * Create a new CacheManager instance
@@ -142,6 +143,7 @@ export class CacheManager {
 	 * @returns True if cache doesn't exist or is expired, false otherwise
 	 */
 	async isExpired(language: string, maxAge?: number): Promise<boolean> {
+		this.validateLanguage(language);
 		const cachePath = this.getCachePath(language);
 		const effectiveMaxAge = maxAge ?? this.defaultMaxAge;
 
@@ -178,6 +180,7 @@ export class CacheManager {
 	 * @param language - Language code (e.g., "en", "es")
 	 */
 	async clear(language: string): Promise<void> {
+		this.validateLanguage(language);
 		const cachePath = this.getCachePath(language);
 
 		try {
@@ -201,7 +204,7 @@ export class CacheManager {
 	 * @param language - Language code (e.g., "en", "es")
 	 * @returns Full path to the cache file
 	 */
-	getCachePath(language: string): string {
+	private getCachePath(language: string): string {
 		return path.join(this.cacheDir, language, "manifest.json");
 	}
 
@@ -212,17 +215,13 @@ export class CacheManager {
 	 * @throws CacheError if language code is invalid
 	 */
 	private validateLanguage(language: string): void {
-		if (
-			!language ||
-			typeof language !== "string" ||
-			language.trim().length === 0
-		) {
+		const languageCode = this.languageDetector.sanitizeLanguageCode(language);
+		if (!languageCode) {
 			throw new CacheError("Language code cannot be empty", language);
 		}
 
 		// Use LanguageDetector's validation
-		const languageDetector = new LanguageDetector();
-		if (!languageDetector.isValidLanguageCode(language)) {
+		if (!this.languageDetector.isValidLanguageCode(language)) {
 			throw new CacheError(
 				`Invalid language code format: "${language}". Expected format: "en", "es", etc.`,
 				language,
@@ -271,6 +270,8 @@ export class CacheManager {
 		) {
 			return null;
 		}
+
+		console.error("Unexpected error reading cache:", error);
 
 		// For any other errors, we'll return null to trigger cache regeneration
 		// This provides resilience against corrupted cache files
