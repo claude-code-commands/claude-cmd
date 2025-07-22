@@ -204,7 +204,7 @@ export class CacheManager {
 	 * @param language - Language code (e.g., "en", "es")
 	 * @returns Full path to the cache file
 	 */
-	private getCachePath(language: string): string {
+	getCachePath(language: string): string {
 		return path.join(this.cacheDir, language, "manifest.json");
 	}
 
@@ -221,10 +221,10 @@ export class CacheManager {
 		}
 
 		// Use LanguageDetector's validation
-		if (!this.languageDetector.isValidLanguageCode(language)) {
+		if (!this.languageDetector.isValidLanguageCode(languageCode)) {
 			throw new CacheError(
-				`Invalid language code format: "${language}". Expected format: "en", "es", etc.`,
-				language,
+				`Invalid language code format: "${languageCode}". Expected format: "en", "es", etc.`,
+				languageCode,
 			);
 		}
 	}
