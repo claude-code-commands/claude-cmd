@@ -2,7 +2,7 @@ import { join } from "node:path";
 import type IFileService from "../../src/interfaces/IFileService.js";
 import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
 import type IRepository from "../../src/interfaces/IRepository.js";
-import type { CacheConfig } from "../../src/interfaces/IRepository.js";
+import { CacheConfig } from "../../src/interfaces/IRepository.js";
 import type { Manifest, RepositoryOptions } from "../../src/types/Command.js";
 import {
 	CommandContentError,
@@ -71,8 +71,7 @@ class InMemoryRepository implements IRepository {
 	) {
 		this.httpClient = httpClient;
 		this.fileService = fileService;
-		this.cacheConfig =
-			cacheConfig ?? InMemoryRepository.createDefaultCacheConfig();
+		this.cacheConfig = cacheConfig ?? new CacheConfig();
 		this.manifests = new Map();
 		this.commands = new Map();
 		this.requestHistory = [];
@@ -95,17 +94,6 @@ class InMemoryRepository implements IRepository {
 		}
 	}
 
-	/**
-	 * Create default cache configuration with sensible defaults
-	 * Provides fallback values that work for most testing scenarios
-	 */
-	private static createDefaultCacheConfig(): CacheConfig {
-		return {
-			cacheDir: "/tmp/claude-cmd-cache",
-			ttl: 3600000, // 1 hour in milliseconds
-			maxSize: 10485760, // 10MB
-		};
-	}
 
 	/**
 	 * Sanitize path components to prevent directory traversal attacks

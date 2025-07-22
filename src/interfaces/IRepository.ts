@@ -6,37 +6,115 @@ import type IHTTPClient from "./IHTTPClient.js";
  * Cache configuration for repository operations
  *
  * Controls how repository content is cached locally to improve performance
- * and reduce network requests. All settings use sensible defaults for typical usage.
+ * and reduce network requests. Provides OS-specific defaults and validation.
  *
  * @example
  * ```typescript
- * const cacheConfig: CacheConfig = {
+ * // Use defaults
+ * const cacheConfig = new CacheConfig();
+ *
+ * // Custom configuration
+ * const cacheConfig = new CacheConfig({
  *   cacheDir: "~/.claude/cache",
  *   ttl: 3600000, // 1 hour
- *   maxSize: 10485760 // 10MB
- * };
+ * });
  * ```
  */
-export interface CacheConfig {
+export class CacheConfig {
 	/**
 	 * Directory path for cached files
-	 * @default "/tmp/claude-cmd-cache" or "~/.claude/cache"
 	 */
 	readonly cacheDir: string;
 
 	/**
 	 * Time-to-live in milliseconds for cached content
 	 * After this time, cache entries are considered stale and will be refreshed
-	 * @default 3600000 (1 hour)
 	 */
 	readonly ttl: number;
 
 	/**
-	 * Maximum cache size in bytes (optional)
-	 * When exceeded, oldest entries will be removed to maintain size limit
-	 * @default 10485760 (10MB)
+	 * Create cache configuration with OS-specific defaults and validation
+	 *
+	 * @param options - Optional configuration overrides
+	 * @param options.cacheDir - Custom cache directory path
+	 * @param options.ttl - Custom TTL in milliseconds
 	 */
-	readonly maxSize?: number;
+	constructor(options?: { cacheDir?: string; ttl?: number }) {
+		// Set cache directory with OS-specific default
+		this.cacheDir = options?.cacheDir ?? this.getDefaultCacheDir();
+
+		// Set TTL with 2-week default
+		this.ttl = options?.ttl ?? 1209600000; // 2 weeks (14 days) in milliseconds
+
+		// Validate configuration
+		this.validateCacheDir(this.cacheDir);
+		this.validateTTL(this.ttl);
+	}
+
+	/**
+	 * Get OS-specific cache directory
+	 *
+	 * @returns Default cache directory path for the current OS
+	 */
+	private getDefaultCacheDir(): string {
+		const platform = process.platform;
+
+		switch (platform) {
+			case "darwin": // macOS
+				return `${process.env.HOME}/Library/Caches/claude-cmd`;
+			case "linux":
+				return `${process.env.HOME}/.cache/claude-cmd`;
+			case "win32": // Windows
+				return `${process.env.LOCALAPPDATA}\\claude-cmd`;
+			default:
+				// Fallback for unknown platforms
+				return "/tmp/claude-cmd-cache";
+		}
+	}
+
+	/**
+	 * Validate cache directory path
+	 *
+	 * @param cacheDir - Cache directory to validate
+	 * @throws Error if cache directory is invalid
+	 */
+	private validateCacheDir(cacheDir: string): void {
+		if (!cacheDir || typeof cacheDir !== "string") {
+			throw new Error("Cache directory must be a non-empty string");
+		}
+
+		if (cacheDir.trim().length === 0) {
+			throw new Error("Cache directory cannot be empty or whitespace");
+		}
+
+		// Check for potentially dangerous paths
+		if (cacheDir.includes("..") || cacheDir.includes("\0")) {
+			throw new Error("Cache directory contains invalid characters");
+		}
+	}
+
+	/**
+	 * Validate TTL value
+	 *
+	 * @param ttl - TTL value to validate
+	 * @throws Error if TTL is invalid
+	 */
+	private validateTTL(ttl: number): void {
+		if (typeof ttl !== "number" || !Number.isFinite(ttl)) {
+			throw new Error("TTL must be a finite number");
+		}
+
+		if (ttl <= 0) {
+			throw new Error("TTL must be greater than 0");
+		}
+
+		// Warn about unreasonably short or long TTL values
+		if (ttl < 1000) {
+			console.warn("TTL is very short (< 1 second), this may cause excessive network requests");
+		} else if (ttl > 31536000000) { // 1 year
+			console.warn("TTL is very long (> 1 year), cached data may become stale");
+		}
+	}
 }
 
 /**
@@ -86,70 +164,4 @@ export default interface IRepository {
 		language: string,
 		options?: RepositoryOptions,
 	): Promise<string>;
-}
-
-/**
- * Factory interface for creating Repository instances with proper dependency injection
- *
- * Provides a standardized way to create Repository instances with required dependencies.
- * This ensures all Repository implementations accept the required HTTPClient and FileService
- * dependencies for proper testability and adherence to abstracted I/O principles.
- *
- * @example
- * ```typescript
- * const factory: IRepositoryFactory = new GitHubRepositoryFactory();
- * const httpClient = new BunHTTPClient();
- * const fileService = new BunFileService();
- * const repo = factory.create(httpClient, fileService);
- * ```
- */
-export interface IRepositoryFactory {
-	/**
-	 * Create a new Repository instance with injected dependencies
-	 *
-	 * @param httpClient - HTTP client for network operations (manifest and command fetching)
-	 * @param fileService - File service for local caching operations (cache read/write)
-	 * @param cacheConfig - Optional cache configuration (defaults applied if not provided)
-	 * @returns Repository instance ready for use with dependency injection properly configured
-	 * @throws Error if dependencies are invalid or incompatible
-	 */
-	create(
-		httpClient: IHTTPClient,
-		fileService: IFileService,
-		cacheConfig?: CacheConfig,
-	): IRepository;
-}
-
-/**
- * Constructor interface for Repository implementations
- *
- * Defines the required constructor signature that all Repository implementations must follow
- * to enable proper dependency injection and testing. This interface ensures consistent
- * instantiation patterns across different repository types (in-memory, GitHub, etc.).
- *
- * @example
- * ```typescript
- * // All repository implementations must follow this pattern:
- * class GitHubRepository implements IRepository {
- *   constructor(
- *     httpClient: IHTTPClient,
- *     fileService: IFileService,
- *     cacheConfig?: CacheConfig
- *   ) { ... }
- * }
- * ```
- */
-export interface IRepositoryConstructor {
-	/**
-	 * Repository constructor with dependency injection
-	 *
-	 * @param httpClient - HTTP client for network operations
-	 * @param fileService - File service for local caching operations
-	 * @param cacheConfig - Optional cache configuration with sensible defaults
-	 */
-	new (
-		httpClient: IHTTPClient,
-		fileService: IFileService,
-		cacheConfig?: CacheConfig,
-	): IRepository;
 }
