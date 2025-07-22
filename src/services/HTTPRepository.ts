@@ -63,7 +63,7 @@ export default class HTTPRepository implements IRepository {
 	 * Points to the main branch of the claude-cmd/commands repository
 	 */
 	private static readonly BASE_URL =
-		"https://raw.githubusercontent.com/claude-cmd/commands/main";
+		"https://raw.githubusercontent.com/claude-cmd/commands/refs/heads/main";
 
 	/**
 	 * Regular expression for validating language codes (ISO 639-1 format)
