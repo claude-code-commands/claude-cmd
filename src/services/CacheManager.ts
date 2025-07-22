@@ -22,7 +22,7 @@ export class CacheError extends Error {
 	constructor(
 		message: string,
 		public readonly language: string,
-		public readonly cause?: Error,
+		public override readonly cause?: Error,
 	) {
 		super(message);
 		this.name = this.constructor.name;

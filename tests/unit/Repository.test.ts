@@ -116,8 +116,9 @@ describe("Repository Interface", () => {
 			const history = repository.getRequestHistory();
 
 			expect(history).toHaveLength(1);
-			expect(history[0].method).toBe("getManifest");
-			expect(history[0].language).toBe("en");
+			expect(history[0]).toBeDefined();
+			expect(history[0]?.method).toBe("getManifest");
+			expect(history[0]?.language).toBe("en");
 		});
 	});
 
@@ -354,7 +355,8 @@ describe("Repository Interface", () => {
 			await repository.getManifest("en", options);
 
 			const history = repository.getRequestHistory();
-			expect(history[0].options).toEqual(options);
+			expect(history[0]).toBeDefined();
+			expect(history[0]?.options).toEqual(options);
 		});
 	});
 
@@ -388,8 +390,9 @@ describe("Repository Interface", () => {
 			// Verify dependency usage is tracked
 			const history = repository.getRequestHistory();
 			expect(history).toHaveLength(1);
-			expect(history[0].httpCalled).toBe(true);
-			expect(history[0].fileCalled).toBe(true);
+			expect(history[0]).toBeDefined();
+			expect(history[0]?.httpCalled).toBe(true);
+			expect(history[0]?.fileCalled).toBe(true);
 		});
 
 		test("should handle HTTPClient errors gracefully", async () => {

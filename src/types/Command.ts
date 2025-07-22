@@ -74,7 +74,7 @@ export class CommandNotFoundError extends RepositoryError {
  */
 export class ManifestError extends RepositoryError {
 	/** The underlying cause of the manifest error */
-	public readonly cause?: string;
+	public override readonly cause?: string;
 
 	constructor(language: string, cause?: string) {
 		super(
@@ -92,7 +92,7 @@ export class CommandContentError extends RepositoryError {
 	/** The command name that failed to load */
 	public readonly commandName: string;
 	/** The underlying cause of the content error */
-	public readonly cause?: string;
+	public override readonly cause?: string;
 
 	constructor(commandName: string, language: string, cause?: string) {
 		super(

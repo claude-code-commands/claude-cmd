@@ -141,7 +141,7 @@ describe("InMemory HTTPClient", () => {
 				await httpClient.get("https://api.example.com/slow", { timeout });
 			} catch (error) {
 				expect(error).toBeInstanceOf(HTTPTimeoutError);
-				expect(error.message).toContain(`${timeout}ms`);
+				expect((error as HTTPTimeoutError).message).toContain(`${timeout}ms`);
 			}
 		});
 	});

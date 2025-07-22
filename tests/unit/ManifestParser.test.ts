@@ -31,10 +31,11 @@ describe("ManifestParser", () => {
 			expect(result.version).toBe("1.0.1");
 			expect(result.updated).toBe("2025-07-09T00:41:00Z");
 			expect(result.commands).toHaveLength(1);
-			expect(result.commands[0].name).toBe("debug-help");
-			expect(result.commands[0].description).toContain("debugging assistance");
-			expect(result.commands[0].file).toBe("debug-help.md");
-			expect(Array.isArray(result.commands[0]["allowed-tools"])).toBe(true);
+			expect(result.commands[0]).toBeDefined();
+			expect(result.commands[0]?.name).toBe("debug-help");
+			expect(result.commands[0]?.description).toContain("debugging assistance");
+			expect(result.commands[0]?.file).toBe("debug-help.md");
+			expect(Array.isArray(result.commands[0]?.["allowed-tools"])).toBe(true);
 		});
 
 		test("should parse manifest with allowed-tools as string", () => {
@@ -53,7 +54,8 @@ describe("ManifestParser", () => {
 
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
 
-			expect(result.commands[0]["allowed-tools"]).toBe("Read, Edit, Write, Bash(npm:*)");
+			expect(result.commands[0]).toBeDefined();
+			expect(result.commands[0]?.["allowed-tools"]).toBe("Read, Edit, Write, Bash(npm:*)");
 		});
 
 		test("should parse manifest with multiple commands", () => {
@@ -79,8 +81,10 @@ describe("ManifestParser", () => {
 			const result = parser.parseManifest(JSON.stringify(validJson), "en");
 
 			expect(result.commands).toHaveLength(2);
-			expect(result.commands[0].name).toBe("debug-help");
-			expect(result.commands[1].name).toBe("code-review");
+			expect(result.commands[0]).toBeDefined();
+			expect(result.commands[1]).toBeDefined();
+			expect(result.commands[0]?.name).toBe("debug-help");
+			expect(result.commands[1]?.name).toBe("code-review");
 		});
 
 		test("should handle empty commands array", () => {

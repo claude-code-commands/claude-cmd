@@ -55,7 +55,7 @@ export class HTTPTimeoutError extends HTTPError {
  */
 export class HTTPNetworkError extends HTTPError {
 	/** The underlying cause of the network failure */
-	public readonly cause?: string;
+	public override readonly cause?: string;
 
 	constructor(url: string, cause?: string) {
 		super(`Network error: ${cause || "Connection failed"}`, url);

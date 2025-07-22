@@ -102,7 +102,7 @@ export class LanguageDetector {
 		const parts = locale.split(/[_-]/);
 		const languagePart = parts[0];
 
-		if (languagePart === "") {
+		if (!languagePart || languagePart === "") {
 			throw new InvalidLocaleError(
 				"invalid locale format: missing language component",
 			);

@@ -79,6 +79,9 @@ export default class ManifestParser {
 		if (!result.success) {
 			// Convert Zod errors to ManifestError with matching format
 			const firstError = result.error.issues[0];
+			if (!firstError) {
+				throw new ManifestError(language, "Unknown validation error");
+			}
 			const errorMessage = this.formatZodError(firstError, rawData);
 			// Create ManifestError and override the message to match test expectations
 			const error = new ManifestError(language, errorMessage);
@@ -106,7 +109,10 @@ export default class ManifestParser {
 			let isMissingField = false;
 			if (rawData && typeof rawData === "object" && path.length === 1) {
 				// Top-level field
-				isMissingField = !(path[0] in rawData);
+				const field = path[0];
+				if (field !== undefined) {
+					isMissingField = !(field in rawData);
+				}
 			} else if (
 				rawData &&
 				typeof rawData === "object" &&
@@ -117,17 +123,19 @@ export default class ManifestParser {
 				// Command field: path is ["commands", index, fieldName]
 				const commandIndex = path[1];
 				const fieldName = path[2];
-				const data = rawData as Record<string, unknown>;
-				const commands = data.commands;
-				if (
-					Array.isArray(commands) &&
-					typeof commands[commandIndex] === "object" &&
-					commands[commandIndex] !== null
-				) {
-					const command = commands[commandIndex] as Record<string, unknown>;
-					isMissingField = !(fieldName in command);
-				} else {
-					isMissingField = !commands || !commands[commandIndex];
+				if (fieldName !== undefined) {
+					const data = rawData as Record<string, unknown>;
+					const commands = data.commands;
+					if (
+						Array.isArray(commands) &&
+						typeof commands[commandIndex] === "object" &&
+						commands[commandIndex] !== null
+					) {
+						const command = commands[commandIndex] as Record<string, unknown>;
+						isMissingField = !(fieldName in command);
+					} else {
+						isMissingField = !commands || !Array.isArray(commands) || commands[commandIndex] === undefined;
+					}
 				}
 			}
 
@@ -182,7 +190,7 @@ export default class ManifestParser {
 						const command = commands[commandIndex] as Record<string, unknown>;
 						isMissingField = !(fieldName in command);
 					} else {
-						isMissingField = !commands || !commands[commandIndex];
+						isMissingField = !commands || !Array.isArray(commands) || commands[commandIndex] === undefined;
 					}
 				} else {
 					isMissingField = true;

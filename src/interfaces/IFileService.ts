@@ -41,7 +41,7 @@ export class FileIOError extends FileSystemError {
 		this.cause = cause;
 	}
 
-	public readonly cause?: string;
+	public override readonly cause?: string;
 }
 
 /**
