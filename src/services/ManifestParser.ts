@@ -54,7 +54,7 @@ export default class ManifestParser {
 	 */
 	parseManifest(jsonString: string, language: string): Manifest {
 		// 1. Parse JSON
-		let rawData: any;
+		let rawData: unknown;
 		try {
 			rawData = JSON.parse(jsonString);
 
@@ -103,7 +103,7 @@ export default class ManifestParser {
 		const path = issue.path;
 
 		if (issue.code === "invalid_type") {
-			const expected = (issue as any).expected;
+			const expected = (issue as { expected: string }).expected;
 
 			// Check if a field is actually missing by looking at raw data
 			let isMissingField = false;
@@ -233,7 +233,7 @@ export default class ManifestParser {
 	 * @param data - Object to validate
 	 * @returns true if valid, false otherwise
 	 */
-	validateManifest(data: any): data is Manifest {
+	validateManifest(data: unknown): data is Manifest {
 		const result = ManifestSchema.safeParse(data);
 		return result.success;
 	}

@@ -439,7 +439,7 @@ describe("ManifestParser", () => {
 			const invalidManifest = {
 				updated: "2025-07-09T00:41:00Z",
 				commands: [],
-			} as any;
+			};
 
 			const result = parser.validateManifest(invalidManifest);
 			expect(result).toBe(false);
@@ -455,7 +455,7 @@ describe("ManifestParser", () => {
 						// missing description, file, allowed-tools
 					},
 				],
-			} as any;
+			};
 
 			const result = parser.validateManifest(invalidManifest);
 			expect(result).toBe(false);

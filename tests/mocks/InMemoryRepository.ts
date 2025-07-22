@@ -123,7 +123,7 @@ class InMemoryRepository implements IRepository {
 	private async getCachedData<T>(
 		cacheKey: string,
 		dataFetcher: () => Promise<T>,
-		dataValidator: (data: any) => boolean,
+		dataValidator: (data: unknown) => boolean,
 		options?: RepositoryOptions,
 	): Promise<{ data: T; httpCalled: boolean; fileCalled: boolean }> {
 		const cachePath = join(this.cacheConfig.cacheDir, cacheKey);
@@ -349,8 +349,13 @@ class InMemoryRepository implements IRepository {
 				InMemoryRepository.sanitizePathComponent(language);
 			const cacheKey = `manifest-${sanitizedLanguage}.json`;
 
-			const manifestValidator = (cachedData: any): boolean => {
-				return cachedData?.data && typeof cachedData.data === "object";
+			const manifestValidator = (cachedData: unknown): boolean => {
+				return (
+					// biome-ignore lint: requires any
+					(cachedData as any)?.data &&
+					// biome-ignore lint: requires any
+					typeof (cachedData as any).data === "object"
+				);
 			};
 
 			const manifestFetcher = async (): Promise<Manifest> => {
@@ -464,8 +469,13 @@ class InMemoryRepository implements IRepository {
 				InMemoryRepository.sanitizePathComponent(commandName);
 			const cacheKey = `command-${sanitizedLanguage}-${sanitizedCommandName}.md`;
 
-			const contentValidator = (cachedData: any): boolean => {
-				return cachedData?.data && typeof cachedData.data === "string";
+			const contentValidator = (cachedData: unknown): boolean => {
+				return (
+					// biome-ignore lint: requires any
+					(cachedData as any)?.data &&
+					// biome-ignore lint: requires any
+					typeof (cachedData as any).data === "string"
+				);
 			};
 
 			const contentFetcher = async (): Promise<string> => {
