@@ -194,4 +194,159 @@ describe("InMemory HTTPClient", () => {
 			expect(response.status).toBe(200);
 		});
 	});
+
+	describe("setResponseWithMatcher method", () => {
+		let client: InMemoryHTTPClient;
+
+		beforeEach(() => {
+			client = new InMemoryHTTPClient();
+		});
+
+		test("should support exact string matching (backward compatibility)", async () => {
+			const testResponse = {
+				status: 201,
+				statusText: "Created",
+				headers: { "content-type": "application/json" },
+				body: '{"test": true}',
+				url: "https://test.example.com/exact",
+			};
+
+			client.setResponseWithMatcher("https://test.example.com/exact", testResponse);
+			const response = await client.get("https://test.example.com/exact");
+
+			expect(response.status).toBe(201);
+			expect(response.body).toBe('{"test": true}');
+		});
+
+		test("should support RegExp matching", async () => {
+			const testResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: { "content-type": "text/markdown" },
+				body: "# Test Command",
+				url: "https://example.com/test.md",
+			};
+
+			client.setResponseWithMatcher(/\.md$/, testResponse);
+			
+			const response1 = await client.get("https://example.com/test.md");
+			const response2 = await client.get("https://api.example.com/command.md");
+
+			expect(response1.status).toBe(200);
+			expect(response1.body).toBe("# Test Command");
+			expect(response2.status).toBe(200);
+			expect(response2.body).toBe("# Test Command");
+		});
+
+		test("should support function predicate matching", async () => {
+			const manifestResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: { "content-type": "application/json" },
+				body: '{"version": "1.0.0"}',
+				url: "https://example.com/manifest",
+			};
+
+			client.setResponseWithMatcher(
+				(url: string) => url.includes("index.json"),
+				manifestResponse
+			);
+
+			const response1 = await client.get("https://api.example.com/en/index.json");
+			const response2 = await client.get("https://api.example.com/fr/index.json");
+
+			expect(response1.status).toBe(200);
+			expect(response1.body).toBe('{"version": "1.0.0"}');
+			expect(response2.status).toBe(200);
+			expect(response2.body).toBe('{"version": "1.0.0"}');
+		});
+
+		test("should support error responses with pattern matching", async () => {
+			const networkError = new HTTPNetworkError("test-url", "Simulated network failure");
+
+			client.setResponseWithMatcher(/error/, networkError);
+
+			await expect(client.get("https://api.example.com/network-error")).rejects.toThrow(HTTPNetworkError);
+			await expect(client.get("https://api.example.com/server-error-test")).rejects.toThrow(HTTPNetworkError);
+		});
+
+		test("should prioritize exact matches over patterns", async () => {
+			const exactResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: {},
+				body: "exact match",
+				url: "https://example.com/test",
+			};
+
+			const patternResponse = {
+				status: 200,
+				statusText: "OK", 
+				headers: {},
+				body: "pattern match",
+				url: "https://example.com/test",
+			};
+
+			// Set pattern first, then exact - exact should win
+			client.setResponseWithMatcher(/test/, patternResponse);
+			client.setResponseWithMatcher("https://example.com/test", exactResponse);
+
+			const response = await client.get("https://example.com/test");
+			expect(response.body).toBe("exact match");
+		});
+
+		test("should handle multiple pattern matchers correctly", async () => {
+			const jsonResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: { "content-type": "application/json" },
+				body: '{"type": "json"}',
+				url: "test",
+			};
+
+			const mdResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: { "content-type": "text/markdown" },
+				body: "# Markdown",
+				url: "test",
+			};
+
+			client.setResponseWithMatcher(/\.json$/, jsonResponse);
+			client.setResponseWithMatcher(/\.md$/, mdResponse);
+
+			const jsonResult = await client.get("https://api.example.com/data.json");
+			const mdResult = await client.get("https://api.example.com/readme.md");
+
+			expect(jsonResult.body).toBe('{"type": "json"}');
+			expect(mdResult.body).toBe("# Markdown");
+		});
+
+		test("should maintain backward compatibility with existing setResponse", async () => {
+			const oldResponse = {
+				status: 200,
+				statusText: "OK",
+				headers: {},
+				body: "old method",
+				url: "https://example.com/old",
+			};
+
+			client.setResponse("https://example.com/old", oldResponse);
+			const response = await client.get("https://example.com/old");
+
+			expect(response.body).toBe("old method");
+		});
+
+		test("should throw 404 for unmatched URLs", async () => {
+			client.setResponseWithMatcher(/specific-pattern/, {
+				status: 200,
+				statusText: "OK",
+				headers: {},
+				body: "matched",
+				url: "test",
+			});
+
+			await expect(client.get("https://unmatched.example.com")).rejects.toThrow(HTTPStatusError);
+		});
+	});
 });

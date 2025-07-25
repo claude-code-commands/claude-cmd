@@ -10,22 +10,46 @@ import {
 } from "../../src/interfaces/IHTTPClient.ts";
 
 /**
+ * Matcher type for flexible URL matching
+ */
+type URLMatcher = string | RegExp | ((url: string) => boolean);
+
+/**
  * In-memory HTTP client implementation for testing
  *
  * Simulates HTTP responses based on URL patterns and can trigger various error conditions
  * for comprehensive testing scenarios. Provides a deterministic mock for unit testing
  * without requiring actual network connectivity.
  *
- * @example
+ * Features:
+ * - Exact URL matching for precise control
+ * - Pattern matching with RegExp and custom functions
+ * - Request history tracking for test verification
+ * - Comprehensive error simulation capabilities
+ * - Backward compatibility with existing setResponse API
+ *
+ * @example Basic usage
  * ```typescript
  * const client = new InMemoryHTTPClient();
  * const response = await client.get('https://api.example.com/data');
  * console.log(response.status); // 200
  * ```
+ *
+ * @example Pattern matching
+ * ```typescript
+ * const client = new InMemoryHTTPClient();
+ * client.setResponseWithMatcher(/\.json$/, { status: 200, body: '{}' });
+ * client.setResponseWithMatcher(url => url.includes('manifest'), manifestResponse);
+ * ```
  */
 class InMemoryHTTPClient implements IHTTPClient {
 	/** Pre-configured responses mapped by URL */
 	private readonly responses: Map<string, HTTPResponse | Error>;
+	/** Pattern-based responses for flexible matching */
+	private readonly patternResponses: Array<{
+		matcher: URLMatcher;
+		response: HTTPResponse | Error;
+	}>;
 	/** History of all requests made to this client instance */
 	private readonly requestHistory: Array<{
 		url: string;
@@ -34,6 +58,7 @@ class InMemoryHTTPClient implements IHTTPClient {
 
 	constructor() {
 		this.responses = new Map();
+		this.patternResponses = [];
 		this.requestHistory = [];
 		this.setupDefaultResponses();
 	}
@@ -158,22 +183,47 @@ class InMemoryHTTPClient implements IHTTPClient {
 			throw new HTTPTimeoutError(url, timeout);
 		}
 
-		// Retrieve pre-configured response or error for this URL
-		const response = this.responses.get(url);
-
-		if (!response) {
-			// Default behavior for unmapped URLs
-			throw new HTTPStatusError(url, 404, "Not Found");
+		// First check exact matches (higher priority)
+		const exactResponse = this.responses.get(url);
+		if (exactResponse) {
+			if (exactResponse instanceof Error) {
+				throw exactResponse;
+			}
+			// Simulate minimal network delay for realism
+			await new Promise((resolve) => setTimeout(resolve, 1));
+			return exactResponse;
 		}
 
-		if (response instanceof Error) {
-			throw response;
+		// Then check pattern matches
+		for (const { matcher, response } of this.patternResponses) {
+			if (this.matchesPattern(url, matcher)) {
+				if (response instanceof Error) {
+					throw response;
+				}
+				// Simulate minimal network delay for realism
+				await new Promise((resolve) => setTimeout(resolve, 1));
+				return response;
+			}
 		}
 
-		// Simulate minimal network delay for realism
-		await new Promise((resolve) => setTimeout(resolve, 1));
+		// Default behavior for unmapped URLs
+		throw new HTTPStatusError(url, 404, "Not Found");
+	}
 
-		return response;
+	/**
+	 * Helper method to check if a URL matches a given pattern
+	 */
+	private matchesPattern(url: string, matcher: URLMatcher): boolean {
+		if (typeof matcher === "string") {
+			return url === matcher;
+		}
+		if (matcher instanceof RegExp) {
+			return matcher.test(url);
+		}
+		if (typeof matcher === "function") {
+			return matcher(url);
+		}
+		return false;
 	}
 
 	/**
@@ -200,6 +250,25 @@ class InMemoryHTTPClient implements IHTTPClient {
 	 */
 	setResponse(url: string, response: HTTPResponse | Error): void {
 		this.responses.set(url, response);
+	}
+
+	/**
+	 * Add a response mapping with flexible URL matching
+	 *
+	 * @param matcher - URL matcher (string for exact match, RegExp for pattern, function for custom logic)
+	 * @param response - The response or error to return for matching URLs
+	 */
+	setResponseWithMatcher(
+		matcher: URLMatcher,
+		response: HTTPResponse | Error,
+	): void {
+		// If it's a string matcher, use exact matching for better performance
+		if (typeof matcher === "string") {
+			this.responses.set(matcher, response);
+		} else {
+			// Add to pattern responses for flexible matching
+			this.patternResponses.push({ matcher, response });
+		}
 	}
 }
 

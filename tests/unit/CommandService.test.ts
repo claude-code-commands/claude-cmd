@@ -205,7 +205,9 @@ describe("CommandService", () => {
 			// Verify: Should return same results regardless of case
 			expect(lowerResult.length).toBe(upperResult.length);
 			if (lowerResult.length > 0 && upperResult.length > 0) {
-				expect(lowerResult[0]?.name).toBe(upperResult[0]?.name);
+				const lowerCommand = lowerResult[0]!;
+				const upperCommand = upperResult[0]!;
+				expect(lowerCommand.name).toBe(upperCommand.name);
 			}
 		});
 	});

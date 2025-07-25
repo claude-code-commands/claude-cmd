@@ -5,17 +5,19 @@ import {
 	CommandNotFoundError,
 	ManifestError,
 } from "../../src/types/Command.js";
+import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
+import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
 import MockFileService from "../mocks/MockFileService.js";
-import MockHTTPClient from "../mocks/MockHTTPClient.js";
 
 describe("Repository Interface", () => {
 	let repository: InMemoryRepository;
-	let mockHttpClient: MockHTTPClient;
+	let mockHttpClient: InMemoryHTTPClient;
 	let mockFileService: MockFileService;
 
 	beforeEach(() => {
-		mockHttpClient = new MockHTTPClient();
+		mockHttpClient = new InMemoryHTTPClient();
+		createClaudeCmdResponses(mockHttpClient);
 		mockFileService = new MockFileService();
 		repository = new InMemoryRepository(mockHttpClient, mockFileService);
 	});
