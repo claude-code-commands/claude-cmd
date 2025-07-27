@@ -80,6 +80,13 @@ export interface ICommandService {
 		commandName: string,
 		options?: CommandServiceOptions,
 	): Promise<string>;
+
+	/**
+	 * List all installed commands from local Claude Code directories
+	 * @param options - Optional language override and cache control
+	 * @returns Promise resolving to array of locally installed commands
+	 */
+	getInstalledCommands(options?: CommandServiceOptions): Promise<readonly Command[]>;
 }
 
 /**
@@ -266,6 +273,22 @@ export class CommandService implements ICommandService {
 			return await this.repository.getCommand(commandName, language, {
 				forceRefresh: options?.forceRefresh,
 			});
+		});
+	}
+
+	async getInstalledCommands(
+		options?: CommandServiceOptions,
+	): Promise<readonly Command[]> {
+		const language = this.resolveLanguage(options);
+
+		return this.withErrorHandling("getInstalledCommands", language, async () => {
+			// TODO: Implement actual installation detection
+			// For now, return empty array since installation system is not yet implemented
+			// When installation is implemented, this should:
+			// 1. Check ~/.claude/commands/ for personal commands
+			// 2. Check .claude/commands/ for project-specific commands
+			// 3. Parse command files and return their metadata
+			return [];
 		});
 	}
 }

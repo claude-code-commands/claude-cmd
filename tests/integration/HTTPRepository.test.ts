@@ -85,7 +85,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Now fetch the command content
-			const content = await repository.getCommand(firstCommand!.name, "en");
+			const content = await repository.getCommand(firstCommand?.name, "en");
 
 			expect(content).toBeDefined();
 			expect(typeof content).toBe("string");
@@ -127,19 +127,19 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Fetch command content
-			const content1 = await repository.getCommand(firstCommand!.name, "en");
+			const content1 = await repository.getCommand(firstCommand?.name, "en");
 			expect(content1).toBeDefined();
 
 			// Verify command cache file exists
 			const commandCachePath = join(
 				testCacheDir,
-				`command-en-${firstCommand!.name.replace(/[./\\:\\0]/g, "-")}.md`,
+				`command-en-${firstCommand?.name.replace(/[./\\:\\0]/g, "-")}.md`,
 			);
 			const cacheFileExists = await fileService.exists(commandCachePath);
 			expect(cacheFileExists).toBe(true);
 
 			// Second call should return same content
-			const content2 = await repository.getCommand(firstCommand!.name, "en");
+			const content2 = await repository.getCommand(firstCommand?.name, "en");
 			expect(content2).toBe(content1);
 		});
 
@@ -178,11 +178,6 @@ describe.skip("HTTPRepository Integration", () => {
 		test("should handle network timeout", async () => {
 			// Create repository with very short timeout
 			const shortTimeoutClient = new BunHTTPClient();
-			const timeoutRepository = new HTTPRepository(
-				shortTimeoutClient,
-				fileService,
-				cacheConfig,
-			);
 
 			// This should timeout (using a slow endpoint)
 			await expect(

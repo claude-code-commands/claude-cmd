@@ -211,7 +211,10 @@ describe("InMemory HTTPClient", () => {
 				url: "https://test.example.com/exact",
 			};
 
-			client.setResponseWithMatcher("https://test.example.com/exact", testResponse);
+			client.setResponseWithMatcher(
+				"https://test.example.com/exact",
+				testResponse,
+			);
 			const response = await client.get("https://test.example.com/exact");
 
 			expect(response.status).toBe(201);
@@ -228,7 +231,7 @@ describe("InMemory HTTPClient", () => {
 			};
 
 			client.setResponseWithMatcher(/\.md$/, testResponse);
-			
+
 			const response1 = await client.get("https://example.com/test.md");
 			const response2 = await client.get("https://api.example.com/command.md");
 
@@ -249,11 +252,15 @@ describe("InMemory HTTPClient", () => {
 
 			client.setResponseWithMatcher(
 				(url: string) => url.includes("index.json"),
-				manifestResponse
+				manifestResponse,
 			);
 
-			const response1 = await client.get("https://api.example.com/en/index.json");
-			const response2 = await client.get("https://api.example.com/fr/index.json");
+			const response1 = await client.get(
+				"https://api.example.com/en/index.json",
+			);
+			const response2 = await client.get(
+				"https://api.example.com/fr/index.json",
+			);
 
 			expect(response1.status).toBe(200);
 			expect(response1.body).toBe('{"version": "1.0.0"}');
@@ -262,12 +269,19 @@ describe("InMemory HTTPClient", () => {
 		});
 
 		test("should support error responses with pattern matching", async () => {
-			const networkError = new HTTPNetworkError("test-url", "Simulated network failure");
+			const networkError = new HTTPNetworkError(
+				"test-url",
+				"Simulated network failure",
+			);
 
 			client.setResponseWithMatcher(/error/, networkError);
 
-			await expect(client.get("https://api.example.com/network-error")).rejects.toThrow(HTTPNetworkError);
-			await expect(client.get("https://api.example.com/server-error-test")).rejects.toThrow(HTTPNetworkError);
+			await expect(
+				client.get("https://api.example.com/network-error"),
+			).rejects.toThrow(HTTPNetworkError);
+			await expect(
+				client.get("https://api.example.com/server-error-test"),
+			).rejects.toThrow(HTTPNetworkError);
 		});
 
 		test("should prioritize exact matches over patterns", async () => {
@@ -281,7 +295,7 @@ describe("InMemory HTTPClient", () => {
 
 			const patternResponse = {
 				status: 200,
-				statusText: "OK", 
+				statusText: "OK",
 				headers: {},
 				body: "pattern match",
 				url: "https://example.com/test",
@@ -346,7 +360,9 @@ describe("InMemory HTTPClient", () => {
 				url: "test",
 			});
 
-			await expect(client.get("https://unmatched.example.com")).rejects.toThrow(HTTPStatusError);
+			await expect(client.get("https://unmatched.example.com")).rejects.toThrow(
+				HTTPStatusError,
+			);
 		});
 	});
 });

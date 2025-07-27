@@ -6,9 +6,9 @@ import {
 	ManifestError,
 } from "../../src/types/Command.js";
 import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
+import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
-import InMemoryFileService from "../mocks/InMemoryFileService.js";
 
 describe("Repository Interface", () => {
 	let repository: InMemoryRepository;

@@ -94,7 +94,6 @@ class InMemoryRepository implements IRepository {
 		}
 	}
 
-
 	/**
 	 * Sanitize path components to prevent directory traversal attacks
 	 * Removes potentially dangerous characters that could escape cache directory

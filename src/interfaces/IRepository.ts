@@ -1,6 +1,4 @@
 import type { Manifest, RepositoryOptions } from "../types/Command.js";
-import type IFileService from "./IFileService.js";
-import type IHTTPClient from "./IHTTPClient.js";
 
 /**
  * Cache configuration for repository operations
@@ -110,8 +108,11 @@ export class CacheConfig {
 
 		// Warn about unreasonably short or long TTL values
 		if (ttl < 1000) {
-			console.warn("TTL is very short (< 1 second), this may cause excessive network requests");
-		} else if (ttl > 31536000000) { // 1 year
+			console.warn(
+				"TTL is very short (< 1 second), this may cause excessive network requests",
+			);
+		} else if (ttl > 31536000000) {
+			// 1 year
 			console.warn("TTL is very long (> 1 year), cached data may become stale");
 		}
 	}
