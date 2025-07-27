@@ -51,13 +51,11 @@ export interface ICommandService {
 	/**
 	 * Search for commands by name or description
 	 * @param query - Search query string
-	 * @param category - Optional category filter (not implemented yet in manifest)
 	 * @param options - Optional language override and cache control
 	 * @returns Promise resolving to array of matching commands
 	 */
 	searchCommands(
 		query: string,
-		category?: string,
 		options?: CommandServiceOptions,
 	): Promise<readonly Command[]>;
 
@@ -211,7 +209,6 @@ export class CommandService implements ICommandService {
 
 	async searchCommands(
 		query: string,
-		_category?: string,
 		options?: CommandServiceOptions,
 	): Promise<readonly Command[]> {
 		this.validateSearchQuery(query);
@@ -228,11 +225,6 @@ export class CommandService implements ICommandService {
 					command.name.toLowerCase().includes(queryLower) ||
 					command.description.toLowerCase().includes(queryLower),
 			);
-
-			// TODO: Category filtering not implemented yet (manifest doesn't have categories)
-			// if (category) {
-			//   return matchingCommands.filter(command => command.category === category);
-			// }
 
 			return matchingCommands;
 		});

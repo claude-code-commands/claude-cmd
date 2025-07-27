@@ -57,7 +57,7 @@ function handleError(error: unknown): void {
 
 export const listCommand = new Command("list")
 	.description(
-		"List displays all available Claude Code slash commands from the repository.\nCommands are organized by category and include descriptions to help you find what you need.",
+		"List displays all available Claude Code slash commands from the repository.\nCommands include descriptions to help you find what you need.",
 	)
 	.option(
 		"-l, --language <lang>",
