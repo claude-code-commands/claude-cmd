@@ -323,7 +323,7 @@ describe("HTTPRepository", () => {
 
 			const httpHistory = mockHttpClient.getRequestHistory();
 			expect(httpHistory[0]?.url).toMatch(
-				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/en\/index\.json/,
+				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/pages\/en\/index\.json/,
 			);
 		});
 
@@ -337,7 +337,7 @@ describe("HTTPRepository", () => {
 			);
 			expect(commandRequest).toBeDefined();
 			expect(commandRequest?.url).toMatch(
-				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/en\/debug-help\.md/,
+				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/pages\/en\/debug-help\.md/,
 			);
 		});
 
