@@ -8,17 +8,17 @@ import {
 import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
-import MockFileService from "../mocks/MockFileService.js";
+import InMemoryFileService from "../mocks/InMemoryFileService.js";
 
 describe("Repository Interface", () => {
 	let repository: InMemoryRepository;
 	let mockHttpClient: InMemoryHTTPClient;
-	let mockFileService: MockFileService;
+	let mockFileService: InMemoryFileService;
 
 	beforeEach(() => {
 		mockHttpClient = new InMemoryHTTPClient();
 		createClaudeCmdResponses(mockHttpClient);
-		mockFileService = new MockFileService();
+		mockFileService = new InMemoryFileService();
 		repository = new InMemoryRepository(mockHttpClient, mockFileService);
 	});
 

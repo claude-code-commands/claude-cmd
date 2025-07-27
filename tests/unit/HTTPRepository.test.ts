@@ -12,13 +12,13 @@ import {
 	ManifestError,
 } from "../../src/types/Command.js";
 import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
+import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
-import MockFileService from "../mocks/MockFileService.js";
 
 describe("HTTPRepository", () => {
 	let repository: HTTPRepository;
 	let mockHttpClient: InMemoryHTTPClient;
-	let mockFileService: MockFileService;
+	let mockFileService: InMemoryFileService;
 	const defaultCacheConfig = new CacheConfig({
 		cacheDir: "/tmp/claude-cmd-test-cache",
 		ttl: 3600000, // 1 hour
@@ -27,16 +27,12 @@ describe("HTTPRepository", () => {
 	beforeEach(() => {
 		mockHttpClient = new InMemoryHTTPClient();
 		createClaudeCmdResponses(mockHttpClient);
-		mockFileService = new MockFileService();
+		mockFileService = new InMemoryFileService();
 		repository = new HTTPRepository(
 			mockHttpClient,
 			mockFileService,
 			defaultCacheConfig,
 		);
-
-		// Clear any previous state
-		mockHttpClient.clearRequestHistory();
-		mockFileService.clearOperationHistory();
 	});
 
 	describe("constructor", () => {

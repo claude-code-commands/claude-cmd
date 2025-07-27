@@ -1,4 +1,4 @@
-import type IFileService from "../../src/interfaces/IFileService.ts";
+import type IFileService from "../../src/interfaces/IFileService.js";
 
 type FileEntry = { type: "file"; content: string };
 type DirectoryEntry = { type: "directory" };
@@ -7,6 +7,11 @@ type FileSystem = Record<string, Entry>;
 
 class InMemoryFileService implements IFileService {
 	readonly fs: FileSystem;
+	private operationHistory: Array<{
+		operation: string;
+		path: string;
+		content?: string;
+	}> = [];
 
 	constructor(initialFiles: Record<string, string> = {}) {
 		this.fs = {};
@@ -20,6 +25,7 @@ class InMemoryFileService implements IFileService {
 		}
 	}
 	readFile(path: string): Promise<string> {
+		this.operationHistory.push({ operation: "readFile", path });
 		const entry = this.fs[path];
 		if (!entry || entry.type !== "file") {
 			return Promise.reject(`File not found: ${path}`);
@@ -28,6 +34,7 @@ class InMemoryFileService implements IFileService {
 	}
 
 	writeFile(path: string, content: string): Promise<void> {
+		this.operationHistory.push({ operation: "writeFile", path, content });
 		// Check for collision with directory at same logical location
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
@@ -46,6 +53,7 @@ class InMemoryFileService implements IFileService {
 	}
 
 	exists(path: string): Promise<boolean> {
+		this.operationHistory.push({ operation: "exists", path });
 		// Normalize paths for consistent lookups
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
@@ -68,6 +76,7 @@ class InMemoryFileService implements IFileService {
 	}
 
 	mkdir(path: string): Promise<void> {
+		this.operationHistory.push({ operation: "mkdir", path });
 		// Normalize paths for collision detection
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
@@ -86,6 +95,38 @@ class InMemoryFileService implements IFileService {
 
 		this.fs[dirPath] = { type: "directory" };
 		return Promise.resolve();
+	}
+
+	/**
+	 * Get operation history for test verification
+	 */
+	getOperationHistory(): Array<{
+		operation: string;
+		path: string;
+		content?: string;
+	}> {
+		return [...this.operationHistory];
+	}
+
+	/**
+	 * Clear operation history for clean test state
+	 */
+	clearOperationHistory(): void {
+		this.operationHistory.length = 0;
+	}
+
+	/**
+	 * Clear all files for clean test state
+	 */
+	clearFiles(): void {
+		Object.keys(this.fs).forEach((key) => delete this.fs[key]);
+	}
+
+	/**
+	 * Set a file directly for test setup
+	 */
+	setFile(path: string, content: string): void {
+		this.fs[path] = { type: "file", content };
 	}
 }
 
