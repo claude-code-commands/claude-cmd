@@ -1,3 +1,4 @@
+import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
 import type { Command } from "../types/Command.js";
 import { CommandNotFoundError } from "../types/Command.js";
@@ -86,7 +87,9 @@ export interface ICommandService {
 	 * @param options - Optional language override and cache control
 	 * @returns Promise resolving to array of locally installed commands
 	 */
-	getInstalledCommands(options?: CommandServiceOptions): Promise<readonly Command[]>;
+	getInstalledCommands(
+		options?: CommandServiceOptions,
+	): Promise<readonly Command[]>;
 }
 
 /**
@@ -97,6 +100,7 @@ export class CommandService implements ICommandService {
 		private readonly repository: IRepository,
 		private readonly cacheManager: CacheManager,
 		private readonly languageDetector: LanguageDetector,
+		private readonly installationService: IInstallationService,
 	) {}
 
 	/**
@@ -281,14 +285,15 @@ export class CommandService implements ICommandService {
 	): Promise<readonly Command[]> {
 		const language = this.resolveLanguage(options);
 
-		return this.withErrorHandling("getInstalledCommands", language, async () => {
-			// TODO: Implement actual installation detection
-			// For now, return empty array since installation system is not yet implemented
-			// When installation is implemented, this should:
-			// 1. Check ~/.claude/commands/ for personal commands
-			// 2. Check .claude/commands/ for project-specific commands
-			// 3. Parse command files and return their metadata
-			return [];
-		});
+		return this.withErrorHandling(
+			"getInstalledCommands",
+			language,
+			async () => {
+				// Use InstallationService to get installed commands
+				// This checks both ~/.claude/commands/ (personal) and .claude/commands/ (project)
+				// and returns parsed command metadata
+				return await this.installationService.listInstalledCommands(options);
+			},
+		);
 	}
 }

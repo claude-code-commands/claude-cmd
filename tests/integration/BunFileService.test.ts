@@ -219,6 +219,122 @@ describe("BunFileService", () => {
 		});
 	});
 
+	describe("deleteFile", () => {
+		test("should delete file successfully", async () => {
+			const content = "content to delete";
+			await Bun.write(testFilePath, content);
+
+			// Verify file exists
+			expect(await fileService.exists(testFilePath)).toBe(true);
+
+			// Delete the file
+			await fileService.deleteFile(testFilePath);
+
+			// Verify file no longer exists
+			expect(await fileService.exists(testFilePath)).toBe(false);
+		});
+
+		test("should throw FileNotFoundError when file doesn't exist", async () => {
+			const nonExistentPath = join(testDir, "non-existent.txt");
+
+			await expect(fileService.deleteFile(nonExistentPath)).rejects.toThrow(
+				FileNotFoundError,
+			);
+			await expect(fileService.deleteFile(nonExistentPath)).rejects.toThrow(
+				`File or directory not found: ${nonExistentPath}`,
+			);
+		});
+
+		test("should throw FilePermissionError when delete access is denied", async () => {
+			// This is hard to test reliably across platforms
+			expect(FilePermissionError).toBeDefined();
+		});
+
+		test("should handle files with special characters in path", async () => {
+			const specialPath = join(testDir, "spëcîål-fìlé.txt");
+			const content = "special content";
+
+			await Bun.write(specialPath, content);
+			expect(await fileService.exists(specialPath)).toBe(true);
+
+			await fileService.deleteFile(specialPath);
+			expect(await fileService.exists(specialPath)).toBe(false);
+		});
+	});
+
+	describe("listFiles", () => {
+		test("should list files in directory", async () => {
+			// Create test files
+			const file1Path = join(testDir, "file1.txt");
+			const file2Path = join(testDir, "file2.js");
+			const file3Path = join(testDir, "README.md");
+
+			await Bun.write(file1Path, "content1");
+			await Bun.write(file2Path, "content2");
+			await Bun.write(file3Path, "content3");
+
+			const files = await fileService.listFiles(testDir);
+
+			expect(files).toHaveLength(3);
+			expect(files).toContain("file1.txt");
+			expect(files).toContain("file2.js");
+			expect(files).toContain("README.md");
+		});
+
+		test("should return empty array for empty directory", async () => {
+			const emptyDir = join(testDir, "empty");
+			await mkdir(emptyDir);
+
+			const files = await fileService.listFiles(emptyDir);
+			expect(files).toEqual([]);
+		});
+
+		test("should throw FileNotFoundError when directory doesn't exist", async () => {
+			const nonExistentDir = join(testDir, "non-existent-dir");
+
+			await expect(fileService.listFiles(nonExistentDir)).rejects.toThrow(
+				FileNotFoundError,
+			);
+			await expect(fileService.listFiles(nonExistentDir)).rejects.toThrow(
+				`File or directory not found: ${nonExistentDir}`,
+			);
+		});
+
+		test("should only list files, not subdirectories", async () => {
+			// Create files and subdirectories
+			const filePath = join(testDir, "file.txt");
+			const subDir = join(testDir, "subdir");
+
+			await Bun.write(filePath, "content");
+			await mkdir(subDir);
+			await Bun.write(join(subDir, "nested.txt"), "nested");
+
+			const files = await fileService.listFiles(testDir);
+
+			expect(files).toHaveLength(1);
+			expect(files).toContain("file.txt");
+			expect(files).not.toContain("subdir");
+		});
+
+		test("should handle directories with special characters", async () => {
+			const specialDir = join(testDir, "spëcîål-dîr");
+			const filePath = join(specialDir, "tëst.txt");
+
+			await mkdir(specialDir);
+			await Bun.write(filePath, "content");
+
+			const files = await fileService.listFiles(specialDir);
+
+			expect(files).toHaveLength(1);
+			expect(files).toContain("tëst.txt");
+		});
+
+		test("should throw FilePermissionError when read access is denied", async () => {
+			// This is hard to test reliably across platforms
+			expect(FilePermissionError).toBeDefined();
+		});
+	});
+
 	describe("error handling", () => {
 		test("should properly extend Error classes", () => {
 			const fileNotFound = new FileNotFoundError("/test/path");

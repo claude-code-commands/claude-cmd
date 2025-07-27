@@ -103,4 +103,70 @@ describe("In Memory FileService", () => {
 			);
 		});
 	});
+
+	describe("deleteFile", () => {
+		test("should delete existing file", async () => {
+			expect(await fileService.exists("/path/to/file")).toBe(true);
+			expect(fileService.deleteFile("/path/to/file")).resolves.toBeUndefined();
+			expect(await fileService.exists("/path/to/file")).toBe(false);
+		});
+
+		test("should throw error if file not found", () => {
+			expect(
+				async () => await fileService.deleteFile("/path/to/non-existent-file"),
+			).toThrow("File not found: /path/to/non-existent-file");
+		});
+
+		test("should throw error when trying to delete directory", async () => {
+			await fileService.mkdir("/path/to/dir");
+			expect(await fileService.exists("/path/to/dir")).toBe(true);
+			expect(async () => await fileService.deleteFile("/path/to/dir/")).toThrow(
+				"File not found: /path/to/dir/",
+			);
+		});
+	});
+
+	describe("listFiles", () => {
+		test("should list files in existing directory", async () => {
+			const fileService = new InMemoryFileService({
+				"/path/to/dir/": "",
+				"/path/to/dir/file1.txt": "content1",
+				"/path/to/dir/file2.txt": "content2",
+			});
+			const files = await fileService.listFiles("/path/to/dir");
+			expect(files).toEqual(["file1.txt", "file2.txt"]);
+		});
+
+		test("should return empty array for empty directory", async () => {
+			await fileService.mkdir("/path/to/empty-dir");
+			const files = await fileService.listFiles("/path/to/empty-dir");
+			expect(files).toEqual([]);
+		});
+
+		test("should throw error if directory not found", () => {
+			expect(
+				async () => await fileService.listFiles("/path/to/non-existent-dir"),
+			).toThrow("Directory not found: /path/to/non-existent-dir");
+		});
+
+		test("should list files in directory without trailing slash", async () => {
+			const fileService = new InMemoryFileService({
+				"/path/to/dir/file1.txt": "content1",
+				"/path/to/dir/file2.txt": "content2",
+			});
+			const files = await fileService.listFiles("/path/to/dir");
+			expect(files).toEqual(["file1.txt", "file2.txt"]);
+		});
+
+		test("should not include subdirectories in file list", async () => {
+			const fileService = new InMemoryFileService({
+				"/path/to/dir/": "",
+				"/path/to/dir/file.txt": "content",
+				"/path/to/dir/subdir/": "",
+				"/path/to/dir/subdir/nested.txt": "nested content",
+			});
+			const files = await fileService.listFiles("/path/to/dir");
+			expect(files).toEqual(["file.txt"]);
+		});
+	});
 });

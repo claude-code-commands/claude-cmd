@@ -1,8 +1,11 @@
 import BunFileService from "./BunFileService.js";
 import BunHTTPClient from "./BunHTTPClient.js";
 import { CacheManager } from "./CacheManager.js";
+import { CommandParser } from "./CommandParser.js";
 import { CommandService } from "./CommandService.js";
+import { DirectoryDetector } from "./DirectoryDetector.js";
 import HTTPRepository from "./HTTPRepository.js";
+import { InstallationService } from "./InstallationService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 
 /**
@@ -17,6 +20,7 @@ import { LanguageDetector } from "./LanguageDetector.js";
 let services: {
 	commandService: CommandService;
 	languageDetector: LanguageDetector;
+	installationService: InstallationService;
 } | null = null;
 
 /**
@@ -34,16 +38,30 @@ export function getServices() {
 		const cacheManager = new CacheManager(fileService);
 		const languageDetector = new LanguageDetector();
 
-		// Create CommandService with all dependencies
+		// Initialize InstallationService dependencies
+		const directoryDetector = new DirectoryDetector(fileService);
+		const commandParser = new CommandParser();
+
+		// Create InstallationService first
+		const installationService = new InstallationService(
+			repository,
+			fileService,
+			directoryDetector,
+			commandParser,
+		);
+
+		// Create CommandService with all dependencies including InstallationService
 		const commandService = new CommandService(
 			repository,
 			cacheManager,
 			languageDetector,
+			installationService,
 		);
 
 		services = {
 			commandService,
 			languageDetector,
+			installationService,
 		};
 	}
 

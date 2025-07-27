@@ -13,6 +13,9 @@ export interface Command {
 
 	/** List of tools this command is allowed to use, or comma-separated string */
 	readonly "allowed-tools": string[] | string;
+
+	/** Optional hint for command arguments displayed during autocompletion */
+	readonly "argument-hint"?: string;
 }
 
 /**

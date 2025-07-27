@@ -1,4 +1,4 @@
-import { mkdir as fsMkdir, stat } from "node:fs/promises";
+import { mkdir as fsMkdir, readdir, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import type IFileService from "../interfaces/IFileService.ts";
 import {
@@ -27,7 +27,7 @@ export default class BunFileService implements IFileService {
 	private mapSystemError(
 		error: unknown,
 		path: string,
-		operation: "read" | "write" | "create",
+		operation: "read" | "write" | "create" | "delete" | "list",
 	): never {
 		if (!(error instanceof Error)) {
 			throw new FileIOError(path, "Unknown error");
@@ -123,6 +123,32 @@ export default class BunFileService implements IFileService {
 			}
 
 			this.mapSystemError(error, path, "create");
+		}
+	}
+
+	/**
+	 * Delete a file using Node.js fs.unlink()
+	 */
+	async deleteFile(path: string): Promise<void> {
+		try {
+			await unlink(path);
+		} catch (error) {
+			this.mapSystemError(error, path, "delete");
+		}
+	}
+
+	/**
+	 * List files in a directory using Node.js fs.readdir()
+	 */
+	async listFiles(path: string): Promise<string[]> {
+		try {
+			const entries = await readdir(path, { withFileTypes: true });
+			// Return only files, not subdirectories
+			return entries
+				.filter((entry) => entry.isFile())
+				.map((entry) => entry.name);
+		} catch (error) {
+			this.mapSystemError(error, path, "list");
 		}
 	}
 }

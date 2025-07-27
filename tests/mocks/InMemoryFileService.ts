@@ -115,6 +115,57 @@ class InMemoryFileService implements IFileService {
 		this.operationHistory.length = 0;
 	}
 
+	deleteFile(path: string): Promise<void> {
+		this.operationHistory.push({ operation: "deleteFile", path });
+		const entry = this.fs[path];
+
+		if (!entry || entry.type !== "file") {
+			return Promise.reject(`File not found: ${path}`);
+		}
+
+		delete this.fs[path];
+		return Promise.resolve();
+	}
+
+	listFiles(path: string): Promise<string[]> {
+		this.operationHistory.push({ operation: "listFiles", path });
+
+		// Normalize directory path
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
+
+		// Check if directory exists
+		if (!this.fs[dirPath]) {
+			// Check if directory exists implicitly (has files in it)
+			const hasChildFiles = Object.keys(this.fs).some(
+				(filePath) => filePath.startsWith(dirPath) && filePath !== dirPath,
+			);
+
+			if (!hasChildFiles) {
+				return Promise.reject(`Directory not found: ${path}`);
+			}
+		}
+
+		// Find all files in this directory (non-recursive)
+		const files: string[] = [];
+		for (const filePath in this.fs) {
+			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
+				// Get relative path from directory
+				const relativePath = filePath.substring(dirPath.length);
+
+				// Only include direct children (no subdirectories)
+				if (!relativePath.includes("/")) {
+					// Only include files, not directories
+					const entry = this.fs[filePath];
+					if (entry?.type === "file") {
+						files.push(relativePath);
+					}
+				}
+			}
+		}
+
+		return Promise.resolve(files);
+	}
+
 	/**
 	 * Clear all files for clean test state
 	 */

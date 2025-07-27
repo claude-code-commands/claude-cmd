@@ -104,4 +104,26 @@ export default interface IFileService {
 	 * @throws FileIOError for other I/O failures
 	 */
 	mkdir(path: string): Promise<void>;
+
+	/**
+	 * Delete a file
+	 *
+	 * @param path - Absolute or relative path to the file
+	 * @returns Promise that resolves when file is deleted
+	 * @throws FileNotFoundError when file doesn't exist
+	 * @throws FilePermissionError when delete access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	deleteFile(path: string): Promise<void>;
+
+	/**
+	 * List files in a directory
+	 *
+	 * @param path - Absolute or relative path to the directory
+	 * @returns Promise resolving to array of file names in the directory
+	 * @throws FileNotFoundError when directory doesn't exist
+	 * @throws FilePermissionError when read access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	listFiles(path: string): Promise<string[]>;
 }
