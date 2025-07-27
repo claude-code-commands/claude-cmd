@@ -1,4 +1,6 @@
-- The project uses Bun instead of Node.js. Before *any* use of Bun or Node.js, use Context7 with the library ID `oven-sh/bun` to ensure you use the proper Bun API, of you fall back properly on Node.js.
-- To run the test use `bun test`
+- The project uses Bun instead of Node.js. Before *any* use of Bun, use Context7 with the library ID `oven-sh/bun` to ensure you use the proper Bun API, or fallback properly on Node.js.
+- To run all the unit tests (the ones that don't do I/O) use `bun test unit` (FAST)
+- To run all the integration tests (the ones that do I/O, like BunHTTPClient and BunFileService) use `bun test integration` (SLOW)
+- To run the full test suites use `bun test` 
 - To run the TypeScript type checking use `bun run typecheck`
 - NEVER read ai_docs/PLAN.md, instead read ai_docs/PLAN.Bun.md 
