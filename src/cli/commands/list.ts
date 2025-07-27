@@ -1,11 +1,7 @@
 import { Command } from "commander";
-import BunFileService from "../../services/BunFileService.js";
-import BunHTTPClient from "../../services/BunHTTPClient.js";
-import { CacheManager } from "../../services/CacheManager.js";
-import { CommandService } from "../../services/CommandService.js";
-import HTTPRepository from "../../services/HTTPRepository.js";
-import { LanguageDetector } from "../../services/LanguageDetector.js";
+import { getServices } from "../../services/serviceFactory.ts";
 import type { Command as CommandType } from "../../types/Command.js";
+import { detectLanguage, handleError } from "../cliUtils.js";
 
 /**
  * Format commands for terminal output
@@ -28,33 +24,6 @@ function formatCommandList(
 	return output.trim();
 }
 
-/**
- * Handle errors with user-friendly messages
- */
-function handleError(error: unknown): void {
-	let errorMessage = "Failed to list commands";
-
-	if (error instanceof Error) {
-		// Extract meaningful error messages for users
-		if (error.name === "CommandServiceError") {
-			errorMessage = `Error: ${error.message}`;
-		} else if (error.name === "ManifestError") {
-			errorMessage = "Error: Could not retrieve command list from repository";
-		} else if (error.message.includes("timeout")) {
-			errorMessage =
-				"Error: Request timed out. Please check your internet connection";
-		} else if (error.message.includes("network")) {
-			errorMessage =
-				"Error: Network error. Please check your internet connection";
-		} else {
-			errorMessage = `Error: ${error.message}`;
-		}
-	}
-
-	console.error(errorMessage);
-	process.exit(1);
-}
-
 export const listCommand = new Command("list")
 	.description(
 		"List displays all available Claude Code slash commands from the repository.\nCommands include descriptions to help you find what you need.",
@@ -66,19 +35,8 @@ export const listCommand = new Command("list")
 	.option("-f, --force", "Force refresh cache even if current")
 	.action(async (options) => {
 		try {
-			// Initialize dependencies (following existing service patterns)
-			const fileService = new BunFileService();
-			const httpClient = new BunHTTPClient();
-			const repository = new HTTPRepository(httpClient, fileService);
-			const cacheManager = new CacheManager(fileService);
-			const languageDetector = new LanguageDetector();
-
-			// Create CommandService
-			const commandService = new CommandService(
-				repository,
-				cacheManager,
-				languageDetector,
-			);
+			// Get singleton service instances from factory
+			const { commandService, languageDetector } = getServices();
 
 			// Prepare options for CommandService
 			const serviceOptions = {
@@ -90,18 +48,12 @@ export const listCommand = new Command("list")
 			const commands = await commandService.listCommands(serviceOptions);
 
 			// Determine language used
-			const language =
-				options.language ??
-				languageDetector.detect({
-					cliFlag: "",
-					envVar: process.env.CLAUDE_CMD_LANG ?? "",
-					posixLocale: process.env.LANG ?? "",
-				});
+			const language = detectLanguage(options.language, languageDetector);
 
 			// Format and display output
 			const output = formatCommandList(commands, language);
 			console.log(output);
 		} catch (error) {
-			handleError(error);
+			handleError(error, "Failed to list available commands");
 		}
 	});
