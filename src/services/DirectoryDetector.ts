@@ -1,3 +1,5 @@
+import { constants } from "node:fs";
+import { access } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
@@ -149,7 +151,7 @@ export class DirectoryDetector {
 	}
 
 	/**
-	 * Check if a directory is writable
+	 * Check if a directory is writable by testing actual filesystem permissions
 	 * @param dirPath Path to check
 	 * @param exists Whether the directory already exists
 	 * @returns True if writable
@@ -158,16 +160,17 @@ export class DirectoryDetector {
 		dirPath: string,
 		exists: boolean,
 	): Promise<boolean> {
-		// If directory exists, assume it's writable (simplified check)
-		// In a real implementation, we would attempt to create a temp file
-		if (exists) {
-			return true;
-		}
-
-		// If directory doesn't exist, check if parent directory exists and is presumably writable
-		const parentDir = path.dirname(dirPath);
 		try {
-			return await this.fileService.exists(parentDir);
+			if (exists) {
+				// Directory exists, check if we can write to it
+				await access(dirPath, constants.W_OK);
+				return true;
+			}
+
+			// Directory doesn't exist, check if we can write to the parent
+			const parentDir = path.dirname(dirPath);
+			await access(parentDir, constants.W_OK);
+			return true;
 		} catch {
 			return false;
 		}

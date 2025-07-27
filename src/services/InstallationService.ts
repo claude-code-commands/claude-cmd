@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
 import type IInstallationService from "../interfaces/IInstallationService.js";
@@ -134,7 +135,11 @@ export class InstallationService implements IInstallationService {
 					// For this implementation, we'll use a simple approach
 					// In a real implementation, we'd need directory listing in IFileService
 					await this.scanDirectoryForCommands(dir, commands, seenCommands);
-				} catch {
+				} catch (error) {
+					console.error(
+						`Failed to scan directory '${dir.path}' for commands:`,
+						error,
+					);
 					// Continue if directory scan fails
 				}
 			}
@@ -160,11 +165,11 @@ export class InstallationService implements IInstallationService {
 		}
 
 		try {
-			// Determine location type based on path
+			// Determine location type based on path using secure path comparison
+			const homeDir = os.homedir();
 			const isPersonal =
 				path.isAbsolute(installationPath) &&
-				(installationPath.includes(process.env.HOME || "") ||
-					installationPath.includes(process.env.USERPROFILE || ""));
+				!path.relative(homeDir, installationPath).startsWith("..");
 
 			const location = isPersonal ? "personal" : "project";
 
@@ -179,7 +184,11 @@ export class InstallationService implements IInstallationService {
 				installedAt: new Date(), // Simplified - would need file stats
 				size,
 			};
-		} catch {
+		} catch (error) {
+			console.error(
+				`Failed to get installation info for '${commandName}':`,
+				error,
+			);
 			return null;
 		}
 	}
@@ -240,10 +249,16 @@ export class InstallationService implements IInstallationService {
 
 					commands.push(command);
 					seenCommands.add(commandName);
-				} catch {}
+				} catch (error) {
+					console.error(
+						`Failed to parse command file '${file}' in '${dir.path}':`,
+						error,
+					);
+				}
 			}
-		} catch {
-			// Directory doesn't exist or can't be read, continue silently
+		} catch (error) {
+			console.error(`Failed to list files in directory '${dir.path}':`, error);
+			// Directory doesn't exist or can't be read, continue
 		}
 	}
 }
