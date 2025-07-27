@@ -3,4 +3,5 @@
 - To run all the integration tests (the ones that do I/O, like BunHTTPClient and BunFileService) use `bun test integration` (SLOW)
 - To run the full test suites use `bun test` 
 - To run the TypeScript type checking use `bun run typecheck`
-- NEVER read ai_docs/PLAN.md, instead read ai_docs/PLAN.Bun.md 
+- NEVER read ai_docs/PLAN.md, instead read ai_docs/PLAN.Bun.md
+- At the end of each TodoList created with TodoWrite tool, add a todo to lint/format the code with `bun run check-fix` and another todo to typecheck the code with `bun run typecheck`. For the linting/formating and typechecking fix the errors, whether the errors comes from the task or are unrelated.
