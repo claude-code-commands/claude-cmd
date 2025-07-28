@@ -85,7 +85,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Now fetch the command content
-			const content = await repository.getCommand(firstCommand?.name, "en");
+			const content = await repository.getCommand(firstCommand!.name, "en");
 
 			expect(content).toBeDefined();
 			expect(typeof content).toBe("string");
@@ -127,7 +127,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Fetch command content
-			const content1 = await repository.getCommand(firstCommand?.name, "en");
+			const content1 = await repository.getCommand(firstCommand!.name, "en");
 			expect(content1).toBeDefined();
 
 			// Verify command cache file exists
@@ -139,7 +139,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(cacheFileExists).toBe(true);
 
 			// Second call should return same content
-			const content2 = await repository.getCommand(firstCommand?.name, "en");
+			const content2 = await repository.getCommand(firstCommand!.name, "en");
 			expect(content2).toBe(content1);
 		});
 
@@ -265,8 +265,8 @@ describe.skip("HTTPRepository Integration", () => {
 			const results = await Promise.all(promises);
 
 			// All results should be identical
-			expect(results[0]).toEqual(results[1]);
-			expect(results[1]).toEqual(results[2]);
+			expect(results[0]!).toEqual(results[1]!);
+			expect(results[1]!).toEqual(results[2]!);
 			expect(results[0]).toBeDefined();
 		});
 

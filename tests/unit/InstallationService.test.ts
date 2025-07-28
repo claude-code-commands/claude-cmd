@@ -9,6 +9,7 @@ import {
 } from "../../src/services/InstallationService.js";
 import type { Command } from "../../src/types/Command.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
+import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
 
 describe("InstallationService", () => {
@@ -43,9 +44,10 @@ Use this command when you need help with debugging.
 
 	beforeEach(() => {
 		fileService = new InMemoryFileService();
-		repository = new InMemoryRepository();
-		directoryDetector = new DirectoryDetector(fileService);
-		commandParser = new CommandParser();
+		const httpClient = new InMemoryHTTPClient();
+		repository = new InMemoryRepository(httpClient, fileService);
+		const directoryDetector = new DirectoryDetector(fileService);
+		const commandParser = new CommandParser();
 		installationService = new InstallationService(
 			repository,
 			fileService,
@@ -214,8 +216,8 @@ allowed-tools: [invalid yaml structure
 
 			const commands = await installationService.listInstalledCommands();
 			expect(commands).toHaveLength(1);
-			expect(commands[0].name).toBe("test-command");
-			expect(commands[0].description).toBe("A test command for debugging");
+			expect(commands[0]!.name).toBe("test-command");
+			expect(commands[0]!.description).toBe("A test command for debugging");
 		});
 
 		test("should return commands from both personal and project directories", async () => {
@@ -277,7 +279,7 @@ allowed-tools: [invalid yaml
 
 			// Should only return valid commands
 			expect(commands).toHaveLength(1);
-			expect(commands[0].name).toBe("test-command");
+			expect(commands[0]!.name).toBe("test-command");
 		});
 
 		test("should deduplicate commands found in multiple locations", async () => {
@@ -292,7 +294,7 @@ allowed-tools: [invalid yaml
 
 			// Should only return one instance (personal takes precedence)
 			expect(commands).toHaveLength(1);
-			expect(commands[0].name).toBe("test-command");
+			expect(commands[0]!.name).toBe("test-command");
 		});
 
 		test("should find commands in nested directories", async () => {

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { CacheManager } from "../../src/services/CacheManager.js";
 import { CommandService } from "../../src/services/CommandService.js";
+import { InstallationService } from "../../src/services/InstallationService.js";
 import { LanguageDetector } from "../../src/services/LanguageDetector.js";
+import { CommandParser } from "../../src/services/CommandParser.js";
+import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import type { Manifest } from "../../src/types/Command.js";
 import {
 	CommandNotFoundError,
@@ -16,6 +19,7 @@ describe("CommandService", () => {
 	let repository: InMemoryRepository;
 	let cacheManager: CacheManager;
 	let languageDetector: LanguageDetector;
+	let installationService: InstallationService;
 	let fileService: InMemoryFileService;
 	let httpClient: InMemoryHTTPClient;
 
@@ -26,12 +30,21 @@ describe("CommandService", () => {
 		repository = new InMemoryRepository(httpClient, fileService);
 		cacheManager = new CacheManager(fileService);
 		languageDetector = new LanguageDetector();
+		const directoryDetector = new DirectoryDetector(fileService);
+		const commandParser = new CommandParser();
+		installationService = new InstallationService(
+			repository,
+			fileService,
+			directoryDetector,
+			commandParser,
+		);
 
 		// Create CommandService with in-memory dependencies
 		commandService = new CommandService(
 			repository,
 			cacheManager,
 			languageDetector,
+			installationService,
 		);
 	});
 
@@ -159,7 +172,7 @@ describe("CommandService", () => {
 	describe("searchCommands", () => {
 		it("should filter commands by query in name and description", async () => {
 			// Execute: Search for "debug"
-			const result = await commandService.searchCommands("debug", undefined, {
+			const result = await commandService.searchCommands("debug", {
 				language: "en",
 			});
 
@@ -181,7 +194,6 @@ describe("CommandService", () => {
 			// Execute: Search for non-existent term
 			const result = await commandService.searchCommands(
 				"nonexistentxyz",
-				undefined,
 				{ language: "en" },
 			);
 
@@ -193,12 +205,10 @@ describe("CommandService", () => {
 			// Execute: Search with different case
 			const lowerResult = await commandService.searchCommands(
 				"debug",
-				undefined,
 				{ language: "en" },
 			);
 			const upperResult = await commandService.searchCommands(
 				"DEBUG",
-				undefined,
 				{ language: "en" },
 			);
 
