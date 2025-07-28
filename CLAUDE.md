@@ -1,7 +1,7 @@
 - The project uses Bun instead of Node.js. Before *any* use of Bun, use Context7 with the library ID `oven-sh/bun` to ensure you use the proper Bun API, or fallback properly on Node.js.
-- To run all the unit tests (the ones that don't do I/O) use `bun test unit` (FAST)
-- To run all the integration tests (the ones that do I/O, like BunHTTPClient and BunFileService) use `bun test integration` (SLOW)
-- To run the full test suites use `bun test` 
+- To run all the unit tests (the ones that don't do I/O) use `CLAUDECODE=1 bun test unit` (FAST)
+- To run all the integration tests (the ones that do I/O, like BunHTTPClient and BunFileService) use `CLAUDECODE=1 bun test integration` (SLOW)
+- To run the full test suites use `CLAUDECODE=1 bun test` 
 - To run the TypeScript type checking use `bun run typecheck`
 - NEVER read ai_docs/PLAN.md, instead read ai_docs/PLAN.Bun.md
 - At the end of each TodoList created with TodoWrite tool, add a todo to lint/format the code with `bun run check-fix` and another todo to typecheck the code with `bun run typecheck`. For the linting/formating and typechecking fix the errors, whether the errors comes from the task or are unrelated.
