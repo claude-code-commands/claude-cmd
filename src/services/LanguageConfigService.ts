@@ -25,10 +25,10 @@ interface LanguageConfig {
  * 2. Environment variable (CLAUDE_CMD_LANG)
  * 3. System locale (LC_ALL, LC_MESSAGES, LANG)
  * 4. Fallback to English (en)
- * 
- * Configuration is stored in the user's cache directory at:
- * ~/.cache/claude-cmd/config.json
- * 
+ *
+ * Configuration is stored in the user's config directory at:
+ * ~/.config/claude-cmd/config.json
+ *
  * @example Basic usage
  * ```typescript
  * const service = new LanguageConfigService(fileService, repository);
@@ -73,7 +73,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 		private readonly fileService: IFileService,
 		private readonly repository: IRepository,
 	) {
-		this.configDir = path.join(os.homedir(), ".cache", "claude-cmd");
+		this.configDir = path.join(os.homedir(), ".config", "claude-cmd");
 		this.configFile = path.join(this.configDir, "config.json");
 	}
 
