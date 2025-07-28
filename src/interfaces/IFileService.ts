@@ -126,4 +126,15 @@ export default interface IFileService {
 	 * @throws FileIOError for other I/O failures
 	 */
 	listFiles(path: string): Promise<string[]>;
+
+	/**
+	 * List files recursively in a directory and all subdirectories
+	 *
+	 * @param path - Absolute or relative path to the directory
+	 * @returns Promise resolving to array of relative file paths from the root directory
+	 * @throws FileNotFoundError when directory doesn't exist
+	 * @throws FilePermissionError when read access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	listFilesRecursive(path: string): Promise<string[]>;
 }

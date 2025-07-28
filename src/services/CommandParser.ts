@@ -70,7 +70,7 @@ export class CommandParser {
 				this.validateSecurity(parsed.data, commandName);
 
 				// Normalize allowed-tools (optional field, defaults to empty array)
-				const allowedTools = parsed.data["allowed-tools"] 
+				const allowedTools = parsed.data["allowed-tools"]
 					? this.normalizeAllowedTools(parsed.data["allowed-tools"])
 					: [];
 
@@ -214,7 +214,7 @@ export class CommandParser {
 
 		// Allow any Bash command pattern: Bash(command:*) or Bash(cmd1:*, cmd2:*)
 		// This gives users flexibility to use any bash tools in their slash commands
-		const bashPattern = /^Bash\([a-zA-Z0-9_\-,:\*\s]+\)$/;
+		const bashPattern = /^Bash\([a-zA-Z0-9_\-,:*\s]+\)$/;
 		if (bashPattern.test(tool)) {
 			return true;
 		}

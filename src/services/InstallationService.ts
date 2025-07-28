@@ -215,7 +215,7 @@ export class InstallationService implements IInstallationService {
 	}
 
 	/**
-	 * Scan a directory for command files
+	 * Scan a directory for command files recursively
 	 */
 	private async scanDirectoryForCommands(
 		dir: DirectoryInfo,
@@ -223,18 +223,18 @@ export class InstallationService implements IInstallationService {
 		seenCommands: Set<string>,
 	): Promise<void> {
 		try {
-			// List all files in the directory
-			const files = await this.fileService.listFiles(dir.path);
+			// List all files recursively in the directory
+			const files = await this.fileService.listFilesRecursive(dir.path);
 
 			// Filter for .md files only
 			const markdownFiles = files.filter((file) => file.endsWith(".md"));
 
 			for (const file of markdownFiles) {
-				// Extract command name (remove .md extension)
-				const commandName = file.replace(/\.md$/, "");
+				// Extract command name from file path (remove .md extension and directory parts)
+				const baseName = path.basename(file, ".md");
 
 				// Skip if we've already seen this command (deduplication)
-				if (seenCommands.has(commandName)) {
+				if (seenCommands.has(baseName)) {
 					continue;
 				}
 
@@ -244,11 +244,11 @@ export class InstallationService implements IInstallationService {
 					const content = await this.fileService.readFile(filePath);
 					const command = await this.commandParser.parseCommandFile(
 						content,
-						commandName,
+						baseName,
 					);
 
 					commands.push(command);
-					seenCommands.add(commandName);
+					seenCommands.add(baseName);
 				} catch (error) {
 					console.error(
 						`Failed to parse command file '${file}' in '${dir.path}':`,

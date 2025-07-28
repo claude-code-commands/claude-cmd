@@ -1,5 +1,5 @@
 import { mkdir as fsMkdir, readdir, stat, unlink } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import type IFileService from "../interfaces/IFileService.ts";
 import {
 	FileIOError,
@@ -147,6 +147,35 @@ export default class BunFileService implements IFileService {
 			return entries
 				.filter((entry) => entry.isFile())
 				.map((entry) => entry.name);
+		} catch (error) {
+			this.mapSystemError(error, path, "list");
+		}
+	}
+
+	/**
+	 * List files recursively in a directory and all subdirectories
+	 */
+	async listFilesRecursive(path: string): Promise<string[]> {
+		try {
+			const entries = await readdir(path, { withFileTypes: true });
+			const files: string[] = [];
+
+			for (const entry of entries) {
+				if (entry.isFile()) {
+					files.push(entry.name);
+				} else if (entry.isDirectory()) {
+					// Recursively scan subdirectories
+					const subDir = join(path, entry.name);
+					const subFiles = await this.listFilesRecursive(subDir);
+
+					// Add subdirectory files with relative paths
+					for (const subFile of subFiles) {
+						files.push(join(entry.name, subFile));
+					}
+				}
+			}
+
+			return files;
 		} catch (error) {
 			this.mapSystemError(error, path, "list");
 		}

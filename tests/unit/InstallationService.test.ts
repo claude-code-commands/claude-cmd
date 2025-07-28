@@ -294,6 +294,83 @@ allowed-tools: [invalid yaml
 			expect(commands).toHaveLength(1);
 			expect(commands[0].name).toBe("test-command");
 		});
+
+		test("should find commands in nested directories", async () => {
+			// Create nested directory structure
+			const personalDir = "/home/testuser/.claude/commands";
+
+			// Add command in root
+			await installationService.installCommand("test-command");
+
+			// Add commands in nested directories
+			await fileService.writeFile(
+				`${personalDir}/ai/code-review.md`,
+				`---
+description: AI code review command
+allowed-tools: Read, Edit
+---
+
+# AI Code Review`,
+			);
+
+			await fileService.writeFile(
+				`${personalDir}/tools/docker/deploy.md`,
+				`---
+description: Docker deployment command
+allowed-tools: Bash(docker:*)
+---
+
+# Docker Deploy`,
+			);
+
+			const commands = await installationService.listInstalledCommands();
+
+			// Should find all commands including nested ones
+			expect(commands).toHaveLength(3);
+
+			const commandNames = commands.map((c) => c.name);
+			expect(commandNames).toContain("test-command");
+			expect(commandNames).toContain("code-review");
+			expect(commandNames).toContain("deploy");
+		});
+
+		test("should handle nested directories with malformed files gracefully", async () => {
+			const personalDir = "/home/testuser/.claude/commands";
+
+			// Add valid command in root
+			await installationService.installCommand("test-command");
+
+			// Add valid command in nested directory
+			await fileService.writeFile(
+				`${personalDir}/category/valid.md`,
+				`---
+description: Valid nested command
+---
+
+# Valid Command`,
+			);
+
+			// Add malformed command in nested directory
+			await fileService.writeFile(
+				`${personalDir}/category/malformed.md`,
+				`---
+description: Malformed
+allowed-tools: [invalid yaml
+---
+
+# Malformed`,
+			);
+
+			const commands = await installationService.listInstalledCommands();
+
+			// Should find valid commands and skip malformed ones
+			expect(commands).toHaveLength(2);
+
+			const commandNames = commands.map((c) => c.name);
+			expect(commandNames).toContain("test-command");
+			expect(commandNames).toContain("valid");
+			expect(commandNames).not.toContain("malformed");
+		});
 	});
 
 	describe("getInstallationInfo", () => {

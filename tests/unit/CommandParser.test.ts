@@ -353,7 +353,9 @@ allowed-tools:
 
 			await expect(
 				parser.parseCommandFile(content, "invalid-tools"),
-			).rejects.toThrow("Security violation: tool 'invalidtool' is not allowed");
+			).rejects.toThrow(
+				"Security violation: tool 'invalidtool' is not allowed",
+			);
 		});
 	});
 

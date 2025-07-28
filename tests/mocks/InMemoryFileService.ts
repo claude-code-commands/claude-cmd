@@ -167,6 +167,45 @@ class InMemoryFileService implements IFileService {
 	}
 
 	/**
+	 * List all files recursively in a directory and its subdirectories
+	 */
+	listFilesRecursive(path: string): Promise<string[]> {
+		this.operationHistory.push({ operation: "listFilesRecursive", path });
+
+		// Normalize directory path
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
+
+		// Check if directory exists
+		if (!this.fs[dirPath]) {
+			// Check if directory exists implicitly (has files in it)
+			const hasChildFiles = Object.keys(this.fs).some(
+				(filePath) => filePath.startsWith(dirPath) && filePath !== dirPath,
+			);
+
+			if (!hasChildFiles) {
+				return Promise.reject(`Directory not found: ${path}`);
+			}
+		}
+
+		// Find all files recursively with their relative paths
+		const files: string[] = [];
+		for (const filePath in this.fs) {
+			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
+				// Get relative path from directory
+				const relativePath = filePath.substring(dirPath.length);
+
+				// Only include files, not directories
+				const entry = this.fs[filePath];
+				if (entry?.type === "file") {
+					files.push(relativePath);
+				}
+			}
+		}
+
+		return Promise.resolve(files);
+	}
+
+	/**
 	 * Clear all files for clean test state
 	 */
 	clearFiles(): void {
