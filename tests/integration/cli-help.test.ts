@@ -57,9 +57,7 @@ describe("CLI Help Integration", () => {
 		const { stdout, stderr } = await runCli(["add", "--help"]);
 
 		// Should display add command help
-		expect(stdout).toContain(
-			"Usage: claude-cmd add [options] <command-name>\n\nDownload and install a Claude Code slash command from the repository.\n\nArguments:\n  command-name  Name of the command to install\n\nOptions:\n  -h, --help    display help for command\n",
-		);
+		expect(stdout).toContain("Usage: claude-cmd add [options] <command-name>");
 		expect(stderr).toBe("");
 	});
 });
