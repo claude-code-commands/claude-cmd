@@ -1,9 +1,9 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
-import type IRepository from "../interfaces/IRepository.js";
 import type ILanguageConfigService from "../interfaces/ILanguageConfigService.js";
 import type { LanguageInfo } from "../interfaces/ILanguageConfigService.js";
+import type IRepository from "../interfaces/IRepository.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 
 /**
@@ -15,11 +15,11 @@ interface LanguageConfig {
 
 /**
  * Service for managing language configuration preferences
- * 
+ *
  * Provides functionality to store and retrieve user language preferences,
  * discover available languages from the remote repository, and determine
  * the effective language to use based on preferences and environment.
- * 
+ *
  * The service follows this precedence order for language detection:
  * 1. Saved user preference (via setLanguage)
  * 2. Environment variable (CLAUDE_CMD_LANG)
@@ -32,13 +32,13 @@ interface LanguageConfig {
  * @example Basic usage
  * ```typescript
  * const service = new LanguageConfigService(fileService, repository);
- * 
+ *
  * // Set preferred language
  * await service.setLanguage('fr');
- * 
+ *
  * // Get effective language for current context
  * const lang = await service.getEffectiveLanguage(); // 'fr'
- * 
+ *
  * // List available languages
  * const languages = await service.getAvailableLanguages();
  * ```
@@ -105,7 +105,9 @@ export class LanguageConfigService implements ILanguageConfigService {
 	async setLanguage(language: string): Promise<void> {
 		const sanitized = this.languageDetector.sanitizeLanguageCode(language);
 		if (!sanitized) {
-			throw new Error(`Invalid language code: ${language}. Expected format: 2-3 lowercase letters (e.g., 'en', 'fr', 'es')`);
+			throw new Error(
+				`Invalid language code: ${language}. Expected format: 2-3 lowercase letters (e.g., 'en', 'fr', 'es')`,
+			);
 		}
 
 		const config: LanguageConfig = {
@@ -115,9 +117,14 @@ export class LanguageConfigService implements ILanguageConfigService {
 		try {
 			// Ensure config directory exists
 			await this.fileService.mkdir(this.configDir);
-			await this.fileService.writeFile(this.configFile, JSON.stringify(config, null, 2));
+			await this.fileService.writeFile(
+				this.configFile,
+				JSON.stringify(config, null, 2),
+			);
 		} catch (error) {
-			throw new Error(`Failed to save language preference: ${error instanceof Error ? error.message : error}`);
+			throw new Error(
+				`Failed to save language preference: ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	}
 
@@ -133,27 +140,29 @@ export class LanguageConfigService implements ILanguageConfigService {
 	async getAvailableLanguages(): Promise<LanguageInfo[]> {
 		// Check availability by attempting to fetch each language's manifest
 		const languages: LanguageInfo[] = [];
-		
+
 		// Process each known language in parallel for better performance
-		const availabilityChecks = Array.from(this.knownLanguages.entries()).map(async ([code, name]) => {
-			let available = false;
-			
-			// English is always considered available as the fallback language
-			if (code === "en") {
-				available = true;
-			} else {
-				// Test availability by attempting to fetch the language manifest
-				try {
-					await this.repository.getManifest(code);
+		const availabilityChecks = Array.from(this.knownLanguages.entries()).map(
+			async ([code, name]) => {
+				let available = false;
+
+				// English is always considered available as the fallback language
+				if (code === "en") {
 					available = true;
-				} catch {
-					// Language is not available in repository
-					available = false;
+				} else {
+					// Test availability by attempting to fetch the language manifest
+					try {
+						await this.repository.getManifest(code);
+						available = true;
+					} catch {
+						// Language is not available in repository
+						available = false;
+					}
 				}
-			}
-			
-			return { code, name, available };
-		});
+
+				return { code, name, available };
+			},
+		);
 
 		// Wait for all availability checks to complete
 		const results = await Promise.all(availabilityChecks);
@@ -165,7 +174,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 	 *
 	 * Follows the precedence order:
 	 * 1. Saved user preference (highest priority)
-	 * 2. CLAUDE_CMD_LANG environment variable  
+	 * 2. CLAUDE_CMD_LANG environment variable
 	 * 3. System locale (LC_ALL, LC_MESSAGES, LANG)
 	 * 4. Fallback to English (lowest priority)
 	 *
@@ -183,7 +192,8 @@ export class LanguageConfigService implements ILanguageConfigService {
 		const context = {
 			cliFlag: "", // Not used in this context (CLI flag would override this method)
 			envVar: process.env.CLAUDE_CMD_LANG || "",
-			posixLocale: process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
+			posixLocale:
+				process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
 		};
 
 		return this.languageDetector.detect(context);
