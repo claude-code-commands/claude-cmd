@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing
 - `CLAUDECODE=1 bun test unit` - Run unit tests (fast, no I/O)
-- `CLAUDECODE=1 bun test integration` - Run integration tests (slow, with I/O)
+- `CLAUDECODE=1 bun test tests/integration/<test-file-name.test.ts>` - Run integration tests (slow, with I/O)
 - `CLAUDECODE=1 bun test` - Run all tests
 - `bun run typecheck` - TypeScript type checking
 
