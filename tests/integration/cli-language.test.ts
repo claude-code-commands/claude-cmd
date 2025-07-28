@@ -22,16 +22,18 @@ describe("CLI Language Command Integration", () => {
 		it("should display help for language list command", async () => {
 			const proc = spawn(["bun", cliPath, "language", "list", "--help"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
-			expect(output).toContain("List available languages and show current language setting");
+			expect(output).toContain(
+				"List available languages and show current language setting",
+			);
 		});
 
 		it("should display available languages", async () => {
 			const proc = spawn(["bun", cliPath, "language", "list"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
 			expect(output).toContain("Available languages:");
@@ -41,7 +43,7 @@ describe("CLI Language Command Integration", () => {
 		it("should show English as available language", async () => {
 			const proc = spawn(["bun", cliPath, "language", "list"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
 			expect(output).toContain("en");
@@ -53,35 +55,41 @@ describe("CLI Language Command Integration", () => {
 		it("should display help for language set command", async () => {
 			const proc = spawn(["bun", cliPath, "language", "set", "--help"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
-			expect(output).toContain("Set the preferred language for command retrieval");
+			expect(output).toContain(
+				"Set the preferred language for command retrieval",
+			);
 			expect(output).toContain("<language>");
 		});
 
 		it("should set language preference successfully", async () => {
 			const proc = spawn(["bun", cliPath, "language", "set", "fr"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
 			expect(output).toContain("Language preference set to: fr");
 		});
 
 		it("should reject invalid language codes", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set", "invalid"]);
+			const proc = spawn(["bun", cliPath, "language", "set", "invalid"], {
+				stderr: "pipe",
+			});
 			const result = await proc.exited;
-			const stderr = await new Response(proc.stderr).text();
+			const stderr = await proc.stderr.text();
 
 			expect(result).toBe(1);
 			expect(stderr).toContain("Invalid language code");
 		});
 
 		it("should require language argument", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set"]);
+			const proc = spawn(["bun", cliPath, "language", "set"], {
+				stderr: "pipe",
+			});
 			const result = await proc.exited;
-			const stderr = await new Response(proc.stderr).text();
+			const stderr = await proc.stderr.text();
 
 			expect(result).toBe(1);
 			expect(stderr).toContain("error: missing required argument 'language'");
@@ -92,7 +100,7 @@ describe("CLI Language Command Integration", () => {
 		it("should display help for language command", async () => {
 			const proc = spawn(["bun", cliPath, "language", "--help"]);
 			const result = await proc.exited;
-			const output = await new Response(proc.stdout).text();
+			const output = await proc.stdout.text();
 
 			expect(result).toBe(0);
 			expect(output).toContain("Manage language settings for claude-cmd");
