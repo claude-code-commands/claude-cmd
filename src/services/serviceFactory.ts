@@ -7,6 +7,7 @@ import { DirectoryDetector } from "./DirectoryDetector.js";
 import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
+import { LanguageConfigService } from "./LanguageConfigService.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -21,6 +22,7 @@ let services: {
 	commandService: CommandService;
 	languageDetector: LanguageDetector;
 	installationService: InstallationService;
+	languageConfigService: LanguageConfigService;
 } | null = null;
 
 /**
@@ -50,6 +52,12 @@ export function getServices() {
 			commandParser,
 		);
 
+		// Create LanguageConfigService
+		const languageConfigService = new LanguageConfigService(
+			fileService,
+			repository,
+		);
+
 		// Create CommandService with all dependencies including InstallationService
 		const commandService = new CommandService(
 			repository,
@@ -62,6 +70,7 @@ export function getServices() {
 			commandService,
 			languageDetector,
 			installationService,
+			languageConfigService,
 		};
 	}
 
