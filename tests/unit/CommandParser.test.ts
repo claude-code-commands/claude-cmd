@@ -75,7 +75,7 @@ allowed-tools: Read, Edit
 			);
 		});
 
-		test("should throw error for missing allowed-tools", async () => {
+		test("should handle missing allowed-tools field with empty array", async () => {
 			const content = `---
 description: Test command
 ---
@@ -83,9 +83,10 @@ description: Test command
 # Test Command
 `;
 
-			await expect(parser.parseCommandFile(content, "test")).rejects.toThrow(
-				"Command file missing required 'allowed-tools' field",
-			);
+			const command = await parser.parseCommandFile(content, "test");
+			expect(command.name).toBe("test");
+			expect(command.description).toBe("Test command");
+			expect(command["allowed-tools"]).toEqual([]);
 		});
 
 		test("should throw error for invalid YAML frontmatter", async () => {
@@ -210,16 +211,16 @@ allowed-tools: Read, Edit
 			expect(isValid).toBe(true);
 		});
 
-		test("should return false for invalid command file", async () => {
+		test("should return true for command file with only description", async () => {
 			const content = `---
-description: Invalid command
+description: Valid command with just description
 ---
 
-# Missing allowed-tools
+# Valid command without allowed-tools
 `;
 
 			const isValid = await parser.validateCommandFile(content);
-			expect(isValid).toBe(false);
+			expect(isValid).toBe(true);
 		});
 
 		test("should return true for file without frontmatter", async () => {
@@ -276,21 +277,25 @@ file: /etc/passwd
 			).rejects.toThrow("Security violation: file path must be relative");
 		});
 
-		test("should validate allowed-tools against whitelist", async () => {
+		test("should allow any Bash command patterns", async () => {
 			const content = `---
-description: Dangerous tools command
+description: Flexible bash tools command
 allowed-tools:
   - Read
   - "Bash(rm:*)"
   - "Bash(sudo:*)"
+  - "Bash(docker:*)"
+  - "Bash(kubectl:*)"
 ---
 
-# Dangerous Tools Command
+# Flexible Bash Tools Command
 `;
 
-			await expect(
-				parser.parseCommandFile(content, "dangerous-tools"),
-			).rejects.toThrow("Security violation: tool 'Bash(rm:*)' is not allowed");
+			const command = await parser.parseCommandFile(content, "flexible-bash");
+			expect(command["allowed-tools"]).toContain("Bash(rm:*)");
+			expect(command["allowed-tools"]).toContain("Bash(sudo:*)");
+			expect(command["allowed-tools"]).toContain("Bash(docker:*)");
+			expect(command["allowed-tools"]).toContain("Bash(kubectl:*)");
 		});
 
 		test("should allow safe bash patterns", async () => {
@@ -312,6 +317,43 @@ allowed-tools:
 
 			const command = await parser.parseCommandFile(content, "safe-tools");
 			expect(command["allowed-tools"]).toContain("Bash(git:*)");
+		});
+
+		test("should allow MCP tools with proper pattern", async () => {
+			const content = `---
+description: MCP tools command
+allowed-tools:
+  - Read
+  - mcp__zen__codereview
+  - mcp__zen__debug
+  - mcp__server__prompt
+---
+
+# MCP Tools Command
+`;
+
+			const command = await parser.parseCommandFile(content, "mcp-tools");
+			expect(command["allowed-tools"]).toContain("mcp__zen__codereview");
+			expect(command["allowed-tools"]).toContain("mcp__zen__debug");
+			expect(command["allowed-tools"]).toContain("mcp__server__prompt");
+		});
+
+		test("should reject invalid tool patterns", async () => {
+			const content = `---
+description: Invalid tools command
+allowed-tools:
+  - Read
+  - "invalidtool"
+  - "Bash(malformed"
+  - "mcp__invalid"
+---
+
+# Invalid Tools Command
+`;
+
+			await expect(
+				parser.parseCommandFile(content, "invalid-tools"),
+			).rejects.toThrow("Security violation: tool 'invalidtool' is not allowed");
 		});
 	});
 

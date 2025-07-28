@@ -21,25 +21,9 @@ export class CommandParseError extends Error {
  */
 export class CommandParser {
 	/**
-	 * Whitelist of allowed tools and bash patterns
+	 * Whitelist of allowed core Claude Code tools
 	 */
 	private readonly allowedTools = new Set([
-		"Bash(eslint:*)",
-		"Bash(find:*)",
-		"Bash(flake8:*)",
-		"Bash(gdb:*)",
-		"Bash(git:*)",
-		"Bash(golint:*)",
-		"Bash(grep:*)",
-		"Bash(java:*)",
-		"Bash(jest:*)",
-		"Bash(lldb:*)",
-		"Bash(mvn:*)",
-		"Bash(node:*)",
-		"Bash(npm:*)",
-		"Bash(pytest:*)",
-		"Bash(python:*)",
-		"Bash(yarn:*)",
 		"Edit",
 		"Glob",
 		"Grep",
@@ -82,23 +66,18 @@ export class CommandParser {
 					);
 				}
 
-				if (!parsed.data["allowed-tools"]) {
-					throw new CommandParseError(
-						"Command file missing required 'allowed-tools' field",
-						commandName,
-					);
-				}
-
 				// Security validation
 				this.validateSecurity(parsed.data, commandName);
 
-				// Normalize allowed-tools
-				const allowedTools = this.normalizeAllowedTools(
-					parsed.data["allowed-tools"],
-				);
+				// Normalize allowed-tools (optional field, defaults to empty array)
+				const allowedTools = parsed.data["allowed-tools"] 
+					? this.normalizeAllowedTools(parsed.data["allowed-tools"])
+					: [];
 
-				// Validate allowed-tools against whitelist
-				this.validateAllowedTools(allowedTools, commandName);
+				// Validate allowed-tools against whitelist (only if tools are specified)
+				if (allowedTools.length > 0) {
+					this.validateAllowedTools(allowedTools, commandName);
+				}
 
 				// Build Command object with frontmatter data
 				const command: Command = {
@@ -222,32 +201,24 @@ export class CommandParser {
 	 * @returns True if allowed
 	 */
 	private isAllowedTool(tool: string): boolean {
-		// Direct match
+		// Direct match against core tools
 		if (this.allowedTools.has(tool)) {
 			return true;
 		}
 
-		// Check against safe bash patterns (basic whitelist approach)
-		const safeBashPatterns = [
-			/^Bash\(git:\*\)$/,
-			/^Bash\(grep:\*\)$/,
-			/^Bash\(find:\*\)$/,
-			/^Bash\(node:\*\)$/,
-			/^Bash\(npm:\*\)$/,
-			/^Bash\(yarn:\*\)$/,
-			/^Bash\(python:\*\)$/,
-			/^Bash\(java:\*\)$/,
-			/^Bash\(gdb:\*\)$/,
-			/^Bash\(lldb:\*\)$/,
-			/^Bash\(eslint:\*\)$/,
-			/^Bash\(golint:\*\)$/,
-			/^Bash\(flake8:\*\)$/,
-			/^Bash\(jest:\*\)$/,
-			/^Bash\(pytest:\*\)$/,
-			/^Bash\(mvn:\*\)$/,
-			/^Bash\(npm:\*, yarn:\*\)$/,
-		];
+		// Check against MCP tool pattern: mcp__<server-name>__<prompt-name>
+		const mcpPattern = /^mcp__[a-zA-Z0-9_]+__[a-zA-Z0-9_]+$/;
+		if (mcpPattern.test(tool)) {
+			return true;
+		}
 
-		return safeBashPatterns.some((pattern) => pattern.test(tool));
+		// Allow any Bash command pattern: Bash(command:*) or Bash(cmd1:*, cmd2:*)
+		// This gives users flexibility to use any bash tools in their slash commands
+		const bashPattern = /^Bash\([a-zA-Z0-9_\-,:\*\s]+\)$/;
+		if (bashPattern.test(tool)) {
+			return true;
+		}
+
+		return false;
 	}
 }
