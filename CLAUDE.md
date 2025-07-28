@@ -110,6 +110,19 @@ Test real I/O implementations:
 5. Follow existing error handling patterns with typed exceptions
 6. Commander.js provides CLI structure - add new commands to `src/cli/commands/`
 
+## Software Engineering Methodology
+
+All features must be developed following a TDD-like workflow (DESIGN-RED-GREEN-REFACTOR-REVIEW) that respects the SOLID principles:
+
+1. DESIGN: Design the domain models and the contracts between the different layers: the types, the interfaces
+2. RED: Write the tests against a non-existing implementation and ensure they fail, covering the happy path and the various failure modes
+3. GREEN: Write the minimum amount of code to make the tests pass
+4. REFACTOR: Think hard about how to make the implementation better: documentation, decoupling/cohesiveness, security, performance
+5. REVIEW: Use zen to review the previous steps and present your analysis and findings to the user. You MUST stop here and MUST NOT try to fix the problems you found; the user will decide how to proceed with the review.
+
+ATTENTION: you try to reuse and adapt existing code and infrastructure as much as possible, and introduce new abstractions only when necessary. You value simplicity and try to limit the number of layers to the minimum that conforms to the principles and provides a useful solution.
+
+
 ## Cache Directory Structure
 
 Cache location: `{UserCacheDir}/claude-cmd/pages/`
