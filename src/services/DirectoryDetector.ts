@@ -1,5 +1,3 @@
-import { constants } from "node:fs";
-import { access } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
@@ -161,19 +159,13 @@ export class DirectoryDetector {
 		dirPath: string,
 		exists: boolean,
 	): Promise<boolean> {
-		try {
-			if (exists) {
-				// Directory exists, check if we can write to it
-				await access(dirPath, constants.W_OK);
-				return true;
-			}
-
-			// Directory doesn't exist, check if we can write to the parent
-			const parentDir = path.dirname(dirPath);
-			await access(parentDir, constants.W_OK);
-			return true;
-		} catch {
-			return false;
+		if (exists) {
+			// Directory exists, check if we can write to it
+			return await this.fileService.isWritable(dirPath);
 		}
+
+		// Directory doesn't exist, check if we can write to the parent
+		const parentDir = path.dirname(dirPath);
+		return await this.fileService.isWritable(parentDir);
 	}
 }

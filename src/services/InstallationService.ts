@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
 import type IInstallationService from "../interfaces/IInstallationService.js";
@@ -166,10 +165,10 @@ export class InstallationService implements IInstallationService {
 
 		try {
 			// Determine location type based on path using secure path comparison
-			const homeDir = os.homedir();
+			const personalDir = await this.directoryDetector.getPersonalDirectory();
 			const isPersonal =
 				path.isAbsolute(installationPath) &&
-				!path.relative(homeDir, installationPath).startsWith("..");
+				!path.relative(personalDir, installationPath).startsWith("..");
 
 			const location = isPersonal ? "personal" : "project";
 

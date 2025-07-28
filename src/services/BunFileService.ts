@@ -1,4 +1,5 @@
-import { mkdir as fsMkdir, readdir, stat, unlink } from "node:fs/promises";
+import { access, mkdir as fsMkdir, readdir, stat, unlink } from "node:fs/promises";
+import { constants } from "node:fs";
 import { dirname, join } from "node:path";
 import type IFileService from "../interfaces/IFileService.ts";
 import {
@@ -178,6 +179,18 @@ export default class BunFileService implements IFileService {
 			return files;
 		} catch (error) {
 			this.mapSystemError(error, path, "list");
+		}
+	}
+
+	/**
+	 * Check if a path is writable
+	 */
+	async isWritable(path: string): Promise<boolean> {
+		try {
+			await access(path, constants.W_OK);
+			return true;
+		} catch {
+			return false;
 		}
 	}
 }

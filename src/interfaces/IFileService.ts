@@ -137,4 +137,13 @@ export default interface IFileService {
 	 * @throws FileIOError for other I/O failures
 	 */
 	listFilesRecursive(path: string): Promise<string[]>;
+
+	/**
+	 * Check if a path is writable
+	 *
+	 * @param path - Absolute or relative path to check
+	 * @returns Promise resolving to true if path is writable, false otherwise
+	 * @throws FileIOError for unexpected I/O failures during check
+	 */
+	isWritable(path: string): Promise<boolean>;
 }

@@ -218,6 +218,26 @@ class InMemoryFileService implements IFileService {
 	setFile(path: string, content: string): void {
 		this.fs[path] = { type: "file", content };
 	}
+
+	/**
+	 * Check if a path is writable (simplified for testing - always returns true for existing paths)
+	 */
+	async isWritable(path: string): Promise<boolean> {
+		this.operationHistory.push({ operation: "isWritable", path });
+		
+		// For testing purposes, we assume all paths are writable if they exist or their parent exists
+		if (await this.exists(path)) {
+			return true;
+		}
+		
+		// Check if parent directory exists (for non-existent files)
+		const parentPath = path.substring(0, path.lastIndexOf("/"));
+		if (parentPath && await this.exists(parentPath)) {
+			return true;
+		}
+		
+		return false;
+	}
 }
 
 export default InMemoryFileService;

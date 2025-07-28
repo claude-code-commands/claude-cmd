@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, spyOn, test } from "bun:test";
+import os from "node:os";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 
@@ -83,6 +84,11 @@ describe("DirectoryDetector", () => {
 			delete process.env.HOME;
 			delete process.env.USERPROFILE;
 
+			// Mock os.homedir() to throw an error to simulate failure
+			const mockHomedir = spyOn(os, "homedir").mockImplementation(() => {
+				throw new Error("Unable to determine home directory");
+			});
+
 			try {
 				await expect(directoryDetector.getClaudeDirectories()).rejects.toThrow(
 					"Unable to determine home directory",
@@ -90,6 +96,7 @@ describe("DirectoryDetector", () => {
 			} finally {
 				process.env.HOME = originalHome;
 				process.env.USERPROFILE = originalUserProfile;
+				mockHomedir.mockRestore();
 			}
 		});
 
