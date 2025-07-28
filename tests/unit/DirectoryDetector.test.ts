@@ -68,7 +68,7 @@ describe("DirectoryDetector", () => {
 
 				const personalDir = directories.find((d) => d.type === "personal");
 				expect(personalDir?.path).toBe(
-					"C:\\Users\\testuser\\.claude\\commands",
+					"C:\\Users\\testuser/.claude/commands",
 				);
 			} finally {
 				process.env.HOME = originalHome;
@@ -230,7 +230,7 @@ describe("DirectoryDetector", () => {
 				const personalDir = directories.find((d) => d.type === "personal");
 
 				expect(personalDir?.path).toBe(
-					"C:\\Users\\testuser\\.claude\\commands",
+					"C:\\Users\\testuser/.claude/commands",
 				);
 			} finally {
 				Object.defineProperty(process, "platform", { value: originalPlatform });

@@ -147,7 +147,8 @@ export class DirectoryDetector {
 	 */
 	private isAbsolutePath(filePath: string): boolean {
 		// Use Node.js built-in method which handles cross-platform differences
-		return path.isAbsolute(filePath);
+		// Also check Windows-style paths when running on Unix systems (for tests)
+		return path.isAbsolute(filePath) || path.win32.isAbsolute(filePath);
 	}
 
 	/**
