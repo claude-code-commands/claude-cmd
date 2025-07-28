@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { CacheManager } from "../../src/services/CacheManager.js";
+import { CommandParser } from "../../src/services/CommandParser.js";
 import { CommandService } from "../../src/services/CommandService.js";
+import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import { InstallationService } from "../../src/services/InstallationService.js";
 import { LanguageDetector } from "../../src/services/LanguageDetector.js";
-import { CommandParser } from "../../src/services/CommandParser.js";
-import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import type { Manifest } from "../../src/types/Command.js";
 import {
 	CommandNotFoundError,
@@ -192,10 +192,9 @@ describe("CommandService", () => {
 
 		it("should return empty array when no commands match query", async () => {
 			// Execute: Search for non-existent term
-			const result = await commandService.searchCommands(
-				"nonexistentxyz",
-				{ language: "en" },
-			);
+			const result = await commandService.searchCommands("nonexistentxyz", {
+				language: "en",
+			});
 
 			// Verify: Should return empty array
 			expect(result).toEqual([]);
@@ -203,14 +202,12 @@ describe("CommandService", () => {
 
 		it("should perform case-insensitive search", async () => {
 			// Execute: Search with different case
-			const lowerResult = await commandService.searchCommands(
-				"debug",
-				{ language: "en" },
-			);
-			const upperResult = await commandService.searchCommands(
-				"DEBUG",
-				{ language: "en" },
-			);
+			const lowerResult = await commandService.searchCommands("debug", {
+				language: "en",
+			});
+			const upperResult = await commandService.searchCommands("DEBUG", {
+				language: "en",
+			});
 
 			// Verify: Should return same results regardless of case
 			expect(lowerResult.length).toBe(upperResult.length);

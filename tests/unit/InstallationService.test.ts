@@ -15,8 +15,8 @@ import InMemoryRepository from "../mocks/InMemoryRepository.js";
 describe("InstallationService", () => {
 	let fileService: InMemoryFileService;
 	let repository: InMemoryRepository;
-	let directoryDetector: DirectoryDetector;
-	let commandParser: CommandParser;
+	let _directoryDetector: DirectoryDetector;
+	let _commandParser: CommandParser;
 	let installationService: InstallationService;
 
 	const mockCommand: Command = {
@@ -216,8 +216,8 @@ allowed-tools: [invalid yaml structure
 
 			const commands = await installationService.listInstalledCommands();
 			expect(commands).toHaveLength(1);
-			expect(commands[0]!.name).toBe("test-command");
-			expect(commands[0]!.description).toBe("A test command for debugging");
+			expect(commands[0]?.name).toBe("test-command");
+			expect(commands[0]?.description).toBe("A test command for debugging");
 		});
 
 		test("should return commands from both personal and project directories", async () => {
@@ -279,7 +279,7 @@ allowed-tools: [invalid yaml
 
 			// Should only return valid commands
 			expect(commands).toHaveLength(1);
-			expect(commands[0]!.name).toBe("test-command");
+			expect(commands[0]?.name).toBe("test-command");
 		});
 
 		test("should deduplicate commands found in multiple locations", async () => {
@@ -294,7 +294,7 @@ allowed-tools: [invalid yaml
 
 			// Should only return one instance (personal takes precedence)
 			expect(commands).toHaveLength(1);
-			expect(commands[0]!.name).toBe("test-command");
+			expect(commands[0]?.name).toBe("test-command");
 		});
 
 		test("should find commands in nested directories", async () => {

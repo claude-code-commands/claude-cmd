@@ -68,9 +68,7 @@ describe("DirectoryDetector", () => {
 				const directories = await directoryDetector.getClaudeDirectories();
 
 				const personalDir = directories.find((d) => d.type === "personal");
-				expect(personalDir?.path).toBe(
-					"C:\\Users\\testuser/.claude/commands",
-				);
+				expect(personalDir?.path).toBe("C:\\Users\\testuser/.claude/commands");
 			} finally {
 				process.env.HOME = originalHome;
 				process.env.USERPROFILE = originalUserProfile;
@@ -236,9 +234,7 @@ describe("DirectoryDetector", () => {
 				const directories = await directoryDetector.getClaudeDirectories();
 				const personalDir = directories.find((d) => d.type === "personal");
 
-				expect(personalDir?.path).toBe(
-					"C:\\Users\\testuser/.claude/commands",
-				);
+				expect(personalDir?.path).toBe("C:\\Users\\testuser/.claude/commands");
 			} finally {
 				Object.defineProperty(process, "platform", { value: originalPlatform });
 				process.env.USERPROFILE = originalUserProfile;

@@ -85,6 +85,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Now fetch the command content
+			// biome-ignore lint: Biome and TS can't agree
 			const content = await repository.getCommand(firstCommand!.name, "en");
 
 			expect(content).toBeDefined();
@@ -127,6 +128,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(firstCommand).toBeDefined();
 
 			// Fetch command content
+			// biome-ignore lint: Biome and TS can't agree
 			const content1 = await repository.getCommand(firstCommand!.name, "en");
 			expect(content1).toBeDefined();
 
@@ -139,6 +141,7 @@ describe.skip("HTTPRepository Integration", () => {
 			expect(cacheFileExists).toBe(true);
 
 			// Second call should return same content
+			// biome-ignore lint: Biome and TS can't agree
 			const content2 = await repository.getCommand(firstCommand!.name, "en");
 			expect(content2).toBe(content1);
 		});
