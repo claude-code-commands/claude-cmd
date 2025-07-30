@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type IHTTPClient from "../../src/interfaces/IHTTPClient.ts";
 import {
 	HTTPNetworkError,
 	HTTPStatusError,

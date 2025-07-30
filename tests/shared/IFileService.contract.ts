@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type IFileService from "../../src/interfaces/IFileService.ts";
-import {
-	FileIOError,
-	FileNotFoundError,
-	FilePermissionError,
-} from "../../src/interfaces/IFileService.ts";
+import { FileNotFoundError } from "../../src/interfaces/IFileService.ts";
 
 /**
  * Setup context for contract tests

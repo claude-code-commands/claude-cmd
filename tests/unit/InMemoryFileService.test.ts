@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type IFileService from "../../src/interfaces/IFileService.ts";
 import {
 	FileIOError,
 	FileNotFoundError,
-	FilePermissionError,
 } from "../../src/interfaces/IFileService.ts";
 import InMemoryFileService from "../mocks/InMemoryFileService.ts";
 import { createFileServiceContractTests } from "../shared/IFileService.contract.ts";
@@ -117,12 +115,8 @@ describe("InMemoryFileService", () => {
 				await fileService.writeFile("conflict", "file content");
 
 				// Try to create directory with same name - should fail
-				await expect(fileService.mkdir("conflict")).rejects.toThrow(
-					FileIOError,
-				);
-				await expect(fileService.mkdir("conflict/")).rejects.toThrow(
-					FileIOError,
-				);
+				expect(fileService.mkdir("conflict")).rejects.toThrow(FileIOError);
+				expect(fileService.mkdir("conflict/")).rejects.toThrow(FileIOError);
 			});
 
 			test("should handle file vs directory path conflicts", async () => {

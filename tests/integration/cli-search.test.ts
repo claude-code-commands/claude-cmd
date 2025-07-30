@@ -46,7 +46,7 @@ describe("CLI Search Command Integration", () => {
 
 	it("should handle service errors gracefully", async () => {
 		// We'll use an empty query to trigger a validation error
-		const { result, stdout, stderr } = await runCli(["search", ""]);
+		const { result, stderr } = await runCli(["search", ""]);
 
 		expect(result).toBe(1);
 		expect(stderr).toContain("Error:");
