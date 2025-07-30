@@ -139,7 +139,3 @@ Commands install to Claude Code directories:
 - Project-specific: `.claude/commands/` (if exists in project)
 - User-global: `~/.claude/commands/` (fallback)
 - Installation preserves directory structure from repository
-
-## Bun Subprocess Handling
-
-- When `spawn`ing subprocess with Bun and trying to read from stderr, pass as the second argument `{ stderr: "pipe" }` to the `spawn` function then read from stderr using `await proc.stderr.text()`. DO NOT use `new Response(proc.stderr)`, this doesn't work.
