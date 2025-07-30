@@ -6,363 +6,244 @@ import {
 	HTTPTimeoutError,
 } from "../../src/interfaces/IHTTPClient.ts";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.ts";
+import { runHttpClientContractTests } from "../shared/IHTTPClient.contract.ts";
 
-describe("InMemory HTTPClient", () => {
-	let httpClient: IHTTPClient;
-
-	beforeEach(() => {
-		httpClient = new InMemoryHTTPClient();
+describe("InMemoryHTTPClient", () => {
+	// Run the shared contract tests for InMemoryHTTPClient
+	describe("Contract Tests", () => {
+		runHttpClientContractTests(() => new InMemoryHTTPClient());
 	});
 
-	describe("get method", () => {
-		test("should perform successful GET request", async () => {
-			const response = await httpClient.get("https://api.example.com/data");
-
-			expect(response.status).toBe(200);
-			expect(response.statusText).toBe("OK");
-			expect(response.body).toBeTruthy();
-			expect(response.url).toBe("https://api.example.com/data");
-			expect(response.headers).toBeDefined();
-		});
-
-		test("should handle custom headers in request", async () => {
-			const headers = {
-				"User-Agent": "claude-cmd/1.0",
-				Accept: "application/json",
-			};
-
-			const response = await httpClient.get("https://api.example.com/data", {
-				headers,
-			});
-
-			expect(response.status).toBe(200);
-		});
-
-		test("should handle custom timeout configuration", async () => {
-			const response = await httpClient.get("https://api.example.com/data", {
-				timeout: 1000,
-			});
-
-			expect(response.status).toBe(200);
-		});
-
-		test("should return proper response headers", async () => {
-			const response = await httpClient.get("https://api.example.com/data");
-
-			expect(response.headers).toBeDefined();
-			expect(typeof response.headers).toBe("object");
-		});
-
-		test("should handle empty response body", async () => {
-			const response = await httpClient.get("https://api.example.com/empty");
-
-			expect(response.status).toBe(200);
-			expect(response.body).toBe("");
-		});
-
-		test("should handle large response body", async () => {
-			const response = await httpClient.get("https://api.example.com/large");
-
-			expect(response.status).toBe(200);
-			expect(response.body.length).toBeGreaterThan(1000);
-		});
-	});
-
-	describe("error handling", () => {
-		test("should throw HTTPTimeoutError on timeout", async () => {
-			expect(
-				httpClient.get("https://api.example.com/slow", { timeout: 100 }),
-			).rejects.toThrow(HTTPTimeoutError);
-		});
-
-		test("should throw HTTPNetworkError on network failure", async () => {
-			expect(
-				httpClient.get("https://invalid-domain-that-does-not-exist.com"),
-			).rejects.toThrow(HTTPNetworkError);
-		});
-
-		test("should throw HTTPStatusError on 404 Not Found", async () => {
-			expect(
-				httpClient.get("https://api.example.com/not-found"),
-			).rejects.toThrow(HTTPStatusError);
-		});
-
-		test("should throw HTTPStatusError on 500 Internal Server Error", async () => {
-			expect(
-				httpClient.get("https://api.example.com/server-error"),
-			).rejects.toThrow(HTTPStatusError);
-		});
-
-		test("should include status code in HTTPStatusError", async () => {
-			try {
-				await httpClient.get("https://api.example.com/not-found");
-			} catch (error) {
-				expect(error).toBeInstanceOf(HTTPStatusError);
-				expect((error as HTTPStatusError).status).toBe(404);
-			}
-		});
-
-		test("should include URL in all error types", async () => {
-			const url = "https://api.example.com/not-found";
-
-			try {
-				await httpClient.get(url);
-			} catch (error) {
-				expect(error).toBeInstanceOf(HTTPStatusError);
-				expect((error as HTTPStatusError).url).toBe(url);
-			}
-		});
-
-		test("should handle malformed URLs", async () => {
-			expect(httpClient.get("not-a-valid-url")).rejects.toThrow();
-		});
-
-		test("should handle empty URL", async () => {
-			expect(httpClient.get("")).rejects.toThrow();
-		});
-	});
-
-	describe("timeout behavior", () => {
-		test("should use default timeout when not specified", async () => {
-			const response = await httpClient.get("https://api.example.com/data");
-			expect(response.status).toBe(200);
-		});
-
-		test("should respect custom timeout values", async () => {
-			expect(
-				httpClient.get("https://api.example.com/slow", { timeout: 50 }),
-			).rejects.toThrow(HTTPTimeoutError);
-		});
-
-		test("should include timeout value in timeout error message", async () => {
-			const timeout = 100;
-
-			try {
-				await httpClient.get("https://api.example.com/slow", { timeout });
-			} catch (error) {
-				expect(error).toBeInstanceOf(HTTPTimeoutError);
-				expect((error as HTTPTimeoutError).message).toContain(`${timeout}ms`);
-			}
-		});
-	});
-
-	describe("response format", () => {
-		test("should return all required response fields", async () => {
-			const response = await httpClient.get("https://api.example.com/data");
-
-			expect(response).toHaveProperty("status");
-			expect(response).toHaveProperty("statusText");
-			expect(response).toHaveProperty("headers");
-			expect(response).toHaveProperty("body");
-			expect(response).toHaveProperty("url");
-		});
-
-		test("should handle JSON response body", async () => {
-			const response = await httpClient.get("https://api.example.com/json");
-
-			expect(response.status).toBe(200);
-			expect(response.body).toBeTruthy();
-			expect(() => JSON.parse(response.body)).not.toThrow();
-		});
-
-		test("should handle text response body", async () => {
-			const response = await httpClient.get("https://api.example.com/text");
-
-			expect(response.status).toBe(200);
-			expect(typeof response.body).toBe("string");
-		});
-	});
-
-	describe("header handling", () => {
-		test("should handle case-insensitive response headers", async () => {
-			const response = await httpClient.get("https://api.example.com/data");
-
-			expect(response.headers).toBeDefined();
-			expect(typeof response.headers).toBe("object");
-		});
-
-		test("should preserve request headers", async () => {
-			const headers = {
-				Authorization: "Bearer token123",
-				"Content-Type": "application/json",
-			};
-
-			const response = await httpClient.get("https://api.example.com/data", {
-				headers,
-			});
-
-			expect(response.status).toBe(200);
-		});
-	});
-
-	describe("setResponseWithMatcher method", () => {
+	// InMemoryHTTPClient-specific tests for mock functionality
+	describe("InMemoryHTTPClient Specific Tests", () => {
 		let client: InMemoryHTTPClient;
 
 		beforeEach(() => {
 			client = new InMemoryHTTPClient();
 		});
 
-		test("should support exact string matching (backward compatibility)", async () => {
-			const testResponse = {
-				status: 201,
-				statusText: "Created",
-				headers: { "content-type": "application/json" },
-				body: '{"test": true}',
-				url: "https://test.example.com/exact",
-			};
+		describe("setResponseWithMatcher method", () => {
+			test("should support exact string matching (backward compatibility)", async () => {
+				const testResponse = {
+					status: 201,
+					statusText: "Created",
+					headers: { "content-type": "application/json" },
+					body: '{"test": true}',
+					url: "https://test.example.com/exact",
+				};
 
-			client.setResponseWithMatcher(
-				"https://test.example.com/exact",
-				testResponse,
-			);
-			const response = await client.get("https://test.example.com/exact");
+				client.setResponseWithMatcher(
+					"https://test.example.com/exact",
+					testResponse,
+				);
+				const response = await client.get("https://test.example.com/exact");
 
-			expect(response.status).toBe(201);
-			expect(response.body).toBe('{"test": true}');
-		});
-
-		test("should support RegExp matching", async () => {
-			const testResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: { "content-type": "text/markdown" },
-				body: "# Test Command",
-				url: "https://example.com/test.md",
-			};
-
-			client.setResponseWithMatcher(/\.md$/, testResponse);
-
-			const response1 = await client.get("https://example.com/test.md");
-			const response2 = await client.get("https://api.example.com/command.md");
-
-			expect(response1.status).toBe(200);
-			expect(response1.body).toBe("# Test Command");
-			expect(response2.status).toBe(200);
-			expect(response2.body).toBe("# Test Command");
-		});
-
-		test("should support function predicate matching", async () => {
-			const manifestResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: { "content-type": "application/json" },
-				body: '{"version": "1.0.0"}',
-				url: "https://example.com/manifest",
-			};
-
-			client.setResponseWithMatcher(
-				(url: string) => url.includes("index.json"),
-				manifestResponse,
-			);
-
-			const response1 = await client.get(
-				"https://api.example.com/en/index.json",
-			);
-			const response2 = await client.get(
-				"https://api.example.com/fr/index.json",
-			);
-
-			expect(response1.status).toBe(200);
-			expect(response1.body).toBe('{"version": "1.0.0"}');
-			expect(response2.status).toBe(200);
-			expect(response2.body).toBe('{"version": "1.0.0"}');
-		});
-
-		test("should support error responses with pattern matching", async () => {
-			const networkError = new HTTPNetworkError(
-				"test-url",
-				"Simulated network failure",
-			);
-
-			client.setResponseWithMatcher(/error/, networkError);
-
-			await expect(
-				client.get("https://api.example.com/network-error"),
-			).rejects.toThrow(HTTPNetworkError);
-			await expect(
-				client.get("https://api.example.com/server-error-test"),
-			).rejects.toThrow(HTTPNetworkError);
-		});
-
-		test("should prioritize exact matches over patterns", async () => {
-			const exactResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: {},
-				body: "exact match",
-				url: "https://example.com/test",
-			};
-
-			const patternResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: {},
-				body: "pattern match",
-				url: "https://example.com/test",
-			};
-
-			// Set pattern first, then exact - exact should win
-			client.setResponseWithMatcher(/test/, patternResponse);
-			client.setResponseWithMatcher("https://example.com/test", exactResponse);
-
-			const response = await client.get("https://example.com/test");
-			expect(response.body).toBe("exact match");
-		});
-
-		test("should handle multiple pattern matchers correctly", async () => {
-			const jsonResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: { "content-type": "application/json" },
-				body: '{"type": "json"}',
-				url: "test",
-			};
-
-			const mdResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: { "content-type": "text/markdown" },
-				body: "# Markdown",
-				url: "test",
-			};
-
-			client.setResponseWithMatcher(/\.json$/, jsonResponse);
-			client.setResponseWithMatcher(/\.md$/, mdResponse);
-
-			const jsonResult = await client.get("https://api.example.com/data.json");
-			const mdResult = await client.get("https://api.example.com/readme.md");
-
-			expect(jsonResult.body).toBe('{"type": "json"}');
-			expect(mdResult.body).toBe("# Markdown");
-		});
-
-		test("should maintain backward compatibility with existing setResponse", async () => {
-			const oldResponse = {
-				status: 200,
-				statusText: "OK",
-				headers: {},
-				body: "old method",
-				url: "https://example.com/old",
-			};
-
-			client.setResponse("https://example.com/old", oldResponse);
-			const response = await client.get("https://example.com/old");
-
-			expect(response.body).toBe("old method");
-		});
-
-		test("should throw 404 for unmatched URLs", async () => {
-			client.setResponseWithMatcher(/specific-pattern/, {
-				status: 200,
-				statusText: "OK",
-				headers: {},
-				body: "matched",
-				url: "test",
+				expect(response.status).toBe(201);
+				expect(response.body).toBe('{"test": true}');
 			});
 
-			await expect(client.get("https://unmatched.example.com")).rejects.toThrow(
-				HTTPStatusError,
-			);
+			test("should support RegExp matching", async () => {
+				const testResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: { "content-type": "text/markdown" },
+					body: "# Test Command",
+					url: "https://example.com/test.md",
+				};
+
+				client.setResponseWithMatcher(/\.md$/, testResponse);
+
+				const response1 = await client.get("https://example.com/test.md");
+				const response2 = await client.get(
+					"https://api.example.com/command.md",
+				);
+
+				expect(response1.status).toBe(200);
+				expect(response1.body).toBe("# Test Command");
+				expect(response2.status).toBe(200);
+				expect(response2.body).toBe("# Test Command");
+			});
+
+			test("should support function predicate matching", async () => {
+				const manifestResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: { "content-type": "application/json" },
+					body: '{"version": "1.0.0"}',
+					url: "https://example.com/manifest",
+				};
+
+				client.setResponseWithMatcher(
+					(url: string) => url.includes("index.json"),
+					manifestResponse,
+				);
+
+				const response1 = await client.get(
+					"https://api.example.com/en/index.json",
+				);
+				const response2 = await client.get(
+					"https://api.example.com/fr/index.json",
+				);
+
+				expect(response1.status).toBe(200);
+				expect(response1.body).toBe('{"version": "1.0.0"}');
+				expect(response2.status).toBe(200);
+				expect(response2.body).toBe('{"version": "1.0.0"}');
+			});
+
+			test("should support error responses with pattern matching", async () => {
+				const networkError = new HTTPNetworkError(
+					"test-url",
+					"Simulated network failure",
+				);
+
+				client.setResponseWithMatcher(/error/, networkError);
+
+				await expect(
+					client.get("https://api.example.com/network-error"),
+				).rejects.toThrow(HTTPNetworkError);
+				await expect(
+					client.get("https://api.example.com/server-error-test"),
+				).rejects.toThrow(HTTPNetworkError);
+			});
+
+			test("should prioritize exact matches over patterns", async () => {
+				const exactResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: {},
+					body: "exact match",
+					url: "https://example.com/test",
+				};
+
+				const patternResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: {},
+					body: "pattern match",
+					url: "https://example.com/test",
+				};
+
+				// Set pattern first, then exact - exact should win
+				client.setResponseWithMatcher(/test/, patternResponse);
+				client.setResponseWithMatcher(
+					"https://example.com/test",
+					exactResponse,
+				);
+
+				const response = await client.get("https://example.com/test");
+				expect(response.body).toBe("exact match");
+			});
+
+			test("should handle multiple pattern matchers correctly", async () => {
+				const jsonResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: { "content-type": "application/json" },
+					body: '{"type": "json"}',
+					url: "test",
+				};
+
+				const mdResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: { "content-type": "text/markdown" },
+					body: "# Markdown",
+					url: "test",
+				};
+
+				client.setResponseWithMatcher(/\.json$/, jsonResponse);
+				client.setResponseWithMatcher(/\.md$/, mdResponse);
+
+				const jsonResult = await client.get(
+					"https://api.example.com/data.json",
+				);
+				const mdResult = await client.get("https://api.example.com/readme.md");
+
+				expect(jsonResult.body).toBe('{"type": "json"}');
+				expect(mdResult.body).toBe("# Markdown");
+			});
+
+			test("should maintain backward compatibility with existing setResponse", async () => {
+				const oldResponse = {
+					status: 200,
+					statusText: "OK",
+					headers: {},
+					body: "old method",
+					url: "https://example.com/old",
+				};
+
+				client.setResponse("https://example.com/old", oldResponse);
+				const response = await client.get("https://example.com/old");
+
+				expect(response.body).toBe("old method");
+			});
+
+			test("should throw 404 for unmatched URLs", async () => {
+				client.setResponseWithMatcher(/specific-pattern/, {
+					status: 200,
+					statusText: "OK",
+					headers: {},
+					body: "matched",
+					url: "test",
+				});
+
+				await expect(
+					client.get("https://unmatched.example.com"),
+				).rejects.toThrow(HTTPStatusError);
+			});
+		});
+
+		describe("request history tracking", () => {
+			test("should track request history", async () => {
+				await client.get("https://api.example.com/data");
+				await client.get("https://api.example.com/json", { timeout: 1000 });
+
+				const history = client.getRequestHistory();
+				expect(history).toHaveLength(2);
+				expect(history[0]?.url).toBe("https://api.example.com/data");
+				expect(history[1]?.url).toBe("https://api.example.com/json");
+				expect(history[1]?.options?.timeout).toBe(1000);
+			});
+
+			test("should clear request history", async () => {
+				await client.get("https://api.example.com/data");
+				expect(client.getRequestHistory()).toHaveLength(1);
+
+				client.clearRequestHistory();
+				expect(client.getRequestHistory()).toHaveLength(0);
+			});
+
+			test("should return copy of history to prevent external modification", async () => {
+				await client.get("https://api.example.com/data");
+				const history = client.getRequestHistory();
+				history.push({ url: "external-modification" });
+
+				// Original history should be unaffected
+				expect(client.getRequestHistory()).toHaveLength(1);
+			});
+		});
+
+		describe("default response mappings", () => {
+			test("should have default response for large content", async () => {
+				const response = await client.get("https://api.example.com/large");
+
+				expect(response.status).toBe(200);
+				expect(response.body.length).toBeGreaterThan(1000);
+			});
+
+			test("should simulate timeout behavior correctly", async () => {
+				// Long timeout should work for most endpoints
+				const response = await client.get("https://api.example.com/data", {
+					timeout: 5000,
+				});
+				expect(response).toBeDefined(); // Should not throw
+
+				// Short timeout should throw for slow endpoint
+				await expect(
+					client.get("https://api.example.com/slow", { timeout: 50 }),
+				).rejects.toThrow(HTTPTimeoutError);
+			});
 		});
 	});
 });
