@@ -1,95 +1,84 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { spawn } from "bun";
+import { runCli } from "../testUtils.ts";
 
 describe("CLI Language Command Integration", () => {
-	let tempDir: string;
-	const cliPath = join(import.meta.dir, "../../src/main.ts");
-
-	beforeEach(async () => {
-		// Create temporary directory for this test
-		tempDir = await mkdtemp(join(tmpdir(), "claude-cmd-test-"));
-	});
-
-	afterEach(async () => {
-		// Clean up temp directory
-		await rm(tempDir, { recursive: true, force: true });
-	});
-
 	describe("language list", () => {
 		it("should display help for language list command", async () => {
-			const proc = spawn(["bun", cliPath, "language", "list", "--help"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "list", "--help"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain(
+			expect(stdout).toContain(
 				"List available languages and show current language setting",
 			);
 		});
 
 		it("should display available languages", async () => {
-			const proc = spawn(["bun", cliPath, "language", "list"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "list"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain("Available languages:");
-			expect(output).toContain("Current language:");
+			expect(stdout).toContain("Available languages:");
+			expect(stdout).toContain("Current language:");
 		});
 
 		it("should show English as available language", async () => {
-			const proc = spawn(["bun", cliPath, "language", "list"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "list"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain("en");
-			expect(output).toContain("English");
+			expect(stdout).toContain("en");
+			expect(stdout).toContain("English");
 		});
 	});
 
 	describe("language set", () => {
+		let currentLang: string;
+
+		beforeEach(async () => {
+			const { result: listResult, stdout: listStdout } = await runCli([
+				"language",
+				"list",
+			]);
+			expect(listResult).toBe(0);
+			currentLang = listStdout.match(/Current language: (\w{2})/)?.[1] || "en";
+		});
+
+		afterEach(async () => {
+			const { result: resetResult, stdout: resetStdout } = await runCli([
+				"language",
+				"set",
+				currentLang,
+			]);
+			expect(resetResult).toBe(0);
+			expect(resetStdout).toContain(
+				`Language preference set to: ${currentLang}`,
+			);
+		});
+
 		it("should display help for language set command", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set", "--help"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "set", "--help"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain(
+			expect(stdout).toContain(
 				"Set the preferred language for command retrieval",
 			);
-			expect(output).toContain("<language>");
+			expect(stdout).toContain("<language>");
 		});
 
 		it("should set language preference successfully", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set", "fr"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "set", "fr"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain("Language preference set to: fr");
+			expect(stdout).toContain("Language preference set to: fr");
 		});
 
 		it("should reject invalid language codes", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set", "invalid"], {
-				stderr: "pipe",
-			});
-			const result = await proc.exited;
-			const stderr = await proc.stderr.text();
+			const { result, stderr } = await runCli(["language", "set", "invalid"]);
 
 			expect(result).toBe(1);
 			expect(stderr).toContain("Invalid language code");
 		});
 
 		it("should require language argument", async () => {
-			const proc = spawn(["bun", cliPath, "language", "set"], {
-				stderr: "pipe",
-			});
-			const result = await proc.exited;
-			const stderr = await proc.stderr.text();
+			const { result, stderr } = await runCli(["language", "set"]);
 
 			expect(result).toBe(1);
 			expect(stderr).toContain("error: missing required argument 'language'");
@@ -98,14 +87,12 @@ describe("CLI Language Command Integration", () => {
 
 	describe("language help", () => {
 		it("should display help for language command", async () => {
-			const proc = spawn(["bun", cliPath, "language", "--help"]);
-			const result = await proc.exited;
-			const output = await proc.stdout.text();
+			const { result, stdout } = await runCli(["language", "--help"]);
 
 			expect(result).toBe(0);
-			expect(output).toContain("Manage language settings for claude-cmd");
-			expect(output).toContain("list");
-			expect(output).toContain("set");
+			expect(stdout).toContain("Manage language settings for claude-cmd");
+			expect(stdout).toContain("list");
+			expect(stdout).toContain("set");
 		});
 	});
 });

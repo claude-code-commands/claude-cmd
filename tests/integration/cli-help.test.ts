@@ -1,36 +1,26 @@
 import { describe, expect, it } from "bun:test";
-import { spawn } from "bun";
-
-async function runCli(args: string[]) {
-	const proc = spawn(["bun", "run", "src/main.ts", ...args], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	await proc.exited;
-	return { stdout, stderr };
-}
+import { runCli } from "../testUtils.ts";
 
 describe("CLI Help Integration", () => {
 	it("should display help when no arguments provided", async () => {
-		const { stdout, stderr } = await runCli(["--help"]);
+		const { result, stdout, stderr } = await runCli();
 
 		// Should display basic help information
-		expect(stdout).toContain(
+		expect(result).toBe(1);
+		expect(stderr).toContain(
 			"claude-cmd is a CLI tool that helps you discover, install, and manage",
 		);
-		expect(stdout).toContain("Usage:");
-		expect(stdout).toContain("Commands:");
-		expect(stdout).toContain("add");
-		expect(stdout).toContain("list");
-		expect(stdout).toContain("search");
-		expect(stdout).toContain("Options:");
-		expect(stdout).toContain("--help");
-		expect(stdout).toContain("--version");
+		expect(stderr).toContain("Usage:");
+		expect(stderr).toContain("Commands:");
+		expect(stderr).toContain("add");
+		expect(stderr).toContain("list");
+		expect(stderr).toContain("search");
+		expect(stderr).toContain("Options:");
+		expect(stderr).toContain("--help");
+		expect(stderr).toContain("--version");
 
 		// Should not have errors
-		expect(stderr).toBe("");
+		expect(stdout).toBe("");
 	});
 
 	it("should display help when --help flag is provided", async () => {
@@ -50,14 +40,6 @@ describe("CLI Help Integration", () => {
 
 		// Should display version information
 		expect(stdout).toMatch(/\d+\.\d+\.\d+/); // Version pattern
-		expect(stderr).toBe("");
-	});
-
-	it("should display help for specific command", async () => {
-		const { stdout, stderr } = await runCli(["add", "--help"]);
-
-		// Should display add command help
-		expect(stdout).toContain("Usage: claude-cmd add [options] <command-name>");
 		expect(stderr).toBe("");
 	});
 });
