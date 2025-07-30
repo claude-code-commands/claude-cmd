@@ -1,4 +1,8 @@
-import type IFileService from "../../src/interfaces/IFileService.js";
+import type IFileService from "../../src/interfaces/IFileService.ts";
+import {
+	FileIOError,
+	FileNotFoundError,
+} from "../../src/interfaces/IFileService.ts";
 
 type FileEntry = { type: "file"; content: string };
 type DirectoryEntry = { type: "directory" };
@@ -24,16 +28,16 @@ class InMemoryFileService implements IFileService {
 			this.fs[path] = { type: "file", content };
 		}
 	}
-	readFile(path: string): Promise<string> {
+	async readFile(path: string): Promise<string> {
 		this.operationHistory.push({ operation: "readFile", path });
 		const entry = this.fs[path];
 		if (!entry || entry.type !== "file") {
-			return Promise.reject(`File not found: ${path}`);
+			throw new FileNotFoundError(path);
 		}
-		return Promise.resolve(entry.content);
+		return entry.content;
 	}
 
-	writeFile(path: string, content: string): Promise<void> {
+	async writeFile(path: string, content: string): Promise<void> {
 		this.operationHistory.push({ operation: "writeFile", path, content });
 		// Check for collision with directory at same logical location
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
@@ -43,16 +47,22 @@ class InMemoryFileService implements IFileService {
 			this.fs[filePath]?.type === "directory" ||
 			this.fs[dirPath]?.type === "directory"
 		) {
-			return Promise.reject(
-				`Cannot write file: ${path} conflicts with directory`,
+			throw new FileIOError(
+				path,
+				"Cannot write file: conflicts with directory",
 			);
 		}
 
+		// Create parent directories implicitly
+		const parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
+		if (parentPath && !(await this.exists(parentPath))) {
+			await this.mkdir(parentPath);
+		}
+
 		this.fs[filePath] = { type: "file", content };
-		return Promise.resolve();
 	}
 
-	exists(path: string): Promise<boolean> {
+	async exists(path: string): Promise<boolean> {
 		this.operationHistory.push({ operation: "exists", path });
 		// Normalize paths for consistent lookups
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
@@ -60,41 +70,54 @@ class InMemoryFileService implements IFileService {
 
 		// Direct match (file or explicitly created directory)
 		if (this.fs[filePath] || this.fs[dirPath]) {
-			return Promise.resolve(true);
+			return true;
 		}
 
 		// Check if path is a parent directory of any existing files
-		if (path.endsWith("/")) {
-			for (const existingPath in this.fs) {
-				if (existingPath.startsWith(path)) {
-					return Promise.resolve(true);
-				}
+		for (const existingPath in this.fs) {
+			if (existingPath.startsWith(dirPath) && existingPath !== dirPath) {
+				return true;
 			}
 		}
 
-		return Promise.resolve(false);
+		return false;
 	}
 
-	mkdir(path: string): Promise<void> {
+	async mkdir(path: string): Promise<void> {
 		this.operationHistory.push({ operation: "mkdir", path });
 		// Normalize paths for collision detection
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
 		const filePath = path.endsWith("/") ? path.slice(0, -1) : path;
 
-		// Check if directory already exists (idempotent)
-		if (this.fs[dirPath]?.type === "directory") {
-			return Promise.resolve();
-		}
-
-		// Check for collision with file at same logical location
+		// Check for collision with file at same logical location FIRST
 		if (this.fs[filePath]?.type === "file") {
-			return Promise.reject(
-				`Cannot create directory: ${path} conflicts with file`,
+			throw new FileIOError(
+				path,
+				"Cannot create directory: conflicts with file",
 			);
 		}
 
+		// Check if directory already exists (idempotent)
+		if (this.fs[dirPath]?.type === "directory") {
+			return;
+		}
+
+		// For implicit directories, check if already exists via file paths
+		const hasExistingChildren = Object.keys(this.fs).some(
+			(existingPath) =>
+				existingPath.startsWith(dirPath) && existingPath !== dirPath,
+		);
+		if (hasExistingChildren) {
+			return; // Directory exists implicitly
+		}
+
+		// Create parent directories recursively
+		const parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
+		if (parentPath && !(await this.exists(parentPath))) {
+			await this.mkdir(parentPath);
+		}
+
 		this.fs[dirPath] = { type: "directory" };
-		return Promise.resolve();
 	}
 
 	/**
@@ -115,19 +138,18 @@ class InMemoryFileService implements IFileService {
 		this.operationHistory.length = 0;
 	}
 
-	deleteFile(path: string): Promise<void> {
+	async deleteFile(path: string): Promise<void> {
 		this.operationHistory.push({ operation: "deleteFile", path });
 		const entry = this.fs[path];
 
 		if (!entry || entry.type !== "file") {
-			return Promise.reject(`File not found: ${path}`);
+			throw new FileNotFoundError(path);
 		}
 
 		delete this.fs[path];
-		return Promise.resolve();
 	}
 
-	listFiles(path: string): Promise<string[]> {
+	async listFiles(path: string): Promise<string[]> {
 		this.operationHistory.push({ operation: "listFiles", path });
 
 		// Normalize directory path
@@ -141,7 +163,7 @@ class InMemoryFileService implements IFileService {
 			);
 
 			if (!hasChildFiles) {
-				return Promise.reject(`Directory not found: ${path}`);
+				throw new FileNotFoundError(path);
 			}
 		}
 
@@ -163,13 +185,13 @@ class InMemoryFileService implements IFileService {
 			}
 		}
 
-		return Promise.resolve(files);
+		return files;
 	}
 
 	/**
 	 * List all files recursively in a directory and its subdirectories
 	 */
-	listFilesRecursive(path: string): Promise<string[]> {
+	async listFilesRecursive(path: string): Promise<string[]> {
 		this.operationHistory.push({ operation: "listFilesRecursive", path });
 
 		// Normalize directory path
@@ -183,7 +205,7 @@ class InMemoryFileService implements IFileService {
 			);
 
 			if (!hasChildFiles) {
-				return Promise.reject(`Directory not found: ${path}`);
+				throw new FileNotFoundError(path);
 			}
 		}
 
@@ -202,7 +224,7 @@ class InMemoryFileService implements IFileService {
 			}
 		}
 
-		return Promise.resolve(files);
+		return files;
 	}
 
 	/**
