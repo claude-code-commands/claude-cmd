@@ -33,6 +33,20 @@ export interface Manifest {
 }
 
 /**
+ * Result of a cache update operation
+ */
+export interface CacheUpdateResult {
+	/** Language code that was updated */
+	readonly language: string;
+
+	/** Timestamp when the cache was updated */
+	readonly timestamp: number;
+
+	/** Number of commands in the updated manifest */
+	readonly commandCount: number;
+}
+
+/**
  * Options for repository operations that may affect caching behavior
  */
 export interface RepositoryOptions {

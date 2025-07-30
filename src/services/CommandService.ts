@@ -1,6 +1,6 @@
 import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
-import type { Command } from "../types/Command.js";
+import type { CacheUpdateResult, Command } from "../types/Command.js";
 import { CommandNotFoundError } from "../types/Command.js";
 import type { CacheManager } from "./CacheManager.js";
 import type { LanguageDetector } from "./LanguageDetector.js";
@@ -90,6 +90,13 @@ export interface ICommandService {
 	getInstalledCommands(
 		options?: CommandServiceOptions,
 	): Promise<readonly Command[]>;
+
+	/**
+	 * Update the local cache with fresh manifest data from the repository
+	 * @param options - Optional language override
+	 * @returns Promise resolving to update operation result information
+	 */
+	updateCache(options?: CommandServiceOptions): Promise<CacheUpdateResult>;
 }
 
 /**
@@ -295,5 +302,27 @@ export class CommandService implements ICommandService {
 				return await this.installationService.listInstalledCommands(options);
 			},
 		);
+	}
+
+	async updateCache(
+		options?: CommandServiceOptions,
+	): Promise<CacheUpdateResult> {
+		const language = this.resolveLanguage(options);
+
+		return this.withErrorHandling("updateCache", language, async () => {
+			// Always force refresh for explicit updates
+			const manifest = await this.repository.getManifest(language, {
+				forceRefresh: true,
+			});
+
+			// Update cache with fresh manifest
+			await this.cacheManager.set(language, manifest);
+
+			return {
+				language,
+				timestamp: Date.now(),
+				commandCount: manifest.commands.length,
+			};
+		});
 	}
 }

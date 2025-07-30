@@ -278,4 +278,131 @@ describe("CommandService", () => {
 			).rejects.toThrow(Error);
 		});
 	});
+
+	describe("updateCache", () => {
+		it("should update cache with fresh manifest data", async () => {
+			// Setup: Configure repository with manifest
+			const testManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "fresh-command",
+						description: "A fresh command",
+						file: "fresh-command.md",
+						"allowed-tools": ["read", "write"],
+					},
+					{
+						name: "another-command",
+						description: "Another command",
+						file: "another-command.md",
+						"allowed-tools": ["bash"],
+					},
+				],
+			};
+
+			repository.setManifest("en", testManifest);
+
+			// Execute
+			const result = await commandService.updateCache({ language: "en" });
+
+			// Verify: Should return correct update information
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(2);
+			expect(typeof result.timestamp).toBe("number");
+			expect(result.timestamp).toBeGreaterThan(0);
+
+			// Verify: Cache should be updated
+			const cachedManifest = await cacheManager.get("en");
+			expect(cachedManifest).toEqual(testManifest);
+		});
+
+		it("should use auto-detected language when no language option provided", async () => {
+			// Setup: Configure repository with manifest for default language (en)
+			const testManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "default-lang-command",
+						description: "A command in default language",
+						file: "default-lang-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+
+			repository.setManifest("en", testManifest);
+
+			// Execute: No language option provided
+			const result = await commandService.updateCache();
+
+			// Verify: Should use default language
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(1);
+		});
+
+		it("should always force refresh from repository", async () => {
+			// Setup: Put stale data in cache
+			const staleManifest: Manifest = {
+				version: "0.9.0",
+				updated: "2025-01-01T00:00:00Z",
+				commands: [
+					{
+						name: "stale-command",
+						description: "A stale command",
+						file: "stale-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+
+			await cacheManager.set("fr", staleManifest);
+
+			// Setup: Configure repository with fresh data
+			const freshManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "fresh-command",
+						description: "A fresh command",
+						file: "fresh-command.md",
+						"allowed-tools": ["read", "write"],
+					},
+				],
+			};
+
+			repository.setManifest("fr", freshManifest);
+
+			// Execute
+			const result = await commandService.updateCache({ language: "fr" });
+
+			// Verify: Should have fetched fresh data, not stale cache
+			expect(result.commandCount).toBe(1);
+			const cachedManifest = await cacheManager.get("fr");
+			expect(cachedManifest?.version).toBe("1.0.0");
+			expect(cachedManifest?.commands[0]?.name).toBe("fresh-command");
+		});
+
+		it("should handle repository errors gracefully", async () => {
+			// Setup: Configure repository to fail
+			repository.setManifest(
+				"error-lang",
+				new ManifestError("Repository fetch failed", "error-lang"),
+			);
+
+			// Execute & Verify: Should propagate repository error
+			expect(
+				commandService.updateCache({ language: "error-lang" }),
+			).rejects.toThrow(ManifestError);
+		});
+
+		it("should handle invalid language gracefully", async () => {
+			// Execute & Verify: Should handle invalid language gracefully
+			expect(commandService.updateCache({ language: "" })).rejects.toThrow(
+				"Language not supported by repository",
+			);
+		});
+	});
 });
