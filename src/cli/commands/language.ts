@@ -11,7 +11,7 @@ languageCommand
 	.action(async () => {
 		try {
 			const { languageConfigService } = getServices();
-			
+
 			const [currentLanguage, availableLanguages] = await Promise.all([
 				languageConfigService.getCurrentLanguage(),
 				languageConfigService.getAvailableLanguages(),
@@ -24,9 +24,14 @@ languageCommand
 				console.log(`  ${status} ${lang.code} - ${lang.name}${marker}`);
 			}
 
-			console.log(`\nCurrent language: ${currentLanguage || "not set (using auto-detection)"}`);
+			console.log(
+				`\nCurrent language: ${currentLanguage || "not set (using auto-detection)"}`,
+			);
 		} catch (error) {
-			console.error("Error listing languages:", error instanceof Error ? error.message : error);
+			console.error(
+				"Error listing languages:",
+				error instanceof Error ? error.message : error,
+			);
 			process.exit(1);
 		}
 	});
@@ -41,7 +46,10 @@ languageCommand
 			await languageConfigService.setLanguage(language);
 			console.log(`Language preference set to: ${language}`);
 		} catch (error) {
-			console.error("Error setting language:", error instanceof Error ? error.message : error);
+			console.error(
+				"Error setting language:",
+				error instanceof Error ? error.message : error,
+			);
 			process.exit(1);
 		}
 	});

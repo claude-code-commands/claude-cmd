@@ -16,14 +16,14 @@ export interface LanguageInfo {
 export default interface ILanguageConfigService {
 	/**
 	 * Get the currently configured preferred language
-	 * 
+	 *
 	 * @returns Language code or null if no preference is set
 	 */
 	getCurrentLanguage(): Promise<string | null>;
 
 	/**
 	 * Set the preferred language
-	 * 
+	 *
 	 * @param language - Language code to set
 	 * @throws Error if language code is invalid
 	 */
@@ -31,7 +31,7 @@ export default interface ILanguageConfigService {
 
 	/**
 	 * Get list of all supported languages with availability status
-	 * 
+	 *
 	 * @returns Array of language information
 	 */
 	getAvailableLanguages(): Promise<LanguageInfo[]>;
@@ -39,7 +39,7 @@ export default interface ILanguageConfigService {
 	/**
 	 * Get the effective language to use based on preferences and fallbacks
 	 * Uses the precedence: saved preference → environment → locale → fallback (en)
-	 * 
+	 *
 	 * @returns Language code that should be used
 	 */
 	getEffectiveLanguage(): Promise<string>;

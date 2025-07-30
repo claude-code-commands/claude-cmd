@@ -6,8 +6,8 @@ import { CommandService } from "./CommandService.js";
 import { DirectoryDetector } from "./DirectoryDetector.js";
 import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
-import { LanguageDetector } from "./LanguageDetector.js";
 import { LanguageConfigService } from "./LanguageConfigService.js";
+import { LanguageDetector } from "./LanguageDetector.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.

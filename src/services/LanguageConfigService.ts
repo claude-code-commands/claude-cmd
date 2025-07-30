@@ -139,7 +139,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 	 */
 	async getAvailableLanguages(): Promise<LanguageInfo[]> {
 		// Check availability by attempting to fetch each language's manifest
-		const languages: LanguageInfo[] = [];
+		const _languages: LanguageInfo[] = [];
 
 		// Process each known language in parallel for better performance
 		const availabilityChecks = Array.from(this.knownLanguages.entries()).map(

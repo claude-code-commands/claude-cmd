@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { getServices } from "../../services/serviceFactory.js";
 import type { CommandServiceOptions } from "../../services/CommandService.js";
+import { getServices } from "../../services/serviceFactory.js";
 
 export const updateCommand = new Command("update")
 	.description("Refresh the cached command manifest from the repository.")
@@ -11,14 +11,14 @@ export const updateCommand = new Command("update")
 	.action(async (options) => {
 		try {
 			console.log("Updating command manifest...");
-			
+
 			if (options.lang) {
 				console.log(`Using language: ${options.lang}`);
 			}
 
 			const { commandService } = getServices();
-			
-			const serviceOptions: CommandServiceOptions = options.lang 
+
+			const serviceOptions: CommandServiceOptions = options.lang
 				? { language: options.lang }
 				: {};
 

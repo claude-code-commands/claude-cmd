@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, test, expect } from "bun:test";
-import InMemoryFileService from "../mocks/InMemoryFileService.js";
-import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import HTTPRepository from "../../src/services/HTTPRepository.js";
 import { LanguageConfigService } from "../../src/services/LanguageConfigService.js";
-import type { LanguageInfo } from "../../src/interfaces/ILanguageConfigService.js";
+import InMemoryFileService from "../mocks/InMemoryFileService.js";
+import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 
 describe("LanguageConfigService", () => {
 	let fileService: InMemoryFileService;
@@ -32,7 +31,7 @@ describe("LanguageConfigService", () => {
 		test("should return configured language preference", async () => {
 			// Setup: Set language preference first
 			await languageConfigService.setLanguage("fr");
-			
+
 			const currentLanguage = await languageConfigService.getCurrentLanguage();
 			expect(currentLanguage).toBe("fr");
 		});
@@ -42,7 +41,7 @@ describe("LanguageConfigService", () => {
 			const configPath = languageConfigService.getConfigPath();
 			await fileService.mkdir(configPath.split("/").slice(0, -1).join("/"));
 			await fileService.writeFile(configPath, "invalid-json");
-			
+
 			const currentLanguage = await languageConfigService.getCurrentLanguage();
 			expect(currentLanguage).toBeNull();
 		});
@@ -51,22 +50,26 @@ describe("LanguageConfigService", () => {
 	describe("setLanguage", () => {
 		test("should set language preference successfully", async () => {
 			await languageConfigService.setLanguage("es");
-			
+
 			const currentLanguage = await languageConfigService.getCurrentLanguage();
 			expect(currentLanguage).toBe("es");
 		});
 
 		test("should reject invalid language codes", async () => {
-			await expect(languageConfigService.setLanguage("invalid")).rejects.toThrow("Invalid language code");
+			await expect(
+				languageConfigService.setLanguage("invalid"),
+			).rejects.toThrow("Invalid language code");
 		});
 
 		test("should reject empty language code", async () => {
-			await expect(languageConfigService.setLanguage("")).rejects.toThrow("Invalid language code");
+			await expect(languageConfigService.setLanguage("")).rejects.toThrow(
+				"Invalid language code",
+			);
 		});
 
 		test("should create config directory if it doesn't exist", async () => {
 			await languageConfigService.setLanguage("de");
-			
+
 			const configPath = languageConfigService.getConfigPath();
 			const configDir = configPath.split("/").slice(0, -1).join("/");
 			expect(await fileService.exists(configDir)).toBe(true);
@@ -76,39 +79,48 @@ describe("LanguageConfigService", () => {
 	describe("getAvailableLanguages", () => {
 		test("should return all known languages with availability status", async () => {
 			const languages = await languageConfigService.getAvailableLanguages();
-			
+
 			// Should return all 9 known languages
 			expect(languages).toHaveLength(9);
-			
+
 			// English should always be available
-			const englishLang = languages.find(l => l.code === "en");
-			expect(englishLang).toEqual({ code: "en", name: "English", available: true });
+			const englishLang = languages.find((l) => l.code === "en");
+			expect(englishLang).toEqual({
+				code: "en",
+				name: "English",
+				available: true,
+			});
 		});
 
 		test("should mark languages as unavailable when manifest fetch fails", async () => {
 			// Setup: Mock errors for non-English manifest fetches
-			httpClient.setResponse("https://api.github.com/repos/anthropics/claude-commands/contents/commands/fr/index.json", 
-				new Error("Not found"));
+			httpClient.setResponse(
+				"https://api.github.com/repos/anthropics/claude-commands/contents/commands/fr/index.json",
+				new Error("Not found"),
+			);
 
 			const languages = await languageConfigService.getAvailableLanguages();
-			
-			const frenchLang = languages.find(l => l.code === "fr");
+
+			const frenchLang = languages.find((l) => l.code === "fr");
 			expect(frenchLang?.available).toBe(false);
 		});
 
 		test("should mark languages as available when manifest fetch succeeds", async () => {
-			// Setup: Mock successful manifest for French  
-			httpClient.setResponse("https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json", {
-				status: 200,
-				statusText: "OK",
-				headers: { "content-type": "application/json" },
-				body: '{"commands": []}',
-				url: "https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json"
-			});
+			// Setup: Mock successful manifest for French
+			httpClient.setResponse(
+				"https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json",
+				{
+					status: 200,
+					statusText: "OK",
+					headers: { "content-type": "application/json" },
+					body: '{"commands": []}',
+					url: "https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json",
+				},
+			);
 
 			const languages = await languageConfigService.getAvailableLanguages();
-			
-			const frenchLang = languages.find(l => l.code === "fr");
+
+			const frenchLang = languages.find((l) => l.code === "fr");
 			expect(frenchLang?.available).toBe(true);
 		});
 	});
@@ -116,21 +128,24 @@ describe("LanguageConfigService", () => {
 	describe("getEffectiveLanguage", () => {
 		test("should return saved preference when available", async () => {
 			await languageConfigService.setLanguage("fr");
-			
-			const effectiveLanguage = await languageConfigService.getEffectiveLanguage();
+
+			const effectiveLanguage =
+				await languageConfigService.getEffectiveLanguage();
 			expect(effectiveLanguage).toBe("fr");
 		});
 
 		test("should fallback to environment and locale detection when no preference is set", async () => {
 			// Note: This test depends on LanguageDetector behavior
-			const effectiveLanguage = await languageConfigService.getEffectiveLanguage();
+			const effectiveLanguage =
+				await languageConfigService.getEffectiveLanguage();
 			expect(typeof effectiveLanguage).toBe("string");
 			expect(effectiveLanguage.length).toBeGreaterThan(0);
 		});
 
 		test("should fallback to 'en' when all other detection methods fail", async () => {
 			// This test may need to be adapted based on LanguageDetector implementation
-			const effectiveLanguage = await languageConfigService.getEffectiveLanguage();
+			const effectiveLanguage =
+				await languageConfigService.getEffectiveLanguage();
 			expect(effectiveLanguage).toBe("en");
 		});
 	});

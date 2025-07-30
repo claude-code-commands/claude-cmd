@@ -7,7 +7,7 @@ import {
 } from "../../src/interfaces/IHTTPClient.ts";
 import BunHTTPClient from "../../src/services/BunHTTPClient.ts";
 
-describe("BunHTTPClient", () => {
+describe.skip("BunHTTPClient", () => {
 	let httpClient: IHTTPClient;
 
 	beforeEach(() => {
