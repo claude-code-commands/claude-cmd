@@ -108,13 +108,13 @@ describe("LanguageConfigService", () => {
 		test("should mark languages as available when manifest fetch succeeds", async () => {
 			// Setup: Mock successful manifest for French
 			httpClient.setResponse(
-				"https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json",
+				"https://raw.githubusercontent.com/claude-code-commands/commands/refs/heads/main/pages/fr/index.json",
 				{
 					status: 200,
 					statusText: "OK",
 					headers: { "content-type": "application/json" },
 					body: '{"commands": []}',
-					url: "https://raw.githubusercontent.com/anthropics/claude-commands/main/pages/fr/index.json",
+					url: "https://raw.githubusercontent.com/claude-code-commands/commands/refs/heads/main/pages/fr/index.json",
 				},
 			);
 
