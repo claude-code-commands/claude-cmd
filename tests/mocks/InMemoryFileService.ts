@@ -2,6 +2,7 @@ import type IFileService from "../../src/interfaces/IFileService.ts";
 import {
 	FileIOError,
 	FileNotFoundError,
+	type NamespacedFile,
 } from "../../src/interfaces/IFileService.ts";
 
 type FileEntry = { type: "file"; content: string };
@@ -259,6 +260,121 @@ class InMemoryFileService implements IFileService {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Create hierarchical directory structure for namespace
+	 */
+	async createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string> {
+		this.operationHistory.push({ operation: "createNamespaceDirectories", path: `${basePath}/${namespacePath}` });
+		
+		const fullPath = `${basePath}/${namespacePath}`;
+		await this.mkdir(fullPath);
+		return fullPath;
+	}
+
+	/**
+	 * Scan directory hierarchy for command files
+	 */
+	async scanNamespaceHierarchy(basePath: string, maxDepth = 10): Promise<NamespacedFile[]> {
+		this.operationHistory.push({ operation: "scanNamespaceHierarchy", path: basePath });
+		
+		const files: NamespacedFile[] = [];
+		await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
+		return files;
+	}
+
+	/**
+	 * Resolve path for namespaced command file
+	 */
+	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string {
+		return `${basePath}/${namespacePath}/${fileName}`;
+	}
+
+	/**
+	 * Private helper to recursively scan directories for namespace hierarchy
+	 */
+	private async scanDirectoryRecursive(
+		basePath: string,
+		currentPath: string,
+		files: NamespacedFile[],
+		currentDepth: number,
+		maxDepth: number,
+	): Promise<void> {
+		if (currentDepth > maxDepth) {
+			return;
+		}
+
+		const dirPath = currentPath.endsWith("/") ? currentPath : `${currentPath}/`;
+
+		// Normalize base path for comparison
+		const normalizedBasePath = basePath.endsWith("/") ? basePath : `${basePath}/`;
+
+		// Check if directory exists (explicit or implicit)
+		if (!this.fs[dirPath]) {
+			const hasChildFiles = Object.keys(this.fs).some(
+				(filePath) => filePath.startsWith(dirPath) && filePath !== dirPath,
+			);
+			if (!hasChildFiles) {
+				throw new FileNotFoundError(currentPath);
+			}
+		}
+
+		// Collect direct children (files and subdirectories)
+		const directChildren = new Set<string>();
+		
+		for (const filePath in this.fs) {
+			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
+				const relativePath = filePath.substring(dirPath.length);
+				const firstSegment = relativePath.split('/')[0];
+				if (firstSegment) {
+					directChildren.add(firstSegment);
+				}
+			}
+		}
+
+		// Process direct child files
+		for (const childName of directChildren) {
+			const childPath = dirPath + childName;
+			const entry = this.fs[childPath];
+			
+			if (entry?.type === "file" && childName.endsWith('.md')) {
+				// Extract namespace path from directory structure
+				const namespacePath = currentDepth === 0 
+					? '' 
+					: currentPath.substring(normalizedBasePath.length);
+
+				files.push({
+					filePath: childPath,
+					relativePath: childPath.substring(normalizedBasePath.length),
+					namespacePath,
+					fileName: childName,
+					depth: currentDepth,
+				});
+			}
+		}
+
+		// Recursively scan subdirectories
+		for (const childName of directChildren) {
+			const childPath = dirPath + childName;
+			const entry = this.fs[childPath];
+			
+			// Check if this is a directory (explicit or has children)
+			const isExplicitDir = entry?.type === "directory";
+			const hasChildren = Object.keys(this.fs).some(
+				filePath => filePath.startsWith(childPath + "/")
+			);
+			
+			if (isExplicitDir || hasChildren) {
+				await this.scanDirectoryRecursive(
+					basePath,
+					childPath,
+					files,
+					currentDepth + 1,
+					maxDepth,
+				);
+			}
+		}
 	}
 }
 

@@ -6,12 +6,13 @@ import {
 	stat,
 	unlink,
 } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type IFileService from "../interfaces/IFileService.ts";
 import {
 	FileIOError,
 	FileNotFoundError,
 	FilePermissionError,
+	type NamespacedFile,
 } from "../interfaces/IFileService.ts";
 
 /**
@@ -197,6 +198,97 @@ export default class BunFileService implements IFileService {
 			return true;
 		} catch {
 			return false;
+		}
+	}
+
+	/**
+	 * Create hierarchical directory structure for namespace
+	 */
+	async createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string> {
+		try {
+			const fullPath = join(basePath, namespacePath);
+			await this.mkdir(fullPath);
+			return fullPath;
+		} catch (error) {
+			this.mapSystemError(error, join(basePath, namespacePath), "create");
+		}
+	}
+
+	/**
+	 * Scan directory hierarchy for command files
+	 */
+	async scanNamespaceHierarchy(basePath: string, maxDepth = 10): Promise<NamespacedFile[]> {
+		try {
+			const files: NamespacedFile[] = [];
+			await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
+			return files;
+		} catch (error) {
+			this.mapSystemError(error, basePath, "list");
+		}
+	}
+
+	/**
+	 * Resolve path for namespaced command file
+	 */
+	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string {
+		return join(basePath, namespacePath, fileName);
+	}
+
+	/**
+	 * Private helper to recursively scan directories for namespace hierarchy
+	 */
+	private async scanDirectoryRecursive(
+		basePath: string,
+		currentPath: string,
+		files: NamespacedFile[],
+		currentDepth: number,
+		maxDepth: number,
+	): Promise<void> {
+		if (currentDepth > maxDepth) {
+			return;
+		}
+
+		try {
+			const entries = await readdir(currentPath, { withFileTypes: true });
+
+			for (const entry of entries) {
+				const fullPath = join(currentPath, entry.name);
+				const relativePath = relative(basePath, fullPath);
+
+				if (entry.isFile() && entry.name.endsWith('.md')) {
+					// Extract namespace path from directory structure
+					const namespacePath = currentDepth === 0 
+						? '' 
+						: relative(basePath, currentPath);
+
+					files.push({
+						filePath: fullPath,
+						relativePath,
+						namespacePath,
+						fileName: entry.name,
+						depth: currentDepth,
+					});
+				} else if (entry.isDirectory()) {
+					// Recursively scan subdirectories
+					await this.scanDirectoryRecursive(
+						basePath,
+						fullPath,
+						files,
+						currentDepth + 1,
+						maxDepth,
+					);
+				}
+			}
+		} catch (error) {
+			// If we can't read a directory, skip it but don't fail the entire scan
+			if (error instanceof Error) {
+				const systemError = error as SystemError;
+				if (systemError.code === "EACCES" || systemError.code === "EPERM") {
+					// Skip directories we can't access
+					return;
+				}
+			}
+			throw error;
 		}
 	}
 }

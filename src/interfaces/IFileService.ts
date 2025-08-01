@@ -146,4 +146,57 @@ export default interface IFileService {
 	 * @throws FileIOError for unexpected I/O failures during check
 	 */
 	isWritable(path: string): Promise<boolean>;
+
+	/**
+	 * Create hierarchical directory structure for namespace
+	 *
+	 * @param basePath - Base directory path (e.g., ~/.claude/commands)
+	 * @param namespacePath - Namespace path (e.g., "project/frontend/component")
+	 * @returns Promise resolving to the full directory path
+	 * @throws FilePermissionError when create access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string>;
+
+	/**
+	 * Scan directory hierarchy for command files
+	 *
+	 * @param basePath - Base directory to scan from
+	 * @param maxDepth - Maximum depth to scan (default: 10)
+	 * @returns Promise resolving to array of file paths with namespace information
+	 * @throws FileNotFoundError when base directory doesn't exist
+	 * @throws FilePermissionError when read access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	scanNamespaceHierarchy(basePath: string, maxDepth?: number): Promise<NamespacedFile[]>;
+
+	/**
+	 * Resolve path for namespaced command file
+	 *
+	 * @param basePath - Base directory path
+	 * @param namespacePath - Namespace path (e.g., "project/frontend/component") 
+	 * @param fileName - Command file name (e.g., "create-component.md")
+	 * @returns Full path to the command file
+	 */
+	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string;
+}
+
+/**
+ * Represents a file found during namespace hierarchy scanning
+ */
+export interface NamespacedFile {
+	/** Full file path */
+	readonly filePath: string;
+	
+	/** Relative path from base directory */
+	readonly relativePath: string;
+	
+	/** Namespace path (directory structure) */
+	readonly namespacePath: string;
+	
+	/** File name without path */
+	readonly fileName: string;
+	
+	/** Depth level in hierarchy (0 = root) */
+	readonly depth: number;
 }
