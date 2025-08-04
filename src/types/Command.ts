@@ -16,6 +16,9 @@ export interface Command {
 
 	/** Optional hint for command arguments displayed during autocompletion */
 	readonly "argument-hint"?: string;
+
+	/** Optional namespace for hierarchical command organization (e.g., "frontend", "backend:auth") */
+	readonly namespace?: string;
 }
 
 /**

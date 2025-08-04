@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { CommandParser } from "../../src/services/CommandParser.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 
 describe("CommandParser", () => {
 	let parser: CommandParser;
+	let namespaceService: NamespaceService;
 
 	beforeEach(() => {
-		parser = new CommandParser();
+		namespaceService = new NamespaceService();
+		parser = new CommandParser(namespaceService);
 	});
 
 	describe("parseCommandFile", () => {
@@ -407,6 +410,106 @@ allowed-tools:
 
 			const command = await parser.parseCommandFile(content, "duplicates");
 			expect(command["allowed-tools"]).toEqual(["Read", "Edit", "Write"]);
+		});
+	});
+
+	describe("namespace support", () => {
+		test("should extract namespace from file path", async () => {
+			const content = `---
+description: Frontend component generator
+allowed-tools: Read, Edit
+---
+
+# Component Generator
+`;
+
+			const command = await parser.parseCommandFile(content, "frontend/component.md");
+
+			expect(command.name).toBe("component");
+			expect(command.description).toBe("Frontend component generator");
+			expect(command.file).toBe("frontend/component.md");
+			expect(command.namespace).toBe("frontend");
+		});
+
+		test("should extract nested namespace from file path", async () => {
+			const content = `---
+description: JWT authentication helper
+allowed-tools: Read, Edit, Bash(npm:*)
+---
+
+# JWT Auth
+`;
+
+			const command = await parser.parseCommandFile(content, "backend/auth/jwt.md");
+
+			expect(command.name).toBe("jwt");
+			expect(command.description).toBe("JWT authentication helper");
+			expect(command.file).toBe("backend/auth/jwt.md");
+			expect(command.namespace).toBe("backend:auth");
+		});
+
+		test("should work with legacy command name mode", async () => {
+			const content = `---
+description: Debug helper
+allowed-tools: Read, Edit
+---
+
+# Debug Helper
+`;
+
+			const command = await parser.parseCommandFile(content, "debug-help");
+
+			expect(command.name).toBe("debug-help");
+			expect(command.description).toBe("Debug helper");
+			expect(command.file).toBe("debug-help.md");
+			expect(command.namespace).toBeUndefined();
+		});
+
+		test("should handle explicit namespace in frontmatter", async () => {
+			const content = `---
+description: Component generator
+namespace: ui:components
+allowed-tools: Read, Edit
+---
+
+# Component Generator
+`;
+
+			const command = await parser.parseCommandFile(content, "frontend/component.md");
+
+			expect(command.name).toBe("component");
+			expect(command.namespace).toBe("ui:components"); // Should override path-based namespace
+		});
+
+		test("should handle commands without namespace in root directory", async () => {
+			const content = `---
+description: Root level command
+allowed-tools: Read
+---
+
+# Root Command
+`;
+
+			const command = await parser.parseCommandFile(content, "root-command.md");
+
+			expect(command.name).toBe("root-command");
+			expect(command.file).toBe("root-command.md");
+			expect(command.namespace).toBeUndefined();
+		});
+
+		test("should handle commands without frontmatter with namespace", async () => {
+			const content = `# Simple Command
+
+This is a simple command without frontmatter.
+`;
+
+			const command = await parser.parseCommandFile(content, "tools/simple.md");
+
+			expect(command.name).toBe("simple");
+			expect(command.description).toBe("Custom slash command: simple");
+			expect(command.file).toBe("tools/simple.md");
+			expect(command.namespace).toBe("tools");
+			expect(command["allowed-tools"]).toEqual([]);
 		});
 	});
 });

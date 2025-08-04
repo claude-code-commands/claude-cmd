@@ -5,6 +5,7 @@ import { CommandService } from "../../src/services/CommandService.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import { InstallationService } from "../../src/services/InstallationService.js";
 import { LanguageDetector } from "../../src/services/LanguageDetector.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 import type { Manifest } from "../../src/types/Command.js";
 import {
 	CommandNotFoundError,
@@ -31,7 +32,8 @@ describe("CommandService", () => {
 		cacheManager = new CacheManager(fileService);
 		languageDetector = new LanguageDetector();
 		const directoryDetector = new DirectoryDetector(fileService);
-		const commandParser = new CommandParser();
+		const namespaceService = new NamespaceService();
+		const commandParser = new CommandParser(namespaceService);
 		installationService = new InstallationService(
 			repository,
 			fileService,

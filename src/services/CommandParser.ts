@@ -1,5 +1,7 @@
 import matter from "gray-matter";
+import { dirname, basename } from "node:path";
 import type { Command } from "../types/Command.js";
+import type INamespaceService from "../interfaces/INamespaceService.js";
 
 /**
  * Error thrown when command parsing fails
@@ -17,9 +19,14 @@ export class CommandParseError extends Error {
 
 /**
  * CommandParser handles parsing and validation of Claude command files
- * with YAML frontmatter and markdown content.
+ * with YAML frontmatter and markdown content, including namespace support.
  */
 export class CommandParser {
+	private readonly namespaceService: INamespaceService;
+
+	constructor(namespaceService: INamespaceService) {
+		this.namespaceService = namespaceService;
+	}
 	/**
 	 * Whitelist of allowed core Claude Code tools
 	 */
@@ -40,16 +47,25 @@ export class CommandParser {
 	]);
 
 	/**
-	 * Parse a command file with optional YAML frontmatter
+	 * Parse a command file with optional YAML frontmatter and namespace support
+	 * 
 	 * @param content File content to parse
-	 * @param commandName Name of the command
-	 * @returns Parsed Command object
+	 * @param commandNameOrFilePath Command name (legacy) or file path (new namespace-aware mode)
+	 * @param filePath Optional file path for namespace extraction (when using legacy signature)
+	 * @returns Parsed Command object with namespace information if applicable
 	 */
 	async parseCommandFile(
 		content: string,
-		commandName: string,
+		commandNameOrFilePath: string,
+		filePath?: string,
 	): Promise<Command> {
+		// Extract namespace and command info first so it's available in catch block
+		const { commandName, namespace, file } = this.extractCommandInfo(commandNameOrFilePath, filePath);
+		
 		try {
+			// Determine if we're using the new file path mode or legacy command name mode
+			const isFilePathMode = filePath !== undefined || commandNameOrFilePath.includes('/') || commandNameOrFilePath.endsWith('.md');
+
 			// Parse frontmatter using gray-matter
 			const parsed = matter(content);
 
@@ -83,13 +99,23 @@ export class CommandParser {
 				const command: Command = {
 					name: commandName,
 					description: parsed.data.description,
-					file: `${commandName}.md`,
+					file: file,
 					"allowed-tools": allowedTools,
 				};
+
+				// Add optional namespace if present
+				if (namespace) {
+					(command as any).namespace = namespace;
+				}
 
 				// Add optional argument-hint if present
 				if (parsed.data["argument-hint"]) {
 					(command as any)["argument-hint"] = parsed.data["argument-hint"];
+				}
+
+				// Override with explicit namespace from frontmatter if provided
+				if (parsed.data.namespace) {
+					(command as any).namespace = parsed.data.namespace;
 				}
 
 				return command;
@@ -99,9 +125,14 @@ export class CommandParser {
 				const command: Command = {
 					name: commandName,
 					description: `Custom slash command: ${commandName}`,
-					file: `${commandName}.md`,
+					file: file,
 					"allowed-tools": [], // No tools allowed for basic commands without frontmatter
 				};
+
+				// Add optional namespace if present
+				if (namespace) {
+					(command as any).namespace = namespace;
+				}
 
 				return command;
 			}
@@ -220,5 +251,68 @@ export class CommandParser {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Extract command information from file paths, supporting both legacy and namespace modes
+	 */
+	private extractCommandInfo(commandNameOrFilePath: string, filePath?: string): {
+		commandName: string;
+		namespace?: string;
+		file: string;
+	} {
+		// If filePath is provided explicitly, use it for namespace extraction
+		if (filePath) {
+			return this.extractFromFilePath(filePath);
+		}
+
+		// Check if commandNameOrFilePath is actually a file path
+		if (commandNameOrFilePath.includes('/') || commandNameOrFilePath.endsWith('.md')) {
+			return this.extractFromFilePath(commandNameOrFilePath);
+		}
+
+		// Legacy mode: just a command name
+		return {
+			commandName: commandNameOrFilePath,
+			file: `${commandNameOrFilePath}.md`,
+		};
+	}
+
+	/**
+	 * Extract namespace and command info from a file path
+	 */
+	private extractFromFilePath(filePath: string): {
+		commandName: string;
+		namespace?: string;
+		file: string;
+	} {
+		// Normalize the file path
+		const normalizedPath = filePath.replace(/\\/g, '/');
+		
+		// Extract directory and filename
+		const directory = dirname(normalizedPath);
+		const filename = basename(normalizedPath);
+		
+		// Extract command name (remove .md extension)
+		const commandName = filename.replace(/\.md$/, '');
+		
+		// Determine namespace from directory structure
+		let namespace: string | undefined;
+		
+		if (directory && directory !== '.' && directory !== '/') {
+			try {
+				// Convert path to colon-separated namespace
+				namespace = this.namespaceService.toColonSeparated(directory);
+			} catch {
+				// If namespace parsing fails, treat as flat command
+				namespace = undefined;
+			}
+		}
+
+		return {
+			commandName,
+			namespace,
+			file: normalizedPath,
+		};
 	}
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { CommandParser } from "../../src/services/CommandParser.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 import {
 	CommandExistsError,
 	CommandNotInstalledError,
@@ -47,7 +48,8 @@ Use this command when you need help with debugging.
 		const httpClient = new InMemoryHTTPClient();
 		repository = new InMemoryRepository(httpClient, fileService);
 		const directoryDetector = new DirectoryDetector(fileService);
-		const commandParser = new CommandParser();
+		const namespaceService = new NamespaceService();
+		const commandParser = new CommandParser(namespaceService);
 		installationService = new InstallationService(
 			repository,
 			fileService,

@@ -8,6 +8,7 @@ import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
 import { LanguageConfigService } from "./LanguageConfigService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
+import NamespaceService from "./NamespaceService.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -42,7 +43,8 @@ export function getServices() {
 
 		// Initialize InstallationService dependencies
 		const directoryDetector = new DirectoryDetector(fileService);
-		const commandParser = new CommandParser();
+		const namespaceService = new NamespaceService();
+		const commandParser = new CommandParser(namespaceService);
 
 		// Create InstallationService first
 		const installationService = new InstallationService(
