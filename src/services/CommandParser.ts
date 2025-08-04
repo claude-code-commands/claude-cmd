@@ -63,9 +63,6 @@ export class CommandParser {
 		const { commandName, namespace, file } = this.extractCommandInfo(commandNameOrFilePath, filePath);
 		
 		try {
-			// Determine if we're using the new file path mode or legacy command name mode
-			const isFilePathMode = filePath !== undefined || commandNameOrFilePath.includes('/') || commandNameOrFilePath.endsWith('.md');
-
 			// Parse frontmatter using gray-matter
 			const parsed = matter(content);
 
@@ -113,10 +110,6 @@ export class CommandParser {
 					(command as any)["argument-hint"] = parsed.data["argument-hint"];
 				}
 
-				// Override with explicit namespace from frontmatter if provided
-				if (parsed.data.namespace) {
-					(command as any).namespace = parsed.data.namespace;
-				}
 
 				return command;
 			} else {

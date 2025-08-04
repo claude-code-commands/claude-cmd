@@ -465,21 +465,6 @@ allowed-tools: Read, Edit
 			expect(command.namespace).toBeUndefined();
 		});
 
-		test("should handle explicit namespace in frontmatter", async () => {
-			const content = `---
-description: Component generator
-namespace: ui:components
-allowed-tools: Read, Edit
----
-
-# Component Generator
-`;
-
-			const command = await parser.parseCommandFile(content, "frontend/component.md");
-
-			expect(command.name).toBe("component");
-			expect(command.namespace).toBe("ui:components"); // Should override path-based namespace
-		});
 
 		test("should handle commands without namespace in root directory", async () => {
 			const content = `---
