@@ -6,6 +6,8 @@
 export interface DetectionContext {
 	cliFlag: string; // --language flag value (highest precedence)
 	envVar: string; // CLAUDE_CMD_LANG environment variable
+	projectConfig: string; // Project-level configuration (.claude/config.json)
+	userConfig: string; // User-level configuration (~/.config/claude-cmd/config.json)
 	posixLocale: string; // POSIX locale from LC_ALL/LC_MESSAGES/LANG (lowest precedence)
 }
 
@@ -37,11 +39,16 @@ export class InvalidLanguageCodeError extends Error {
 export class LanguageDetector {
 	/**
 	 * Detect determines the language to use based on the detection context,
-	 * following the precedence order: CLI flag → env var → POSIX locale → fallback.
+	 * following the precedence order: CLI flag → env var → project config → user config → POSIX locale → fallback.
 	 */
 	detect(context: DetectionContext): string {
-		// Process string-based sources (CLI flag and environment variable) in precedence order
-		const stringSources = [context.cliFlag, context.envVar];
+		// Process string-based sources in precedence order
+		const stringSources = [
+			context.cliFlag,
+			context.envVar,
+			context.projectConfig,
+			context.userConfig,
+		];
 
 		for (const source of stringSources) {
 			if (source !== "") {
@@ -52,7 +59,7 @@ export class LanguageDetector {
 			}
 		}
 
-		// 3. POSIX locale - system-level language preference (requires special parsing)
+		// 5. POSIX locale - system-level language preference (requires special parsing)
 		if (context.posixLocale !== "") {
 			try {
 				const lang = this.parseLocale(context.posixLocale);
@@ -62,7 +69,7 @@ export class LanguageDetector {
 			}
 		}
 
-		// 4. Fallback to English when no language source is available
+		// 6. Fallback to English when no language source is available
 		return "en";
 	}
 

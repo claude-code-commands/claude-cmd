@@ -5,6 +5,7 @@ import type ILanguageConfigService from "../interfaces/ILanguageConfigService.js
 import type { LanguageInfo } from "../interfaces/ILanguageConfigService.js";
 import type IRepository from "../interfaces/IRepository.js";
 import { LanguageDetector } from "./LanguageDetector.js";
+import type { ProjectConfig } from "./ProjectConfigService.js";
 
 /**
  * Configuration structure stored in the config file
@@ -182,18 +183,35 @@ export class LanguageConfigService implements ILanguageConfigService {
 	 * @throws Never throws - always returns a valid language code
 	 */
 	async getEffectiveLanguage(): Promise<string> {
-		// Priority 1: Check for saved user preference
-		const saved = await this.getCurrentLanguage();
-		if (saved) {
-			return saved;
-		}
+		return this.getEffectiveLanguageWithProjectConfig(null);
+	}
 
-		// Priority 2-4: Fall back to environment-based detection
+	/**
+	 * Get the effective language to use with project configuration support
+	 *
+	 * Follows the complete precedence order:
+	 * 1. CLI flag (not applicable in this context)
+	 * 2. CLAUDE_CMD_LANG environment variable
+	 * 3. Project configuration (.claude/config.json)
+	 * 4. User configuration (~/.config/claude-cmd/config.json)
+	 * 5. System locale (LC_ALL, LC_MESSAGES, LANG)
+	 * 6. Fallback to English
+	 *
+	 * @param projectConfig - Project configuration object or null if not available
+	 * @returns Language code that should be used for command retrieval
+	 * @throws Never throws - always returns a valid language code
+	 */
+	async getEffectiveLanguageWithProjectConfig(projectConfig: ProjectConfig | null): Promise<string> {
+		// Get saved user preference
+		const userPreference = await this.getCurrentLanguage();
+
+		// Build detection context with all sources
 		const context = {
 			cliFlag: "", // Not used in this context (CLI flag would override this method)
 			envVar: process.env.CLAUDE_CMD_LANG || "",
-			posixLocale:
-				process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
+			projectConfig: projectConfig?.preferredLanguage || "",
+			userConfig: userPreference || "",
+			posixLocale: process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
 		};
 
 		return this.languageDetector.detect(context);

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import HTTPRepository from "../../src/services/HTTPRepository.js";
 import { LanguageConfigService } from "../../src/services/LanguageConfigService.js";
+import type { ProjectConfig } from "../../src/services/ProjectConfigService.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 
@@ -20,6 +21,8 @@ describe("LanguageConfigService", () => {
 	afterEach(() => {
 		fileService.clearFiles();
 		httpClient.clearRequestHistory();
+		// Clean up environment variables that might affect tests
+		delete process.env.CLAUDE_CMD_LANG;
 	});
 
 	describe("getCurrentLanguage", () => {
@@ -147,6 +150,66 @@ describe("LanguageConfigService", () => {
 			const effectiveLanguage =
 				await languageConfigService.getEffectiveLanguage();
 			expect(effectiveLanguage).toBe("en");
+		});
+	});
+
+	describe("getEffectiveLanguageWithProjectConfig", () => {
+		test("should prioritize environment over user config when no project config", async () => {
+			// Set user preference
+			await languageConfigService.setLanguage("fr");
+			
+			// Mock environment variable - should take precedence
+			const originalEnv = process.env.CLAUDE_CMD_LANG;
+			process.env.CLAUDE_CMD_LANG = "es";
+
+			const effectiveLanguage = await languageConfigService.getEffectiveLanguageWithProjectConfig(null);
+			expect(effectiveLanguage).toBe("es"); // Environment should win
+
+			// Cleanup
+			if (originalEnv) {
+				process.env.CLAUDE_CMD_LANG = originalEnv;
+			} else {
+				delete process.env.CLAUDE_CMD_LANG;
+			}
+		});
+
+		test("should prioritize project config over user config", async () => {
+			// Set user preference
+			await languageConfigService.setLanguage("fr");
+			
+			const projectConfig = { preferredLanguage: "es" };
+			const effectiveLanguage = await languageConfigService.getEffectiveLanguageWithProjectConfig(projectConfig);
+			expect(effectiveLanguage).toBe("es");
+		});
+
+		test("should fall back to user config when project config has no language preference", async () => {
+			// Set user preference
+			await languageConfigService.setLanguage("fr");
+			
+			const projectConfig = { otherSetting: "value" };
+			const effectiveLanguage = await languageConfigService.getEffectiveLanguageWithProjectConfig(projectConfig);
+			expect(effectiveLanguage).toBe("fr");
+		});
+
+		test("should follow complete precedence chain", async () => {
+			// Set user preference
+			await languageConfigService.setLanguage("fr");
+			
+			// Mock environment variable - should take precedence over project and user
+			const originalEnv = process.env.CLAUDE_CMD_LANG;
+			process.env.CLAUDE_CMD_LANG = "de";
+
+			// Project config comes after environment in precedence
+			const projectConfig = { preferredLanguage: "es" };
+			const effectiveLanguage = await languageConfigService.getEffectiveLanguageWithProjectConfig(projectConfig);
+			expect(effectiveLanguage).toBe("de"); // Environment should win per spec: CLI -> env -> project -> user -> locale -> default
+
+			// Cleanup
+			if (originalEnv) {
+				process.env.CLAUDE_CMD_LANG = originalEnv;
+			} else {
+				delete process.env.CLAUDE_CMD_LANG;
+			}
 		});
 	});
 });

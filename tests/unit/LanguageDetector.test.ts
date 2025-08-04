@@ -16,6 +16,8 @@ describe("LanguageDetector", () => {
 			const context: DetectionContext = {
 				cliFlag: "fr",
 				envVar: "es",
+				projectConfig: "ja",
+				userConfig: "de",
 				posixLocale: "de_DE.UTF-8",
 			};
 
@@ -27,6 +29,8 @@ describe("LanguageDetector", () => {
 			const context: DetectionContext = {
 				cliFlag: "",
 				envVar: "es",
+				projectConfig: "ja",
+				userConfig: "de",
 				posixLocale: "de_DE.UTF-8",
 			};
 
@@ -34,10 +38,12 @@ describe("LanguageDetector", () => {
 			expect(result).toBe("es");
 		});
 
-		it("should return POSIX locale language when CLI flag and env var are empty", () => {
+		it("should return POSIX locale language when CLI flag, env var, and configs are empty", () => {
 			const context: DetectionContext = {
 				cliFlag: "",
 				envVar: "",
+				projectConfig: "",
+				userConfig: "",
 				posixLocale: "de_DE.UTF-8",
 			};
 
@@ -49,6 +55,8 @@ describe("LanguageDetector", () => {
 			const context: DetectionContext = {
 				cliFlag: "",
 				envVar: "",
+				projectConfig: "",
+				userConfig: "",
 				posixLocale: "",
 			};
 
@@ -60,6 +68,8 @@ describe("LanguageDetector", () => {
 			const context: DetectionContext = {
 				cliFlag: "  FR  ", // Should be normalized to lowercase and trimmed
 				envVar: "",
+				projectConfig: "",
+				userConfig: "",
 				posixLocale: "",
 			};
 
@@ -67,10 +77,126 @@ describe("LanguageDetector", () => {
 			expect(result).toBe("fr");
 		});
 
+		it("should return project config language when CLI flag and env var are empty", () => {
+			const context: DetectionContext = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "fr",
+				userConfig: "es",
+				posixLocale: "de_DE.UTF-8",
+			};
+
+			const result = detector.detect(context);
+			expect(result).toBe("fr");
+		});
+
+		it("should return user config language when CLI flag, env var, and project config are empty", () => {
+			const context: DetectionContext = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "",
+				userConfig: "es",
+				posixLocale: "de_DE.UTF-8",
+			};
+
+			const result = detector.detect(context);
+			expect(result).toBe("es");
+		});
+
+		it("should follow complete precedence order: CLI -> env -> project -> user -> locale -> fallback", () => {
+			// Test CLI flag takes precedence over everything
+			let context: DetectionContext = {
+				cliFlag: "ja",
+				envVar: "fr",
+				projectConfig: "es",
+				userConfig: "de",
+				posixLocale: "it_IT.UTF-8",
+			};
+			expect(detector.detect(context)).toBe("ja");
+
+			// Test env var takes precedence over project/user/locale
+			context = {
+				cliFlag: "",
+				envVar: "fr",
+				projectConfig: "es",
+				userConfig: "de",
+				posixLocale: "it_IT.UTF-8",
+			};
+			expect(detector.detect(context)).toBe("fr");
+
+			// Test project config takes precedence over user/locale
+			context = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "es",
+				userConfig: "de",
+				posixLocale: "it_IT.UTF-8",
+			};
+			expect(detector.detect(context)).toBe("es");
+
+			// Test user config takes precedence over locale
+			context = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "",
+				userConfig: "de",
+				posixLocale: "it_IT.UTF-8",
+			};
+			expect(detector.detect(context)).toBe("de");
+
+			// Test locale is used when config sources are empty
+			context = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "",
+				userConfig: "",
+				posixLocale: "it_IT.UTF-8",
+			};
+			expect(detector.detect(context)).toBe("it");
+
+			// Test fallback to English when all sources are empty
+			context = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "",
+				userConfig: "",
+				posixLocale: "",
+			};
+			expect(detector.detect(context)).toBe("en");
+		});
+
+		it("should sanitize project and user config language codes", () => {
+			const context: DetectionContext = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "  FR  ", // Should be normalized
+				userConfig: "es",
+				posixLocale: "",
+			};
+
+			const result = detector.detect(context);
+			expect(result).toBe("fr");
+		});
+
+		it("should skip invalid project config and try user config", () => {
+			const context: DetectionContext = {
+				cliFlag: "",
+				envVar: "",
+				projectConfig: "invalid-language-code",
+				userConfig: "es",
+				posixLocale: "",
+			};
+
+			const result = detector.detect(context);
+			expect(result).toBe("es");
+		});
+
 		it("should skip invalid language codes and try next source", () => {
 			const context: DetectionContext = {
 				cliFlag: "invalid-language-code",
 				envVar: "es",
+				projectConfig: "",
+				userConfig: "",
 				posixLocale: "",
 			};
 
@@ -82,6 +208,8 @@ describe("LanguageDetector", () => {
 			const context: DetectionContext = {
 				cliFlag: "",
 				envVar: "",
+				projectConfig: "",
+				userConfig: "",
 				posixLocale: "pt_BR.UTF-8",
 			};
 
