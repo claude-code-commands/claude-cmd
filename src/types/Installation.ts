@@ -55,6 +55,16 @@ export interface InstallationInfo {
 }
 
 /**
+ * Result of scanning all Claude directories for command files
+ */
+export interface CommandScanResult {
+	/** Command files found in personal directory */
+	readonly personal: string[];
+	/** Command files found in project directory */
+	readonly project: string[];
+}
+
+/**
  * Error thrown when installation operations fail
  */
 export class InstallationError extends Error {

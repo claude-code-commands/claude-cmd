@@ -261,4 +261,161 @@ describe("DirectoryDetector", () => {
 			}
 		});
 	});
+
+	describe("recursive command scanning", () => {
+		describe("scanForCommandFiles", () => {
+			test("should find all .md files in directory tree", async () => {
+				// Set up nested command structure
+				await fileService.mkdir("/test/commands");
+				await fileService.mkdir("/test/commands/frontend");
+				await fileService.mkdir("/test/commands/backend");
+				await fileService.mkdir("/test/commands/backend/auth");
+
+				// Create command files
+				await fileService.writeFile("/test/commands/simple.md", "# Simple command");
+				await fileService.writeFile("/test/commands/frontend/component.md", "# Component command");
+				await fileService.writeFile("/test/commands/backend/api.md", "# API command");
+				await fileService.writeFile("/test/commands/backend/auth/login.md", "# Login command");
+				
+				// Create non-command files (should be ignored)
+				await fileService.writeFile("/test/commands/README.txt", "Not a command");
+				await fileService.writeFile("/test/commands/config.json", "{}");
+
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/commands");
+
+				expect(commandFiles).toHaveLength(4);
+				expect(commandFiles).toContain("/test/commands/simple.md");
+				expect(commandFiles).toContain("/test/commands/frontend/component.md");
+				expect(commandFiles).toContain("/test/commands/backend/api.md");
+				expect(commandFiles).toContain("/test/commands/backend/auth/login.md");
+			});
+
+			test("should handle empty directory", async () => {
+				await fileService.mkdir("/test/empty");
+
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/empty");
+
+				expect(commandFiles).toHaveLength(0);
+			});
+
+			test("should handle non-existent directory", async () => {
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/nonexistent");
+
+				expect(commandFiles).toHaveLength(0);
+			});
+
+			test("should ignore hidden directories and files", async () => {
+				await fileService.mkdir("/test/commands");
+				await fileService.mkdir("/test/commands/.hidden");
+				
+				await fileService.writeFile("/test/commands/visible.md", "# Visible command");
+				await fileService.writeFile("/test/commands/.hidden/secret.md", "# Hidden command");
+				await fileService.writeFile("/test/commands/.hiddenfile.md", "# Hidden file");
+
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/commands");
+
+				expect(commandFiles).toHaveLength(1);
+				expect(commandFiles).toContain("/test/commands/visible.md");
+			});
+
+			test("should handle deeply nested structures efficiently", async () => {
+				// Create a deep structure to test performance optimization
+				let currentPath = "/test/deep";
+				await fileService.mkdir(currentPath);
+
+				// Create 5 levels deep with commands at each level
+				for (let i = 0; i < 5; i++) {
+					currentPath = `${currentPath}/level${i}`;
+					await fileService.mkdir(currentPath);
+					await fileService.writeFile(`${currentPath}/command${i}.md`, `# Level ${i} command`);
+				}
+
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/deep");
+
+				expect(commandFiles).toHaveLength(5);
+				expect(commandFiles).toContain("/test/deep/level0/command0.md");
+				expect(commandFiles).toContain("/test/deep/level0/level1/command1.md");
+				expect(commandFiles).toContain("/test/deep/level0/level1/level2/command2.md");
+				expect(commandFiles).toContain("/test/deep/level0/level1/level2/level3/command3.md");
+				expect(commandFiles).toContain("/test/deep/level0/level1/level2/level3/level4/command4.md");
+			});
+		});
+
+		describe("scanAllClaudeDirectories", () => {
+			test("should scan both personal and project directories", async () => {
+				// Mock environment
+				const originalHome = process.env.HOME;
+				process.env.HOME = "/Users/testuser";
+
+				try {
+					// Set up directories with commands
+					await fileService.mkdir("/Users/testuser/.claude/commands");
+					await fileService.mkdir("/Users/testuser/.claude/commands/personal");
+					await fileService.mkdir(".claude/commands");
+					await fileService.mkdir(".claude/commands/project");
+
+					// Create command files
+					await fileService.writeFile("/Users/testuser/.claude/commands/global.md", "# Global command");
+					await fileService.writeFile("/Users/testuser/.claude/commands/personal/user.md", "# User command");
+					await fileService.writeFile(".claude/commands/local.md", "# Local command");
+					await fileService.writeFile(".claude/commands/project/team.md", "# Team command");
+
+					const allCommandFiles = await directoryDetector.scanAllClaudeDirectories();
+
+					expect(allCommandFiles.personal).toHaveLength(2);
+					expect(allCommandFiles.project).toHaveLength(2);
+					
+					expect(allCommandFiles.personal).toContain("/Users/testuser/.claude/commands/global.md");
+					expect(allCommandFiles.personal).toContain("/Users/testuser/.claude/commands/personal/user.md");
+					expect(allCommandFiles.project).toContain(".claude/commands/local.md");
+					expect(allCommandFiles.project).toContain(".claude/commands/project/team.md");
+				} finally {
+					process.env.HOME = originalHome;
+				}
+			});
+
+			test("should handle missing directories gracefully", async () => {
+				const originalHome = process.env.HOME;
+				process.env.HOME = "/Users/testuser";
+
+				try {
+					// Don't create any directories
+
+					const allCommandFiles = await directoryDetector.scanAllClaudeDirectories();
+
+					expect(allCommandFiles.personal).toHaveLength(0);
+					expect(allCommandFiles.project).toHaveLength(0);
+				} finally {
+					process.env.HOME = originalHome;
+				}
+			});
+		});
+
+		describe("performance optimization", () => {
+			test("should handle large directory trees efficiently", async () => {
+				// Create a structure with many files to test performance
+				await fileService.mkdir("/test/large");
+				
+				// Create 50 command files across 10 directories
+				for (let dir = 0; dir < 10; dir++) {
+					const dirPath = `/test/large/dir${dir}`;
+					await fileService.mkdir(dirPath);
+					
+					for (let file = 0; file < 5; file++) {
+						await fileService.writeFile(`${dirPath}/cmd${file}.md`, `# Command ${dir}-${file}`);
+						// Add some non-command files to make it more realistic
+						await fileService.writeFile(`${dirPath}/readme${file}.txt`, "Not a command");
+					}
+				}
+
+				const startTime = Date.now();
+				const commandFiles = await directoryDetector.scanForCommandFiles("/test/large");
+				const endTime = Date.now();
+
+				expect(commandFiles).toHaveLength(50);
+				// Should complete within reasonable time (less than 1 second for this size)
+				expect(endTime - startTime).toBeLessThan(1000);
+			});
+		});
+	});
 });

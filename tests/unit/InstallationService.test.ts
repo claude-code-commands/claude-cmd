@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { CommandParser } from "../../src/services/CommandParser.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
+import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
 import NamespaceService from "../../src/services/NamespaceService.js";
 import {
 	CommandExistsError,
@@ -50,11 +51,16 @@ Use this command when you need help with debugging.
 		const directoryDetector = new DirectoryDetector(fileService);
 		const namespaceService = new NamespaceService();
 		const commandParser = new CommandParser(namespaceService);
+		const localCommandRepository = new LocalCommandRepository(
+			directoryDetector,
+			commandParser,
+		);
 		installationService = new InstallationService(
 			repository,
 			fileService,
 			directoryDetector,
 			commandParser,
+			localCommandRepository,
 		);
 
 		// Set up mock home directory

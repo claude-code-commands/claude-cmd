@@ -1,14 +1,14 @@
 import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
-import type { DirectoryInfo } from "../types/Installation.js";
+import type { DirectoryInfo, CommandScanResult } from "../types/Installation.js";
 
 /**
  * DirectoryDetector handles detection and management of Claude command directories
  * across different platforms and installation locations.
  */
 export class DirectoryDetector {
-	constructor(private readonly fileService: IFileService) {}
+	constructor(public readonly fileService: IFileService) {}
 
 	/**
 	 * Get all Claude directories (personal and project-specific)
@@ -107,6 +107,73 @@ export class DirectoryDetector {
 	}
 
 	/**
+	 * Recursively scan a directory for command files (.md files only)
+	 * @param directoryPath Path to scan
+	 * @returns Array of absolute paths to .md files
+	 */
+	async scanForCommandFiles(directoryPath: string): Promise<string[]> {
+		try {
+			// Check if directory exists
+			if (!(await this.fileService.exists(directoryPath))) {
+				return [];
+			}
+
+			// Use the existing scanNamespaceHierarchy method for consistency
+			const namespacedFiles = await this.fileService.scanNamespaceHierarchy(directoryPath);
+			
+			// Extract full file paths, filter .md files, and exclude hidden files/directories
+			const commandFiles = namespacedFiles
+				.filter(file => {
+					// Must be a .md file
+					if (!file.fileName.endsWith('.md')) {
+						return false;
+					}
+					
+					// Exclude hidden files (starting with .)
+					if (file.fileName.startsWith('.')) {
+						return false;
+					}
+					
+					// Exclude files in hidden directories (any path segment starting with .)
+					const pathSegments = file.relativePath.split('/');
+					for (const segment of pathSegments) {
+						if (segment.startsWith('.')) {
+							return false;
+						}
+					}
+					
+					return true;
+				})
+				.map(file => file.filePath);
+
+			return commandFiles.sort(); // Sort for consistent ordering
+		} catch (error) {
+			// If we can't read the directory, return empty array instead of throwing
+			// This provides more resilient behavior for permission issues or other I/O errors
+			return [];
+		}
+	}
+
+	/**
+	 * Scan all Claude directories (both personal and project) for command files
+	 * @returns Object with command files categorized by location
+	 */
+	async scanAllClaudeDirectories(): Promise<CommandScanResult> {
+		const personalDir = await this.getPersonalDirectory();
+		const projectDir = await this.getProjectDirectory(false); // Use relative path for consistency with tests
+
+		const [personalFiles, projectFiles] = await Promise.all([
+			this.scanForCommandFiles(personalDir),
+			this.scanForCommandFiles(projectDir),
+		]);
+
+		return {
+			personal: personalFiles,
+			project: projectFiles,
+		};
+	}
+
+	/**
 	 * Get the home directory for the current user
 	 * Cross-platform implementation that handles Windows, macOS, and Linux
 	 * @returns Home directory path
@@ -168,4 +235,5 @@ export class DirectoryDetector {
 		const parentDir = path.dirname(dirPath);
 		return await this.fileService.isWritable(parentDir);
 	}
+
 }

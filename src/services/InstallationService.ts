@@ -17,6 +17,7 @@ import {
 import type { CommandParser } from "./CommandParser.js";
 import type { CommandServiceOptions } from "./CommandService.js";
 import type { DirectoryDetector } from "./DirectoryDetector.js";
+import type { LocalCommandRepository } from "./LocalCommandRepository.js";
 
 // Re-export error classes for convenience
 export { InstallationError, CommandExistsError, CommandNotInstalledError };
@@ -31,6 +32,7 @@ export class InstallationService implements IInstallationService {
 		private readonly fileService: IFileService,
 		private readonly directoryDetector: DirectoryDetector,
 		private readonly commandParser: CommandParser,
+		private readonly localCommandRepository: LocalCommandRepository,
 	) {}
 
 	async installCommand(
@@ -118,32 +120,16 @@ export class InstallationService implements IInstallationService {
 	}
 
 	async listInstalledCommands(
-		_options?: CommandServiceOptions,
+		options?: CommandServiceOptions,
 	): Promise<readonly Command[]> {
 		try {
-			const directories = await this.directoryDetector.getClaudeDirectories();
-			const commands: Command[] = [];
-			const seenCommands = new Set<string>();
-
-			// Check each directory for installed commands
-			for (const dir of directories) {
-				if (!dir.exists) continue;
-
-				try {
-					// Scan directory for .md files
-					// For this implementation, we'll use a simple approach
-					// In a real implementation, we'd need directory listing in IFileService
-					await this.scanDirectoryForCommands(dir, commands, seenCommands);
-				} catch (error) {
-					console.error(
-						`Failed to scan directory '${dir.path}' for commands:`,
-						error,
-					);
-					// Continue if directory scan fails
-				}
-			}
-
-			return commands;
+			// Use LocalCommandRepository for sophisticated local command discovery
+			// This provides proper namespace support and consistent metadata extraction
+			const manifest = await this.localCommandRepository.getManifest('en', {
+				forceRefresh: options?.forceRefresh,
+			});
+			
+			return manifest.commands;
 		} catch (error) {
 			throw new InstallationError(
 				`Failed to list installed commands: ${error instanceof Error ? error.message : String(error)}`,
@@ -213,51 +199,4 @@ export class InstallationService implements IInstallationService {
 		return null;
 	}
 
-	/**
-	 * Scan a directory for command files recursively
-	 */
-	private async scanDirectoryForCommands(
-		dir: DirectoryInfo,
-		commands: Command[],
-		seenCommands: Set<string>,
-	): Promise<void> {
-		try {
-			// List all files recursively in the directory
-			const files = await this.fileService.listFilesRecursive(dir.path);
-
-			// Filter for .md files only
-			const markdownFiles = files.filter((file) => file.endsWith(".md"));
-
-			for (const file of markdownFiles) {
-				// Extract command name from file path (remove .md extension and directory parts)
-				const baseName = path.basename(file, ".md");
-
-				// Skip if we've already seen this command (deduplication)
-				if (seenCommands.has(baseName)) {
-					continue;
-				}
-
-				try {
-					// Read and parse the command file
-					const filePath = path.join(dir.path, file);
-					const content = await this.fileService.readFile(filePath);
-					const command = await this.commandParser.parseCommandFile(
-						content,
-						baseName,
-					);
-
-					commands.push(command);
-					seenCommands.add(baseName);
-				} catch (error) {
-					console.error(
-						`Failed to parse command file '${file}' in '${dir.path}':`,
-						error,
-					);
-				}
-			}
-		} catch (error) {
-			console.error(`Failed to list files in directory '${dir.path}':`, error);
-			// Directory doesn't exist or can't be read, continue
-		}
-	}
 }

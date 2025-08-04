@@ -8,6 +8,7 @@ import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
 import { LanguageConfigService } from "./LanguageConfigService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
+import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import NamespaceService from "./NamespaceService.js";
 
 /**
@@ -24,6 +25,7 @@ let services: {
 	languageDetector: LanguageDetector;
 	installationService: InstallationService;
 	languageConfigService: LanguageConfigService;
+	localCommandRepository: LocalCommandRepository;
 } | null = null;
 
 /**
@@ -46,12 +48,19 @@ export function getServices() {
 		const namespaceService = new NamespaceService();
 		const commandParser = new CommandParser(namespaceService);
 
+		// Create LocalCommandRepository for local command management
+		const localCommandRepository = new LocalCommandRepository(
+			directoryDetector,
+			commandParser,
+		);
+
 		// Create InstallationService first
 		const installationService = new InstallationService(
 			repository,
 			fileService,
 			directoryDetector,
 			commandParser,
+			localCommandRepository,
 		);
 
 		// Create LanguageConfigService
@@ -73,6 +82,7 @@ export function getServices() {
 			languageDetector,
 			installationService,
 			languageConfigService,
+			localCommandRepository,
 		};
 	}
 
