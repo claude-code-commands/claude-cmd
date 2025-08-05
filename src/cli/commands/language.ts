@@ -10,11 +10,11 @@ languageCommand
 	.description("List available languages and show current language setting")
 	.action(async () => {
 		try {
-			const { languageConfigService } = getServices();
+			const { userConfigService } = getServices();
 
 			const [currentLanguage, availableLanguages] = await Promise.all([
-				languageConfigService.getCurrentLanguage(),
-				languageConfigService.getAvailableLanguages(),
+				userConfigService.getCurrentLanguage(),
+				userConfigService.getAvailableLanguages(),
 			]);
 
 			console.log("Available languages:");
@@ -42,8 +42,8 @@ languageCommand
 	.argument("<language>", "Language code to set")
 	.action(async (language) => {
 		try {
-			const { languageConfigService } = getServices();
-			await languageConfigService.setLanguage(language);
+			const { userConfigService } = getServices();
+			await userConfigService.setLanguage(language);
 			console.log(`Language preference set to: ${language}`);
 		} catch (error) {
 			console.error(

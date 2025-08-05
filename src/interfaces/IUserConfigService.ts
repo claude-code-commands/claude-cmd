@@ -13,7 +13,7 @@ export interface LanguageInfo {
 /**
  * Configuration service for managing language preferences
  */
-export default interface ILanguageConfigService {
+export default interface IUserConfigService {
 	/**
 	 * Get the currently configured preferred language
 	 *

@@ -1,16 +1,16 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
-import type ILanguageConfigService from "../interfaces/ILanguageConfigService.js";
-import type { LanguageInfo } from "../interfaces/ILanguageConfigService.js";
 import type IRepository from "../interfaces/IRepository.js";
+import type IUserConfigService from "../interfaces/IUserConfigService.js";
+import type { LanguageInfo } from "../interfaces/IUserConfigService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 import type { ProjectConfig } from "./ProjectConfigService.js";
 
 /**
  * Configuration structure stored in the config file
  */
-interface LanguageConfig {
+interface UserConfig {
 	preferredLanguage?: string;
 }
 
@@ -32,7 +32,7 @@ interface LanguageConfig {
  *
  * @example Basic usage
  * ```typescript
- * const service = new LanguageConfigService(fileService, repository);
+ * const service = new UserConfigService(fileService, repository);
  *
  * // Set preferred language
  * await service.setLanguage('fr');
@@ -44,7 +44,7 @@ interface LanguageConfig {
  * const languages = await service.getAvailableLanguages();
  * ```
  */
-export class LanguageConfigService implements ILanguageConfigService {
+export class UserConfigService implements IUserConfigService {
 	private readonly configDir: string;
 	private readonly configFile: string;
 	private readonly languageDetector = new LanguageDetector();
@@ -65,7 +65,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 	]);
 
 	/**
-	 * Create a new LanguageConfigService instance
+	 * Create a new UserConfigService instance
 	 *
 	 * @param fileService - File service implementation for configuration persistence
 	 * @param repository - Repository service for checking language availability
@@ -87,7 +87,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 	async getCurrentLanguage(): Promise<string | null> {
 		try {
 			const configContent = await this.fileService.readFile(this.configFile);
-			const config: LanguageConfig = JSON.parse(configContent);
+			const config: UserConfig = JSON.parse(configContent);
 			return config.preferredLanguage || null;
 		} catch {
 			// Return null for any errors (missing file, invalid JSON, etc.)
@@ -111,7 +111,7 @@ export class LanguageConfigService implements ILanguageConfigService {
 			);
 		}
 
-		const config: LanguageConfig = {
+		const config: UserConfig = {
 			preferredLanguage: sanitized,
 		};
 
@@ -201,7 +201,9 @@ export class LanguageConfigService implements ILanguageConfigService {
 	 * @returns Language code that should be used for command retrieval
 	 * @throws Never throws - always returns a valid language code
 	 */
-	async getEffectiveLanguageWithProjectConfig(projectConfig: ProjectConfig | null): Promise<string> {
+	async getEffectiveLanguageWithProjectConfig(
+		projectConfig: ProjectConfig | null,
+	): Promise<string> {
 		// Get saved user preference
 		const userPreference = await this.getCurrentLanguage();
 
@@ -211,7 +213,8 @@ export class LanguageConfigService implements ILanguageConfigService {
 			envVar: process.env.CLAUDE_CMD_LANG || "",
 			projectConfig: projectConfig?.preferredLanguage || "",
 			userConfig: userPreference || "",
-			posixLocale: process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
+			posixLocale:
+				process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || "",
 		};
 
 		return this.languageDetector.detect(context);

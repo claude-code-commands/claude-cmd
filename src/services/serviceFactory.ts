@@ -6,11 +6,11 @@ import { CommandService } from "./CommandService.js";
 import { DirectoryDetector } from "./DirectoryDetector.js";
 import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
-import { LanguageConfigService } from "./LanguageConfigService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import NamespaceService from "./NamespaceService.js";
 import { ProjectConfigService } from "./ProjectConfigService.js";
+import { UserConfigService } from "./UserConfigService.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -25,7 +25,7 @@ let services: {
 	commandService: CommandService;
 	languageDetector: LanguageDetector;
 	installationService: InstallationService;
-	languageConfigService: LanguageConfigService;
+	userConfigService: UserConfigService;
 	localCommandRepository: LocalCommandRepository;
 	projectConfigService: ProjectConfigService;
 } | null = null;
@@ -65,11 +65,8 @@ export function getServices() {
 			localCommandRepository,
 		);
 
-		// Create LanguageConfigService
-		const languageConfigService = new LanguageConfigService(
-			fileService,
-			repository,
-		);
+		// Create UserConfigService
+		const userConfigService = new UserConfigService(fileService, repository);
 
 		// Create ProjectConfigService
 		const projectConfigService = new ProjectConfigService(fileService);
@@ -86,7 +83,7 @@ export function getServices() {
 			commandService,
 			languageDetector,
 			installationService,
-			languageConfigService,
+			userConfigService,
 			localCommandRepository,
 			projectConfigService,
 		};
