@@ -6,8 +6,8 @@
 export interface DetectionContext {
 	cliFlag: string; // --language flag value (highest precedence)
 	envVar: string; // CLAUDE_CMD_LANG environment variable
-	projectConfig: string; // Project-level configuration (.claude/config.claude-cmd.json)
-	userConfig: string; // User-level configuration (~/.config/claude-cmd/config.claude-cmd.json)
+	projectConfig?: string; // Project-level configuration (.claude/config.claude-cmd.json)
+	userConfig?: string; // User-level configuration (~/.config/claude-cmd/config.claude-cmd.json)
 	posixLocale: string; // POSIX locale from LC_ALL/LC_MESSAGES/LANG (lowest precedence)
 }
 
@@ -46,8 +46,8 @@ export class LanguageDetector {
 		const stringSources = [
 			context.cliFlag,
 			context.envVar,
-			context.projectConfig,
-			context.userConfig,
+			context.projectConfig ?? "",
+			context.userConfig ?? "",
 		];
 
 		for (const source of stringSources) {

@@ -49,7 +49,7 @@ export const installedCommand = new Command("installed")
 				await commandService.getInstalledCommands(serviceOptions);
 
 			// Determine language used
-			const language = detectLanguage(options.language, languageDetector);
+			const language = await detectLanguage(options.language, languageDetector);
 
 			// Format and display output
 			const output = formatInstalledCommands(commands, language);

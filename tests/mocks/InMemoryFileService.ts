@@ -376,6 +376,47 @@ class InMemoryFileService implements IFileService {
 			}
 		}
 	}
+
+	/**
+	 * Remove a directory and optionally its contents
+	 */
+	async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+		this.operationHistory.push({ operation: "rmdir", path });
+
+		// Ensure directory path format consistency
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
+		
+		if (!this.fs[dirPath]) {
+			throw new FileNotFoundError(path);
+		}
+
+		const entry = this.fs[dirPath];
+		if (entry?.type !== "directory") {
+			throw new FileIOError(path, "Not a directory");
+		}
+
+		// Check if directory has children and recursive is not set
+		if (!options?.recursive) {
+			const hasChildren = Object.keys(this.fs).some((filePath: string) => 
+				filePath.startsWith(dirPath) && filePath !== dirPath
+			);
+			if (hasChildren) {
+				throw new FileIOError(path, "Directory not empty");
+			}
+		}
+
+		// Remove directory and all children if recursive
+		if (options?.recursive) {
+			const toDelete = Object.keys(this.fs).filter((filePath: string) => 
+				filePath.startsWith(dirPath) || filePath === dirPath
+			);
+			for (const filePath of toDelete) {
+				delete this.fs[filePath];
+			}
+		} else {
+			delete this.fs[dirPath];
+		}
+	}
 }
 
 export default InMemoryFileService;

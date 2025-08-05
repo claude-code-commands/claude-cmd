@@ -3,6 +3,7 @@ import {
 	access,
 	mkdir as fsMkdir,
 	readdir,
+	rmdir as fsRmdir,
 	stat,
 	unlink,
 } from "node:fs/promises";
@@ -289,6 +290,17 @@ export default class BunFileService implements IFileService {
 				}
 			}
 			throw error;
+		}
+	}
+
+	/**
+	 * Remove a directory and optionally its contents
+	 */
+	async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+		try {
+			await fsRmdir(path, options);
+		} catch (error) {
+			this.mapSystemError(error, path, "delete");
 		}
 	}
 }

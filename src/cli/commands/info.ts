@@ -64,7 +64,7 @@ export const infoCommand = new Command("info")
 			);
 
 			// Determine language used via shared utility
-			const language = detectLanguage(options.language, languageDetector);
+			const language = await detectLanguage(options.language, languageDetector);
 
 			// Get command content if detailed flag is set
 			let content: string | undefined;

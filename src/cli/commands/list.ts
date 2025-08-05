@@ -48,7 +48,7 @@ export const listCommand = new Command("list")
 			const commands = await commandService.listCommands(serviceOptions);
 
 			// Determine language used
-			const language = detectLanguage(options.language, languageDetector);
+			const language = await detectLanguage(options.language, languageDetector);
 
 			// Format and display output
 			const output = formatCommandList(commands, language);

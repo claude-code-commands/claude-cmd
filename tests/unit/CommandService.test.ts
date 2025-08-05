@@ -5,6 +5,7 @@ import { CommandService } from "../../src/services/CommandService.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import { InstallationService } from "../../src/services/InstallationService.js";
 import { LanguageDetector } from "../../src/services/LanguageDetector.js";
+import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.ts";
 import NamespaceService from "../../src/services/NamespaceService.js";
 import type { Manifest } from "../../src/types/Command.js";
 import {
@@ -39,6 +40,7 @@ describe("CommandService", () => {
 			fileService,
 			directoryDetector,
 			commandParser,
+			new LocalCommandRepository(directoryDetector, commandParser),
 		);
 
 		// Create CommandService with in-memory dependencies

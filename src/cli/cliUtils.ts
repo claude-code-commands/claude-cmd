@@ -1,4 +1,5 @@
 import type { LanguageDetector } from "../services/LanguageDetector.js";
+import { getServices } from "../services/serviceFactory.js";
 
 /**
  * Handle CLI command errors with user-friendly messages
@@ -36,16 +37,26 @@ export function handleError(error: unknown, defaultMessage: string): void {
  * Detect effective language for command execution
  * Centralizes language detection logic across all CLI commands
  */
-export function detectLanguage(
+export async function detectLanguage(
 	optionLanguage: string | undefined,
 	languageDetector: LanguageDetector,
-): string {
-	return (
-		optionLanguage ??
-		languageDetector.detect({
-			cliFlag: "",
-			envVar: process.env.CLAUDE_CMD_LANG ?? "",
-			posixLocale: process.env.LANG ?? "",
-		})
-	);
+): Promise<string> {
+	if (optionLanguage) {
+		return optionLanguage;
+	}
+
+	// Get config services to populate DetectionContext
+	const { projectConfigService, userConfigService } = getServices();
+	
+	// Get config values
+	const projectConfig = await projectConfigService.getProjectConfig();
+	const userLanguage = await userConfigService.getCurrentLanguage();
+
+	return languageDetector.detect({
+		cliFlag: "",
+		envVar: process.env.CLAUDE_CMD_LANG ?? "",
+		projectConfig: projectConfig?.preferredLanguage ?? "",
+		userConfig: userLanguage ?? "",
+		posixLocale: process.env.LANG ?? "",
+	});
 }

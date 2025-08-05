@@ -93,7 +93,7 @@ export const searchCommand = new Command("search")
 			);
 
 			// Determine effective language used for search
-			const language = detectLanguage(options.language, languageDetector);
+			const language = await detectLanguage(options.language, languageDetector);
 
 			// Format results and display to user
 			const output = formatSearchResults(commands, query, language);

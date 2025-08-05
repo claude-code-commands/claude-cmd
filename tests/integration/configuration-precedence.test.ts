@@ -45,7 +45,7 @@ describe("Configuration Precedence Integration", () => {
 
 		// Clean up test directory completely
 		try {
-			await fileService.unlink(path.join(testDir, ".claude", "config.claude-cmd.json"));
+			await fileService.deleteFile(path.join(testDir, ".claude", "config.claude-cmd.json"));
 		} catch {
 			// Ignore if file doesn't exist
 		}
@@ -64,7 +64,7 @@ describe("Configuration Precedence Integration", () => {
 		try {
 			const services = getServices();
 			const userConfigPath = services.userConfigService.getConfigPath();
-			await fileService.unlink(userConfigPath);
+			await fileService.deleteFile(userConfigPath);
 
 			// Try to remove the parent config directory if empty
 			const parentDir = path.dirname(userConfigPath);
@@ -199,7 +199,7 @@ describe("Configuration Precedence Integration", () => {
 
 		// Get user config (simulated as it would come from UserConfigService)
 		const userConfig = {
-			preferredLanguage: await services.userConfigService.getCurrentLanguage(),
+			preferredLanguage: (await services.userConfigService.getCurrentLanguage()) ?? undefined,
 			userSetting: "userValue",
 		};
 

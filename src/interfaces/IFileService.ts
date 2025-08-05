@@ -179,6 +179,18 @@ export default interface IFileService {
 	 * @returns Full path to the command file
 	 */
 	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string;
+
+	/**
+	 * Remove a directory and optionally its contents
+	 *
+	 * @param path - Absolute or relative path to the directory
+	 * @param options - Optional removal options
+	 * @returns Promise that resolves when directory is removed
+	 * @throws FileNotFoundError when directory doesn't exist
+	 * @throws FilePermissionError when delete access is denied
+	 * @throws FileIOError for other I/O failures
+	 */
+	rmdir(path: string, options?: { recursive?: boolean }): Promise<void>;
 }
 
 /**

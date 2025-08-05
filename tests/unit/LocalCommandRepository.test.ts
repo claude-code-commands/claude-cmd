@@ -137,7 +137,7 @@ invalid-yaml: [unclosed
 
 				// Should only include valid command
 				expect(manifest.commands).toHaveLength(1);
-				expect(manifest.commands[0].name).toBe("valid");
+				expect(manifest.commands[0]?.name).toBe("valid");
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -163,7 +163,9 @@ description: "Test command"
 				// Both should return same results (local commands are language-agnostic)
 				expect(manifestEn.commands).toHaveLength(1);
 				expect(manifestFr.commands).toHaveLength(1);
-				expect(manifestEn.commands[0].name).toBe(manifestFr.commands[0].name);
+				expect(manifestEn.commands[0]).toBeDefined();
+				expect(manifestFr.commands[0]).toBeDefined();
+				expect(manifestEn.commands[0]!.name).toBe(manifestFr.commands[0]!.name);
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -190,9 +192,10 @@ description: "Login authentication helper"
 
 				expect(manifest.commands).toHaveLength(1);
 				const loginCmd = manifest.commands[0];
-				expect(loginCmd.name).toBe("login");
-				expect(loginCmd.namespace).toBe("backend:auth");
-				expect(loginCmd.file).toBe("backend/auth/login.md");
+				expect(loginCmd).toBeDefined();
+				expect(loginCmd!.name).toBe("login");
+				expect(loginCmd!.namespace).toBe("backend:auth");
+				expect(loginCmd!.file).toBe("backend/auth/login.md");
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -312,7 +315,9 @@ description: "Test command"
 				// Should return same results regardless of forceRefresh
 				expect(manifest1.commands).toHaveLength(1);
 				expect(manifest2.commands).toHaveLength(1);
-				expect(manifest1.commands[0].name).toBe(manifest2.commands[0].name);
+				expect(manifest1.commands[0]).toBeDefined();
+				expect(manifest2.commands[0]).toBeDefined();  
+				expect(manifest1.commands[0]!.name).toBe(manifest2.commands[0]!.name);
 			} finally {
 				process.env.HOME = originalHome;
 			}

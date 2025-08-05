@@ -164,6 +164,49 @@ export function createFileServiceContractTests(
 			});
 		});
 
+		describe("directory removal", () => {
+			test("should remove empty directories", async () => {
+				const dirPath = "empty-dir";
+
+				await fileService.mkdir(dirPath);
+				expect(await fileService.exists(dirPath)).toBe(true);
+
+				await fileService.rmdir(dirPath);
+				expect(await fileService.exists(dirPath)).toBe(false);
+			});
+
+			test("should throw error when removing non-empty directory without recursive option", async () => {
+				const dirPath = "non-empty-dir";
+				const filePath = `${dirPath}/file.txt`;
+
+				await fileService.mkdir(dirPath);
+				await fileService.writeFile(filePath, "content");
+
+				await expect(fileService.rmdir(dirPath)).rejects.toThrow();
+			});
+
+			test("should remove non-empty directories with recursive option", async () => {
+				const dirPath = "recursive-dir";
+				const filePath = `${dirPath}/nested/file.txt`;
+
+				await fileService.writeFile(filePath, "content");
+				expect(await fileService.exists(dirPath)).toBe(true);
+				expect(await fileService.exists(`${dirPath}/nested`)).toBe(true);
+				expect(await fileService.exists(filePath)).toBe(true);
+
+				await fileService.rmdir(dirPath, { recursive: true });
+				expect(await fileService.exists(dirPath)).toBe(false);
+				expect(await fileService.exists(`${dirPath}/nested`)).toBe(false);
+				expect(await fileService.exists(filePath)).toBe(false);
+			});
+
+			test("should throw FileNotFoundError when removing non-existent directory", async () => {
+				await expect(
+					fileService.rmdir("non-existent-dir"),
+				).rejects.toThrow(FileNotFoundError);
+			});
+		});
+
 		describe("directory listing operations", () => {
 			test("should list files in a directory", async () => {
 				const dirPath = "list-test";

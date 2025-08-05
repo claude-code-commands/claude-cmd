@@ -159,7 +159,7 @@ describe("ProjectConfigService", () => {
 		});
 
 		it("should return false for non-string language", () => {
-			const config = { preferredLanguage: 123 };
+			const config = { preferredLanguage: 123 as any }; // Cast to test non-string input
 			expect(projectConfigService.validateConfig(config)).toBe(false);
 		});
 
