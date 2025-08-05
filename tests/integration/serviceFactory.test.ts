@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import crypto from "node:crypto";
+import { rm, rmdir } from "node:fs/promises";
 import path from "node:path";
 import BunFileService from "../../src/services/BunFileService.js";
 import {
@@ -34,31 +35,32 @@ describe("serviceFactory integration with ProjectConfigService", () => {
 
 		// Clean up test directory completely
 		try {
-			await fileService.unlink(path.join(testDir, ".claude", "config.json"));
-		} catch {
-			// Ignore if file doesn't exist
+			await Bun.file(path.join(testDir, ".claude", "config.json")).delete();
+		} catch (err) {
+			if (err instanceof Error && "code" in err && err.code !== "ENOENT") {
+				console.warn("Could not clean up test config file", err);
+			}
 		}
 		try {
-			await fileService.rmdir(path.join(testDir, ".claude"));
-		} catch {
-			// Ignore if directory doesn't exist
-		}
-		try {
-			await fileService.rmdir(testDir);
-		} catch {
-			// Ignore if directory doesn't exist
+			await rm(testDir, { recursive: true });
+		} catch (err) {
+			if (err instanceof Error && "code" in err && err.code !== "ENOENT") {
+				console.warn("Could not clean up test directory", err);
+			}
 		}
 
 		// Clean up user config if created
 		try {
 			const services = getServices();
 			const userConfigPath = services.userConfigService.getConfigPath();
-			await fileService.unlink(userConfigPath);
+			await Bun.file(userConfigPath).delete();
 
 			const parentDir = path.dirname(userConfigPath);
-			await fileService.rmdir(parentDir);
-		} catch {
-			// Ignore if file/directory doesn't exist
+			await rmdir(parentDir);
+		} catch (err) {
+			if (err instanceof Error && "code" in err && err.code !== "ENOENT") {
+				console.warn("Could not clean up test user config directory", err);
+			}
 		}
 	});
 
