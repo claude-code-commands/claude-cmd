@@ -13,23 +13,23 @@ describe("ProjectConfigService", () => {
 	});
 
 	describe("getProjectConfig", () => {
-		it("should return null when .claude/config.json does not exist", async () => {
+		it("should return null when .claude/config.claude-cmd.json does not exist", async () => {
 			const config = await projectConfigService.getProjectConfig();
 			expect(config).toBeNull();
 		});
 
-		it("should return parsed config when .claude/config.json exists", async () => {
+		it("should return parsed config when .claude/config.claude-cmd.json exists", async () => {
 			const configData = {
 				preferredLanguage: "fr",
 			};
-			await fileService.writeFile(".claude/config.json", JSON.stringify(configData));
+			await fileService.writeFile(".claude/config.claude-cmd.json", JSON.stringify(configData));
 
 			const config = await projectConfigService.getProjectConfig();
 			expect(config).toEqual(configData);
 		});
 
-		it("should return null when .claude/config.json has invalid JSON", async () => {
-			await fileService.writeFile(".claude/config.json", "invalid json");
+		it("should return null when .claude/config.claude-cmd.json has invalid JSON", async () => {
+			await fileService.writeFile(".claude/config.claude-cmd.json", "invalid json");
 
 			const config = await projectConfigService.getProjectConfig();
 			expect(config).toBeNull();
@@ -37,7 +37,7 @@ describe("ProjectConfigService", () => {
 
 		it("should return null when file read fails", async () => {
 			// Create directory to make file read fail
-			await fileService.mkdir(".claude/config.json");
+			await fileService.mkdir(".claude/config.claude-cmd.json");
 
 			const config = await projectConfigService.getProjectConfig();
 			expect(config).toBeNull();
@@ -51,7 +51,7 @@ describe("ProjectConfigService", () => {
 			await projectConfigService.setProjectConfig(config);
 
 			expect(await fileService.exists(".claude")).toBe(true);
-			const written = await fileService.readFile(".claude/config.json");
+			const written = await fileService.readFile(".claude/config.claude-cmd.json");
 			expect(JSON.parse(written)).toEqual(config);
 		});
 
@@ -62,7 +62,7 @@ describe("ProjectConfigService", () => {
 			await projectConfigService.setProjectConfig(initialConfig);
 			await projectConfigService.setProjectConfig(updatedConfig);
 
-			const written = await fileService.readFile(".claude/config.json");
+			const written = await fileService.readFile(".claude/config.claude-cmd.json");
 			expect(JSON.parse(written)).toEqual(updatedConfig);
 		});
 
@@ -175,7 +175,7 @@ describe("ProjectConfigService", () => {
 	describe("getConfigPath", () => {
 		it("should return correct config path", () => {
 			const path = projectConfigService.getConfigPath();
-			expect(path).toBe(".claude/config.json");
+			expect(path).toBe(".claude/config.claude-cmd.json");
 		});
 	});
 });

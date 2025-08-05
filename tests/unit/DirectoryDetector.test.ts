@@ -279,7 +279,7 @@ describe("DirectoryDetector", () => {
 				
 				// Create non-command files (should be ignored)
 				await fileService.writeFile("/test/commands/README.txt", "Not a command");
-				await fileService.writeFile("/test/commands/config.json", "{}");
+				await fileService.writeFile("/test/commands/config.claude-cmd.json", "{}");
 
 				const commandFiles = await directoryDetector.scanForCommandFiles("/test/commands");
 

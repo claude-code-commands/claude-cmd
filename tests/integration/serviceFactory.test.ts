@@ -35,7 +35,9 @@ describe("serviceFactory integration with ProjectConfigService", () => {
 
 		// Clean up test directory completely
 		try {
-			await Bun.file(path.join(testDir, ".claude", "config.json")).delete();
+			await Bun.file(
+				path.join(testDir, ".claude", "config.claude-cmd.json"),
+			).delete();
 		} catch (err) {
 			if (err instanceof Error && "code" in err && err.code !== "ENOENT") {
 				console.warn("Could not clean up test config file", err);

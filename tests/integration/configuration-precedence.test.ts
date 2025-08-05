@@ -45,7 +45,7 @@ describe("Configuration Precedence Integration", () => {
 
 		// Clean up test directory completely
 		try {
-			await fileService.unlink(path.join(testDir, ".claude", "config.json"));
+			await fileService.unlink(path.join(testDir, ".claude", "config.claude-cmd.json"));
 		} catch {
 			// Ignore if file doesn't exist
 		}
@@ -78,7 +78,7 @@ describe("Configuration Precedence Integration", () => {
 		const services = getServices();
 
 		// Verify file doesn't exist (we're in a fresh test directory)
-		const fileExists = await fileService.exists(".claude/config.json");
+		const fileExists = await fileService.exists(".claude/config.claude-cmd.json");
 		expect(fileExists).toBe(false);
 
 		// Set up user config only
@@ -223,7 +223,7 @@ describe("Configuration Precedence Integration", () => {
 
 		// Create corrupted project config
 		await fileService.mkdir(".claude");
-		await fileService.writeFile(".claude/config.json", "invalid json");
+		await fileService.writeFile(".claude/config.claude-cmd.json", "invalid json");
 
 		// Should return null for corrupted config
 		const projectConfig =

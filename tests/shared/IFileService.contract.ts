@@ -359,9 +359,9 @@ export function createFileServiceContractTests(
 				await fileService.writeFile("commands/project/backend/api.md", "# API Generator");
 				await fileService.writeFile("commands/project/backend/auth/jwt.md", "# JWT Auth");
 				
-				// Add additional files - README.md will be included (it's a .md file), config.json will be ignored
+				// Add additional files - README.md will be included (it's a .md file), config.claude-cmd.json will be ignored
 				await fileService.writeFile("commands/README.md", "# Documentation");
-				await fileService.writeFile("commands/project/config.json", "{}"); // Not .md file
+				await fileService.writeFile("commands/project/config.claude-cmd.json", "{}"); // Not .md file
 				
 				const namespacedFiles = await fileService.scanNamespaceHierarchy(basePath);
 				

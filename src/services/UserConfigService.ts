@@ -28,7 +28,7 @@ interface UserConfig {
  * 4. Fallback to English (en)
  *
  * Configuration is stored in the user's config directory at:
- * ~/.config/claude-cmd/config.json
+ * ~/.config/claude-cmd/config.claude-cmd.json
  *
  * @example Basic usage
  * ```typescript
@@ -75,7 +75,7 @@ export class UserConfigService implements IUserConfigService {
 		private readonly repository: IRepository,
 	) {
 		this.configDir = path.join(os.homedir(), ".config", "claude-cmd");
-		this.configFile = path.join(this.configDir, "config.json");
+		this.configFile = path.join(this.configDir, "config.claude-cmd.json");
 	}
 
 	/**
@@ -192,8 +192,8 @@ export class UserConfigService implements IUserConfigService {
 	 * Follows the complete precedence order:
 	 * 1. CLI flag (not applicable in this context)
 	 * 2. CLAUDE_CMD_LANG environment variable
-	 * 3. Project configuration (.claude/config.json)
-	 * 4. User configuration (~/.config/claude-cmd/config.json)
+	 * 3. Project configuration (.claude/config.claude-cmd.json)
+	 * 4. User configuration (~/.config/claude-cmd/config.claude-cmd.json)
 	 * 5. System locale (LC_ALL, LC_MESSAGES, LANG)
 	 * 6. Fallback to English
 	 *
