@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`claude-cmd` is a CLI package manager for Claude Code slash commands, designed to solve the discovery and sharing problem for custom commands. It follows a local-first design approach with GitHub repository synchronization, built with Bun for optimal performance.
+`claude-cmd` is a CLI package manager for Claude Code slash commands, designed to solve the discovery and sharing problem for custom commands. This is the **Bun TypeScript implementation** that's actively catching up to feature parity with the mature Go implementation in `../claude-cmd-go/`.
+
+**Current Status**: In active development following the plan in `../ai_docs/PLAN.Bun.md` to achieve complete feature parity with the Go version.
 
 ## Essential Commands
 
@@ -14,11 +16,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `bun run start` - Run the built CLI
 - `bun run build` - Build for production (outputs to `dist/`)
 
-### Testing
-- `CLAUDECODE=1 bun test unit` - Run unit tests (fast, no I/O)
-- `CLAUDECODE=1 bun test tests/integration/<test-file-name.test.ts>` - Run integration tests (slow, with I/O)
-- `CLAUDECODE=1 bun test` - Run all tests
+### Testing (CRITICAL - Always Use CLAUDECODE=1)
+- `CLAUDECODE=1 bun test unit` - Run unit tests only (fast, no I/O)
+- `CLAUDECODE=1 bun test tests/integration/` - Run integration tests (slower, real I/O)
+- `CLAUDECODE=1 bun test tests/integration/<specific-test.test.ts>` - Run specific integration test
+- `CLAUDECODE=1 bun test` - Run all tests (unit + integration)
 - `bun run typecheck` - TypeScript type checking
+
+**IMPORTANT**: The `CLAUDECODE=1` environment variable is required for all test runs. Without it, tests may not execute properly.
 
 ### Code Quality
 - `bun run check` - Run Biome linter checks
@@ -48,13 +53,15 @@ The `serviceFactory.ts` creates singleton instances with this dependency graph:
 - **CacheManager**: Local cache management in OS-specific user cache directory
 - **DirectoryDetector**: Finds `.claude/commands/` (project) or `~/.claude/commands/` (user) directories
 
-### Interface-Based Design
+### Interface-Based Design (Critical for Testing)
 
 All I/O operations use interfaces for testability:
 - `IFileService` - File system operations (implemented by `BunFileService`)
 - `IHTTPClient` - HTTP requests (implemented by `BunHTTPClient`)
 - `IRepository` - Command repository access (implemented by `HTTPRepository`)
 - `IInstallationService` - Command installation logic
+- `INamespaceService` - Namespace parsing and validation (in development)
+- `IUserInteractionService` - User prompts and confirmations (in development)
 
 ### Error Handling Patterns
 
@@ -73,25 +80,39 @@ Commands are defined by the `Command` interface with:
 - `allowed-tools`: Tool permissions (array or comma-separated string)
 - `argument-hint`: Optional completion hint
 
+### Namespace Support (In Development)
+- Namespaced commands: `"project:frontend:component"`
+- Hierarchical directory structure in `.claude/commands/`
+- Colon-separated vs path-based format conversion
+- Backward compatibility with flat commands
+
 ### Repository & Caching
 - Commands stored in GitHub repository with `index.json` manifest
 - Local cache in `{UserCacheDir}/claude-cmd/pages/{lang}/index.json`
 - Language-specific manifests support internationalization
 - Force refresh bypasses cache for development
 
-## Testing Strategy
+## Testing Strategy (CRITICAL)
 
 ### Unit Tests (`tests/unit/`)
 Use mock implementations (`tests/mocks/`) to test business logic without I/O:
 - `InMemoryFileService` for file operations
 - `InMemoryHTTPClient` for network requests
+- `InMemoryRepository` for repository operations
+- `InMemoryUserInteractionService` for user prompts
 - Focus on core logic, edge cases, and error handling
 
 ### Integration Tests (`tests/integration/`)
-Test real I/O implementations:
+Test real I/O implementations with actual systems:
 - `BunFileService` with actual file system
 - `BunHTTPClient` with real HTTP requests
-- CLI command integration with system
+- CLI command integration testing
+- Service factory integration testing
+
+### Test Contract Pattern
+Shared contract tests ensure mock implementations match real ones:
+- `tests/shared/IFileService.contract.ts` - Tests both real and mock implementations
+- `tests/shared/IHTTPClient.contract.ts` - Ensures behavior consistency
 
 ## Bun-Specific Considerations
 
@@ -110,17 +131,27 @@ Test real I/O implementations:
 5. Follow existing error handling patterns with typed exceptions
 6. Commander.js provides CLI structure - add new commands to `src/cli/commands/`
 
-## Software Engineering Methodology
+## Development Methodology & Current Status
 
-All features must be developed following a TDD-like workflow (DESIGN-RED-GREEN-REFACTOR-REVIEW) that respects the SOLID principles:
+**This implementation is actively catching up to feature parity with the Go version.** Follow the development priorities and task dependencies outlined in `../ai_docs/PLAN.Bun.md`.
 
-1. DESIGN: Design the domain models and the contracts between the different layers: the types, the interfaces
-2. RED: Write the tests against a non-existing implementation and ensure they fail, covering the happy path and the various failure modes
-3. GREEN: Write the minimum amount of code to make the tests pass
-4. REFACTOR: Think hard about how to make the implementation better: documentation, decoupling/cohesiveness, security, performance
-5. REVIEW: Use zen to review the previous steps and present your analysis and findings to the user. You MUST stop here and MUST NOT try to fix the problems you found; the user will decide how to proceed with the review.
+### TDD Workflow (MANDATORY)
 
-ATTENTION: you try to reuse and adapt existing code and infrastructure as much as possible, and introduce new abstractions only when necessary. You value simplicity and try to limit the number of layers to the minimum that conforms to the principles and provides a useful solution.
+All features must follow a DESIGN-RED-GREEN-REFACTOR-REVIEW workflow:
+
+1. **DESIGN**: Design domain models and contracts between layers (types, interfaces)
+2. **RED**: Write failing tests covering happy path and failure modes
+3. **GREEN**: Write minimal code to make tests pass
+4. **REFACTOR**: Improve code quality while keeping tests green
+5. **REVIEW**: Use zen to review and present findings to user (STOP here)
+
+### Key Development Principles
+
+- **Reuse First**: Adapt existing infrastructure before creating new abstractions
+- **Simplicity**: Limit layers to a minimum that conforms to principles
+- **Interface Isolation**: All I/O operations must use interface abstractions
+- **Dependency Injection**: Use `serviceFactory.ts` for service management
+- **Test Coverage**: Maintain comprehensive unit and integration test coverage
 
 
 ## Cache Directory Structure
