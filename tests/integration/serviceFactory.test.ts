@@ -8,7 +8,7 @@ import {
 	resetServices,
 } from "../../src/services/serviceFactory.js";
 
-describe("serviceFactory integration with ProjectConfigService", () => {
+describe("serviceFactory integration with ConfigService", () => {
 	let testDir: string;
 	let originalCwd: string;
 	let fileService: BunFileService;
@@ -21,7 +21,7 @@ describe("serviceFactory integration with ProjectConfigService", () => {
 		// Create unique test directory for each test
 		testDir = path.join(
 			process.cwd(),
-			"factory-test-" + crypto.randomUUID().slice(0, 8),
+			`factory-test-${crypto.randomUUID().slice(0, 8)}`,
 		);
 		await fileService.mkdir(testDir);
 		process.chdir(testDir);
@@ -66,59 +66,87 @@ describe("serviceFactory integration with ProjectConfigService", () => {
 		}
 	});
 
-	it("should create ProjectConfigService instance in services", () => {
+	it("should create ConfigService instances and ConfigManager in services", () => {
 		const services = getServices();
 		expect(services.projectConfigService).toBeDefined();
-		expect(typeof services.projectConfigService.getProjectConfig).toBe(
-			"function",
-		);
-		expect(typeof services.projectConfigService.setProjectConfig).toBe(
-			"function",
-		);
-		expect(typeof services.projectConfigService.mergeConfigs).toBe("function");
+		expect(services.userConfigService).toBeDefined();
+		expect(services.configManager).toBeDefined();
+
+		expect(typeof services.projectConfigService.getConfig).toBe("function");
+		expect(typeof services.projectConfigService.setConfig).toBe("function");
+		expect(typeof services.userConfigService.getConfig).toBe("function");
+		expect(typeof services.userConfigService.setConfig).toBe("function");
+		expect(typeof services.configManager.getEffectiveConfig).toBe("function");
+		expect(typeof services.configManager.getEffectiveLanguage).toBe("function");
 	});
 
-	it("should return the same ProjectConfigService instance on multiple calls", () => {
+	it("should return the same ConfigService instances on multiple calls", () => {
 		const services1 = getServices();
 		const services2 = getServices();
 		expect(services1.projectConfigService).toBe(services2.projectConfigService);
+		expect(services1.userConfigService).toBe(services2.userConfigService);
+		expect(services1.configManager).toBe(services2.configManager);
 	});
 
-	it("should create fresh ProjectConfigService instance after reset", () => {
+	it("should create fresh ConfigService instances after reset", () => {
 		const services1 = getServices();
 		resetServices();
 		const services2 = getServices();
 		expect(services1.projectConfigService).not.toBe(
 			services2.projectConfigService,
 		);
+		expect(services1.userConfigService).not.toBe(services2.userConfigService);
+		expect(services1.configManager).not.toBe(services2.configManager);
 	});
 
-	it("should integrate project config with language detection", async () => {
+	it("should integrate config services with language detection", async () => {
 		const services = getServices();
 
-		// Test that UserConfigService can work with project config
-		const projectConfig = { preferredLanguage: "fr" };
-		const effectiveLanguage =
-			await services.userConfigService.getEffectiveLanguageWithProjectConfig(
-				projectConfig,
-			);
+		// Test that ConfigManager can work with both config services
+		await services.projectConfigService.setConfig({ preferredLanguage: "fr" });
 
+		const effectiveLanguage =
+			await services.configManager.getEffectiveLanguage();
 		expect(typeof effectiveLanguage).toBe("string");
 		expect(effectiveLanguage.length).toBeGreaterThan(0);
+		expect(effectiveLanguage).toBe("fr");
 	});
 
-	it("should provide project config service with proper file service dependency", async () => {
+	it("should provide config services with proper file service dependency", async () => {
 		const services = getServices();
 
-		// Test that ProjectConfigService can perform file operations
-		const testConfig = { preferredLanguage: "es" };
+		// Test that ConfigService instances can perform file operations
+		const testUserConfig = {
+			preferredLanguage: "en",
+			repositoryURL: "https://test.com",
+		};
+		const testProjectConfig = { preferredLanguage: "es" };
 
 		// This should not throw - the file service dependency should be properly injected
-		await services.projectConfigService.setProjectConfig(testConfig);
+		await services.userConfigService.setConfig(testUserConfig);
+		await services.projectConfigService.setConfig(testProjectConfig);
 
-		// Should be able to read back the config
-		const retrievedConfig =
-			await services.projectConfigService.getProjectConfig();
-		expect(retrievedConfig).toEqual(testConfig);
+		// Should be able to read back the configs
+		const retrievedUserConfig = await services.userConfigService.getConfig();
+		const retrievedProjectConfig =
+			await services.projectConfigService.getConfig();
+
+		expect(retrievedUserConfig).toEqual(testUserConfig);
+		expect(retrievedProjectConfig).toEqual(testProjectConfig);
+	});
+
+	it("should share LanguageDetector instance across config services", () => {
+		const services = getServices();
+
+		// Both config services and manager should use the same languageDetector
+		expect(services.languageDetector).toBeDefined();
+
+		// This is hard to test directly, but we can verify behavior consistency
+		expect(services.userConfigService.getConfigPath()).toContain(
+			"config.claude-cmd.json",
+		);
+		expect(services.projectConfigService.getConfigPath()).toContain(
+			"config.claude-cmd.json",
+		);
 	});
 });

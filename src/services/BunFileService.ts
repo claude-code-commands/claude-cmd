@@ -2,8 +2,8 @@ import { constants } from "node:fs";
 import {
 	access,
 	mkdir as fsMkdir,
-	readdir,
 	rmdir as fsRmdir,
+	readdir,
 	stat,
 	unlink,
 } from "node:fs/promises";
@@ -205,7 +205,10 @@ export default class BunFileService implements IFileService {
 	/**
 	 * Create hierarchical directory structure for namespace
 	 */
-	async createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string> {
+	async createNamespaceDirectories(
+		basePath: string,
+		namespacePath: string,
+	): Promise<string> {
 		try {
 			const fullPath = join(basePath, namespacePath);
 			await this.mkdir(fullPath);
@@ -218,7 +221,10 @@ export default class BunFileService implements IFileService {
 	/**
 	 * Scan directory hierarchy for command files
 	 */
-	async scanNamespaceHierarchy(basePath: string, maxDepth = 10): Promise<NamespacedFile[]> {
+	async scanNamespaceHierarchy(
+		basePath: string,
+		maxDepth = 10,
+	): Promise<NamespacedFile[]> {
 		try {
 			const files: NamespacedFile[] = [];
 			await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
@@ -231,7 +237,11 @@ export default class BunFileService implements IFileService {
 	/**
 	 * Resolve path for namespaced command file
 	 */
-	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string {
+	resolveNamespacedPath(
+		basePath: string,
+		namespacePath: string,
+		fileName: string,
+	): string {
 		return join(basePath, namespacePath, fileName);
 	}
 
@@ -256,11 +266,10 @@ export default class BunFileService implements IFileService {
 				const fullPath = join(currentPath, entry.name);
 				const relativePath = relative(basePath, fullPath);
 
-				if (entry.isFile() && entry.name.endsWith('.md')) {
+				if (entry.isFile() && entry.name.endsWith(".md")) {
 					// Extract namespace path from directory structure
-					const namespacePath = currentDepth === 0 
-						? '' 
-						: relative(basePath, currentPath);
+					const namespacePath =
+						currentDepth === 0 ? "" : relative(basePath, currentPath);
 
 					files.push({
 						filePath: fullPath,

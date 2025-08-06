@@ -92,7 +92,7 @@ export class LocalCommandRepository implements IRepository {
 
 					commands.push(command);
 					processedNames.add(fileName);
-				} catch (error) {}
+				} catch (_error) {}
 			}
 
 			// Create manifest with current timestamp
@@ -103,7 +103,7 @@ export class LocalCommandRepository implements IRepository {
 			};
 
 			return manifest;
-		} catch (error) {
+		} catch (_error) {
 			// If directory scanning fails, return empty manifest
 			return {
 				version: "1.0.0",
@@ -128,7 +128,7 @@ export class LocalCommandRepository implements IRepository {
 	async getCommand(
 		commandName: string,
 		language: string,
-		options?: RepositoryOptions,
+		_options?: RepositoryOptions,
 	): Promise<string> {
 		try {
 			// Scan all Claude directories for command files
@@ -198,7 +198,7 @@ export class LocalCommandRepository implements IRepository {
 
 			// Fallback - extract relative path from filename if path doesn't match expected directories
 			return path.basename(absolutePath);
-		} catch (error) {
+		} catch (_error) {
 			// Fallback to just the filename
 			return path.basename(absolutePath);
 		}

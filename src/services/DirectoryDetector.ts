@@ -1,7 +1,10 @@
 import os from "node:os";
 import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
-import type { DirectoryInfo, CommandScanResult } from "../types/Installation.js";
+import type {
+	CommandScanResult,
+	DirectoryInfo,
+} from "../types/Installation.js";
 
 /**
  * DirectoryDetector handles detection and management of Claude command directories
@@ -119,35 +122,36 @@ export class DirectoryDetector {
 			}
 
 			// Use the existing scanNamespaceHierarchy method for consistency
-			const namespacedFiles = await this.fileService.scanNamespaceHierarchy(directoryPath);
-			
+			const namespacedFiles =
+				await this.fileService.scanNamespaceHierarchy(directoryPath);
+
 			// Extract full file paths, filter .md files, and exclude hidden files/directories
 			const commandFiles = namespacedFiles
-				.filter(file => {
+				.filter((file) => {
 					// Must be a .md file
-					if (!file.fileName.endsWith('.md')) {
+					if (!file.fileName.endsWith(".md")) {
 						return false;
 					}
-					
+
 					// Exclude hidden files (starting with .)
-					if (file.fileName.startsWith('.')) {
+					if (file.fileName.startsWith(".")) {
 						return false;
 					}
-					
+
 					// Exclude files in hidden directories (any path segment starting with .)
-					const pathSegments = file.relativePath.split('/');
+					const pathSegments = file.relativePath.split("/");
 					for (const segment of pathSegments) {
-						if (segment.startsWith('.')) {
+						if (segment.startsWith(".")) {
 							return false;
 						}
 					}
-					
+
 					return true;
 				})
-				.map(file => file.filePath);
+				.map((file) => file.filePath);
 
 			return commandFiles.sort(); // Sort for consistent ordering
-		} catch (error) {
+		} catch (_error) {
 			// If we can't read the directory, return empty array instead of throwing
 			// This provides more resilient behavior for permission issues or other I/O errors
 			return [];
@@ -235,5 +239,4 @@ export class DirectoryDetector {
 		const parentDir = path.dirname(dirPath);
 		return await this.fileService.isWritable(parentDir);
 	}
-
 }

@@ -10,23 +10,28 @@ languageCommand
 	.description("List available languages and show current language setting")
 	.action(async () => {
 		try {
-			const { userConfigService } = getServices();
+			const { userConfigService, configManager } = getServices();
 
-			const [currentLanguage, availableLanguages] = await Promise.all([
-				userConfigService.getCurrentLanguage(),
-				userConfigService.getAvailableLanguages(),
-			]);
+			const [userConfig, availableLanguages, effectiveLanguage] =
+				await Promise.all([
+					userConfigService.getConfig(),
+					userConfigService.getAvailableLanguages(),
+					configManager.getEffectiveLanguage(),
+				]);
+
+			const currentUserLanguage = userConfig?.preferredLanguage;
 
 			console.log("Available languages:");
 			for (const lang of availableLanguages) {
 				const status = lang.available ? "✓" : "✗";
-				const marker = currentLanguage === lang.code ? " (current)" : "";
+				const marker = currentUserLanguage === lang.code ? " (current)" : "";
 				console.log(`  ${status} ${lang.code} - ${lang.name}${marker}`);
 			}
 
 			console.log(
-				`\nCurrent language: ${currentLanguage || "not set (using auto-detection)"}`,
+				`\nCurrent user language: ${currentUserLanguage || "not set (using auto-detection)"}`,
 			);
+			console.log(`Effective language: ${effectiveLanguage}`);
 		} catch (error) {
 			console.error(
 				"Error listing languages:",
@@ -43,7 +48,12 @@ languageCommand
 	.action(async (language) => {
 		try {
 			const { userConfigService } = getServices();
-			await userConfigService.setLanguage(language);
+
+			// Get current config and update just the language
+			const currentConfig = (await userConfigService.getConfig()) || {};
+			const updatedConfig = { ...currentConfig, preferredLanguage: language };
+
+			await userConfigService.setConfig(updatedConfig);
 			console.log(`Language preference set to: ${language}`);
 		} catch (error) {
 			console.error(

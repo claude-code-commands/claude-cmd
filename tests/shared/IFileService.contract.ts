@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type IFileService from "../../src/interfaces/IFileService.ts";
-import { FileNotFoundError, type NamespacedFile } from "../../src/interfaces/IFileService.ts";
+import { FileNotFoundError } from "../../src/interfaces/IFileService.ts";
 
 /**
  * Setup context for contract tests
@@ -201,9 +201,9 @@ export function createFileServiceContractTests(
 			});
 
 			test("should throw FileNotFoundError when removing non-existent directory", async () => {
-				await expect(
-					fileService.rmdir("non-existent-dir"),
-				).rejects.toThrow(FileNotFoundError);
+				await expect(fileService.rmdir("non-existent-dir")).rejects.toThrow(
+					FileNotFoundError,
+				);
 			});
 		});
 
@@ -372,75 +372,119 @@ export function createFileServiceContractTests(
 			test("should create namespace directories", async () => {
 				const basePath = "commands";
 				const namespacePath = "project/frontend/component";
-				
-				const fullPath = await fileService.createNamespaceDirectories(basePath, namespacePath);
-				
+
+				const fullPath = await fileService.createNamespaceDirectories(
+					basePath,
+					namespacePath,
+				);
+
 				expect(fullPath).toBe("commands/project/frontend/component");
 				expect(await fileService.exists("commands")).toBe(true);
 				expect(await fileService.exists("commands/project")).toBe(true);
-				expect(await fileService.exists("commands/project/frontend")).toBe(true);
-				expect(await fileService.exists("commands/project/frontend/component")).toBe(true);
+				expect(await fileService.exists("commands/project/frontend")).toBe(
+					true,
+				);
+				expect(
+					await fileService.exists("commands/project/frontend/component"),
+				).toBe(true);
 			});
 
 			test("should resolve namespaced paths correctly", async () => {
 				const basePath = "commands";
 				const namespacePath = "project/frontend";
 				const fileName = "create-component.md";
-				
-				const resolvedPath = fileService.resolveNamespacedPath(basePath, namespacePath, fileName);
-				
-				expect(resolvedPath).toBe("commands/project/frontend/create-component.md");
+
+				const resolvedPath = fileService.resolveNamespacedPath(
+					basePath,
+					namespacePath,
+					fileName,
+				);
+
+				expect(resolvedPath).toBe(
+					"commands/project/frontend/create-component.md",
+				);
 			});
 
 			test("should scan namespace hierarchy for command files", async () => {
 				const basePath = "commands";
-				
+
 				// Create a hierarchical structure with command files
-				await fileService.writeFile("commands/root-command.md", "# Root Command");
-				await fileService.writeFile("commands/project/project-setup.md", "# Project Setup");
-				await fileService.writeFile("commands/project/frontend/component.md", "# Component Generator");
-				await fileService.writeFile("commands/project/backend/api.md", "# API Generator");
-				await fileService.writeFile("commands/project/backend/auth/jwt.md", "# JWT Auth");
-				
+				await fileService.writeFile(
+					"commands/root-command.md",
+					"# Root Command",
+				);
+				await fileService.writeFile(
+					"commands/project/project-setup.md",
+					"# Project Setup",
+				);
+				await fileService.writeFile(
+					"commands/project/frontend/component.md",
+					"# Component Generator",
+				);
+				await fileService.writeFile(
+					"commands/project/backend/api.md",
+					"# API Generator",
+				);
+				await fileService.writeFile(
+					"commands/project/backend/auth/jwt.md",
+					"# JWT Auth",
+				);
+
 				// Add additional files - README.md will be included (it's a .md file), config.claude-cmd.json will be ignored
 				await fileService.writeFile("commands/README.md", "# Documentation");
-				await fileService.writeFile("commands/project/config.claude-cmd.json", "{}"); // Not .md file
-				
-				const namespacedFiles = await fileService.scanNamespaceHierarchy(basePath);
-				
+				await fileService.writeFile(
+					"commands/project/config.claude-cmd.json",
+					"{}",
+				); // Not .md file
+
+				const namespacedFiles =
+					await fileService.scanNamespaceHierarchy(basePath);
+
 				expect(namespacedFiles).toHaveLength(6);
-				
+
 				// Check root level commands
-				const rootCommand = namespacedFiles.find(f => f.fileName === "root-command.md");
+				const rootCommand = namespacedFiles.find(
+					(f) => f.fileName === "root-command.md",
+				);
 				expect(rootCommand).toBeDefined();
 				expect(rootCommand?.depth).toBe(0);
 				expect(rootCommand?.namespacePath).toBe("");
 
-				const readmeFile = namespacedFiles.find(f => f.fileName === "README.md");
+				const readmeFile = namespacedFiles.find(
+					(f) => f.fileName === "README.md",
+				);
 				expect(readmeFile).toBeDefined();
 				expect(readmeFile?.depth).toBe(0);
 				expect(readmeFile?.namespacePath).toBe("");
-				
+
 				// Check project level command
-				const projectCommand = namespacedFiles.find(f => f.fileName === "project-setup.md");
+				const projectCommand = namespacedFiles.find(
+					(f) => f.fileName === "project-setup.md",
+				);
 				expect(projectCommand).toBeDefined();
 				expect(projectCommand?.depth).toBe(1);
 				expect(projectCommand?.namespacePath).toBe("project");
-				
+
 				// Check frontend command
-				const frontendCommand = namespacedFiles.find(f => f.fileName === "component.md");
+				const frontendCommand = namespacedFiles.find(
+					(f) => f.fileName === "component.md",
+				);
 				expect(frontendCommand).toBeDefined();
 				expect(frontendCommand?.depth).toBe(2);
 				expect(frontendCommand?.namespacePath).toBe("project/frontend");
-				
+
 				// Check backend command
-				const backendCommand = namespacedFiles.find(f => f.fileName === "api.md");
+				const backendCommand = namespacedFiles.find(
+					(f) => f.fileName === "api.md",
+				);
 				expect(backendCommand).toBeDefined();
 				expect(backendCommand?.depth).toBe(2);
 				expect(backendCommand?.namespacePath).toBe("project/backend");
-				
+
 				// Check deeply nested command
-				const authCommand = namespacedFiles.find(f => f.fileName === "jwt.md");
+				const authCommand = namespacedFiles.find(
+					(f) => f.fileName === "jwt.md",
+				);
 				expect(authCommand).toBeDefined();
 				expect(authCommand?.depth).toBe(3);
 				expect(authCommand?.namespacePath).toBe("project/backend/auth");
@@ -448,13 +492,22 @@ export function createFileServiceContractTests(
 
 			test("should respect max depth limit in namespace scanning", async () => {
 				const basePath = "commands";
-				
+
 				// Create deeply nested structure
-				await fileService.writeFile("commands/level1/level2/level3/level4/deep.md", "# Deep Command");
-				await fileService.writeFile("commands/level1/shallow.md", "# Shallow Command");
-				
-				const namespacedFiles = await fileService.scanNamespaceHierarchy(basePath, 2);
-				
+				await fileService.writeFile(
+					"commands/level1/level2/level3/level4/deep.md",
+					"# Deep Command",
+				);
+				await fileService.writeFile(
+					"commands/level1/shallow.md",
+					"# Shallow Command",
+				);
+
+				const namespacedFiles = await fileService.scanNamespaceHierarchy(
+					basePath,
+					2,
+				);
+
 				expect(namespacedFiles).toHaveLength(1);
 				expect(namespacedFiles[0]?.fileName).toBe("shallow.md");
 			});
@@ -462,15 +515,16 @@ export function createFileServiceContractTests(
 			test("should handle empty directory in namespace scanning", async () => {
 				const basePath = "empty-commands";
 				await fileService.mkdir(basePath);
-				
-				const namespacedFiles = await fileService.scanNamespaceHierarchy(basePath);
-				
+
+				const namespacedFiles =
+					await fileService.scanNamespaceHierarchy(basePath);
+
 				expect(namespacedFiles).toEqual([]);
 			});
 
 			test("should throw FileNotFoundError for non-existent base directory", async () => {
 				await expect(
-					fileService.scanNamespaceHierarchy("non-existent-commands")
+					fileService.scanNamespaceHierarchy("non-existent-commands"),
 				).rejects.toThrow(FileNotFoundError);
 			});
 		});

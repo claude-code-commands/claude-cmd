@@ -265,9 +265,15 @@ class InMemoryFileService implements IFileService {
 	/**
 	 * Create hierarchical directory structure for namespace
 	 */
-	async createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string> {
-		this.operationHistory.push({ operation: "createNamespaceDirectories", path: `${basePath}/${namespacePath}` });
-		
+	async createNamespaceDirectories(
+		basePath: string,
+		namespacePath: string,
+	): Promise<string> {
+		this.operationHistory.push({
+			operation: "createNamespaceDirectories",
+			path: `${basePath}/${namespacePath}`,
+		});
+
 		const fullPath = `${basePath}/${namespacePath}`;
 		await this.mkdir(fullPath);
 		return fullPath;
@@ -276,9 +282,15 @@ class InMemoryFileService implements IFileService {
 	/**
 	 * Scan directory hierarchy for command files
 	 */
-	async scanNamespaceHierarchy(basePath: string, maxDepth = 10): Promise<NamespacedFile[]> {
-		this.operationHistory.push({ operation: "scanNamespaceHierarchy", path: basePath });
-		
+	async scanNamespaceHierarchy(
+		basePath: string,
+		maxDepth = 10,
+	): Promise<NamespacedFile[]> {
+		this.operationHistory.push({
+			operation: "scanNamespaceHierarchy",
+			path: basePath,
+		});
+
 		const files: NamespacedFile[] = [];
 		await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
 		return files;
@@ -287,7 +299,11 @@ class InMemoryFileService implements IFileService {
 	/**
 	 * Resolve path for namespaced command file
 	 */
-	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string {
+	resolveNamespacedPath(
+		basePath: string,
+		namespacePath: string,
+		fileName: string,
+	): string {
 		return `${basePath}/${namespacePath}/${fileName}`;
 	}
 
@@ -308,7 +324,9 @@ class InMemoryFileService implements IFileService {
 		const dirPath = currentPath.endsWith("/") ? currentPath : `${currentPath}/`;
 
 		// Normalize base path for comparison
-		const normalizedBasePath = basePath.endsWith("/") ? basePath : `${basePath}/`;
+		const normalizedBasePath = basePath.endsWith("/")
+			? basePath
+			: `${basePath}/`;
 
 		// Check if directory exists (explicit or implicit)
 		if (!this.fs[dirPath]) {
@@ -322,11 +340,11 @@ class InMemoryFileService implements IFileService {
 
 		// Collect direct children (files and subdirectories)
 		const directChildren = new Set<string>();
-		
+
 		for (const filePath in this.fs) {
 			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
 				const relativePath = filePath.substring(dirPath.length);
-				const firstSegment = relativePath.split('/')[0];
+				const firstSegment = relativePath.split("/")[0];
 				if (firstSegment) {
 					directChildren.add(firstSegment);
 				}
@@ -337,12 +355,13 @@ class InMemoryFileService implements IFileService {
 		for (const childName of directChildren) {
 			const childPath = dirPath + childName;
 			const entry = this.fs[childPath];
-			
-			if (entry?.type === "file" && childName.endsWith('.md')) {
+
+			if (entry?.type === "file" && childName.endsWith(".md")) {
 				// Extract namespace path from directory structure
-				const namespacePath = currentDepth === 0 
-					? '' 
-					: currentPath.substring(normalizedBasePath.length);
+				const namespacePath =
+					currentDepth === 0
+						? ""
+						: currentPath.substring(normalizedBasePath.length);
 
 				files.push({
 					filePath: childPath,
@@ -358,13 +377,13 @@ class InMemoryFileService implements IFileService {
 		for (const childName of directChildren) {
 			const childPath = dirPath + childName;
 			const entry = this.fs[childPath];
-			
+
 			// Check if this is a directory (explicit or has children)
 			const isExplicitDir = entry?.type === "directory";
-			const hasChildren = Object.keys(this.fs).some(
-				filePath => filePath.startsWith(childPath + "/")
+			const hasChildren = Object.keys(this.fs).some((filePath) =>
+				filePath.startsWith(`${childPath}/`),
 			);
-			
+
 			if (isExplicitDir || hasChildren) {
 				await this.scanDirectoryRecursive(
 					basePath,
@@ -385,7 +404,7 @@ class InMemoryFileService implements IFileService {
 
 		// Ensure directory path format consistency
 		const dirPath = path.endsWith("/") ? path : `${path}/`;
-		
+
 		if (!this.fs[dirPath]) {
 			throw new FileNotFoundError(path);
 		}
@@ -397,8 +416,9 @@ class InMemoryFileService implements IFileService {
 
 		// Check if directory has children and recursive is not set
 		if (!options?.recursive) {
-			const hasChildren = Object.keys(this.fs).some((filePath: string) => 
-				filePath.startsWith(dirPath) && filePath !== dirPath
+			const hasChildren = Object.keys(this.fs).some(
+				(filePath: string) =>
+					filePath.startsWith(dirPath) && filePath !== dirPath,
 			);
 			if (hasChildren) {
 				throw new FileIOError(path, "Directory not empty");
@@ -407,8 +427,9 @@ class InMemoryFileService implements IFileService {
 
 		// Remove directory and all children if recursive
 		if (options?.recursive) {
-			const toDelete = Object.keys(this.fs).filter((filePath: string) => 
-				filePath.startsWith(dirPath) || filePath === dirPath
+			const toDelete = Object.keys(this.fs).filter(
+				(filePath: string) =>
+					filePath.startsWith(dirPath) || filePath === dirPath,
 			);
 			for (const filePath of toDelete) {
 				delete this.fs[filePath];

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
-import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import { CommandParser } from "../../src/services/CommandParser.js";
+import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
+import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
 import NamespaceService from "../../src/services/NamespaceService.js";
-import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import { CommandNotFoundError } from "../../src/types/Command.js";
+import InMemoryFileService from "../mocks/InMemoryFileService.js";
 
 describe("LocalCommandRepository", () => {
 	let fileService: InMemoryFileService;
@@ -42,7 +42,7 @@ allowed-tools: ["Read", "Write"]
 argument-hint: "[file]"
 ---
 # Global Helper
-This is a global helper command.`
+This is a global helper command.`,
 				);
 
 				await fileService.writeFile(
@@ -52,7 +52,7 @@ description: "Local helper command"
 allowed-tools: ["Grep", "LS"]
 ---
 # Local Helper
-This is a local helper command.`
+This is a local helper command.`,
 				);
 
 				await fileService.writeFile(
@@ -63,7 +63,7 @@ allowed-tools: ["Write", "Edit"]
 namespace: "frontend"
 ---
 # Component Generator
-Creates React components.`
+Creates React components.`,
 				);
 
 				const manifest = await repository.getManifest("en");
@@ -72,9 +72,15 @@ Creates React components.`
 				expect(manifest.commands).toHaveLength(3);
 
 				// Check commands are properly parsed
-				const globalCmd = manifest.commands.find(c => c.name === "global-helper");
-				const localCmd = manifest.commands.find(c => c.name === "local-helper");
-				const componentCmd = manifest.commands.find(c => c.name === "component");
+				const globalCmd = manifest.commands.find(
+					(c) => c.name === "global-helper",
+				);
+				const localCmd = manifest.commands.find(
+					(c) => c.name === "local-helper",
+				);
+				const componentCmd = manifest.commands.find(
+					(c) => c.name === "component",
+				);
 
 				expect(globalCmd).toBeDefined();
 				expect(globalCmd?.description).toBe("Global helper command");
@@ -121,7 +127,7 @@ Creates React components.`
 					`---
 description: "Valid command"
 ---
-# Valid Command`
+# Valid Command`,
 				);
 
 				await fileService.writeFile(
@@ -130,7 +136,7 @@ description: "Valid command"
 description: "Invalid command"
 invalid-yaml: [unclosed
 ---
-# Invalid Command`
+# Invalid Command`,
 				);
 
 				const manifest = await repository.getManifest("en");
@@ -154,7 +160,7 @@ invalid-yaml: [unclosed
 					`---
 description: "Test command"
 ---
-# Test`
+# Test`,
 				);
 
 				const manifestEn = await repository.getManifest("en");
@@ -178,14 +184,16 @@ description: "Test command"
 			try {
 				await fileService.mkdir("/Users/testuser/.claude/commands");
 				await fileService.mkdir("/Users/testuser/.claude/commands/backend");
-				await fileService.mkdir("/Users/testuser/.claude/commands/backend/auth");
+				await fileService.mkdir(
+					"/Users/testuser/.claude/commands/backend/auth",
+				);
 
 				await fileService.writeFile(
 					"/Users/testuser/.claude/commands/backend/auth/login.md",
 					`---
 description: "Login authentication helper"
 ---
-# Login Helper`
+# Login Helper`,
 				);
 
 				const manifest = await repository.getManifest("en");
@@ -193,9 +201,9 @@ description: "Login authentication helper"
 				expect(manifest.commands).toHaveLength(1);
 				const loginCmd = manifest.commands[0];
 				expect(loginCmd).toBeDefined();
-				expect(loginCmd!.name).toBe("login");
-				expect(loginCmd!.namespace).toBe("backend:auth");
-				expect(loginCmd!.file).toBe("backend/auth/login.md");
+				expect(loginCmd?.name).toBe("login");
+				expect(loginCmd?.namespace).toBe("backend:auth");
+				expect(loginCmd?.file).toBe("backend/auth/login.md");
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -217,7 +225,7 @@ This is test content.`;
 
 				await fileService.writeFile(
 					"/Users/testuser/.claude/commands/test.md",
-					commandContent
+					commandContent,
 				);
 
 				const content = await repository.getCommand("test", "en");
@@ -242,7 +250,7 @@ description: "Component generator"
 
 				await fileService.writeFile(
 					"/Users/testuser/.claude/commands/frontend/component.md",
-					commandContent
+					commandContent,
 				);
 
 				// Should find command by name regardless of namespace
@@ -258,8 +266,9 @@ description: "Component generator"
 			process.env.HOME = "/Users/testuser";
 
 			try {
-				await expect(repository.getCommand("nonexistent", "en"))
-					.rejects.toThrow(CommandNotFoundError);
+				await expect(
+					repository.getCommand("nonexistent", "en"),
+				).rejects.toThrow(CommandNotFoundError);
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -278,12 +287,12 @@ description: "Component generator"
 
 				await fileService.writeFile(
 					"/Users/testuser/.claude/commands/duplicate.md",
-					personalContent
+					personalContent,
 				);
 
 				await fileService.writeFile(
 					".claude/commands/duplicate.md",
-					projectContent
+					projectContent,
 				);
 
 				const content = await repository.getCommand("duplicate", "en");
@@ -306,17 +315,21 @@ description: "Component generator"
 					`---
 description: "Test command"
 ---
-# Test`
+# Test`,
 				);
 
-				const manifest1 = await repository.getManifest("en", { forceRefresh: false });
-				const manifest2 = await repository.getManifest("en", { forceRefresh: true });
+				const manifest1 = await repository.getManifest("en", {
+					forceRefresh: false,
+				});
+				const manifest2 = await repository.getManifest("en", {
+					forceRefresh: true,
+				});
 
 				// Should return same results regardless of forceRefresh
 				expect(manifest1.commands).toHaveLength(1);
 				expect(manifest2.commands).toHaveLength(1);
 				expect(manifest1.commands[0]).toBeDefined();
-				expect(manifest2.commands[0]).toBeDefined();  
+				expect(manifest2.commands[0]).toBeDefined();
 				expect(manifest1.commands[0]!.name).toBe(manifest2.commands[0]!.name);
 			} finally {
 				process.env.HOME = originalHome;
@@ -334,7 +347,7 @@ description: "Test command"
 					`---
 description: "Test command"
 ---
-# Test`
+# Test`,
 				);
 
 				const manifest = await repository.getManifest("en", { maxAge: 0 });

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import NamespaceService from "../../src/services/NamespaceService.js";
 import {
 	InvalidNamespaceSyntaxError,
 	NamespaceValidationError,
 } from "../../src/interfaces/INamespaceService.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 
 describe("NamespaceService", () => {
 	let service: NamespaceService;
@@ -15,7 +15,7 @@ describe("NamespaceService", () => {
 	describe("parse", () => {
 		test("should parse colon-separated namespace", () => {
 			const result = service.parse("frontend:component");
-			
+
 			expect(result.original).toBe("frontend:component");
 			expect(result.segments).toEqual(["frontend", "component"]);
 			expect(result.path).toBe("frontend/component");
@@ -24,7 +24,7 @@ describe("NamespaceService", () => {
 
 		test("should parse path-separated namespace", () => {
 			const result = service.parse("backend/auth/jwt");
-			
+
 			expect(result.original).toBe("backend/auth/jwt");
 			expect(result.segments).toEqual(["backend", "auth", "jwt"]);
 			expect(result.path).toBe("backend/auth/jwt");
@@ -33,7 +33,7 @@ describe("NamespaceService", () => {
 
 		test("should parse single segment", () => {
 			const result = service.parse("tools");
-			
+
 			expect(result.original).toBe("tools");
 			expect(result.segments).toEqual(["tools"]);
 			expect(result.path).toBe("tools");
@@ -47,7 +47,7 @@ describe("NamespaceService", () => {
 
 		test("should filter out empty segments", () => {
 			const result = service.parse("frontend::component");
-			
+
 			expect(result.segments).toEqual(["frontend", "component"]);
 			expect(result.path).toBe("frontend/component");
 		});
@@ -67,7 +67,7 @@ describe("NamespaceService", () => {
 
 		test("should respect depth constraints", () => {
 			const options = { maxDepth: 2, minDepth: 1 };
-			
+
 			expect(service.validate("tools", options)).toBe(true);
 			expect(service.validate("frontend:component", options)).toBe(true);
 			expect(service.validate("a:b:c:d", options)).toBe(false); // Too deep
@@ -76,10 +76,14 @@ describe("NamespaceService", () => {
 
 	describe("validateStrict", () => {
 		test("should throw detailed errors", () => {
-			expect(() => service.validateStrict("")).toThrow(InvalidNamespaceSyntaxError);
-			
+			expect(() => service.validateStrict("")).toThrow(
+				InvalidNamespaceSyntaxError,
+			);
+
 			const options = { maxDepth: 2, minDepth: 1 };
-			expect(() => service.validateStrict("a:b:c:d", options)).toThrow(NamespaceValidationError);
+			expect(() => service.validateStrict("a:b:c:d", options)).toThrow(
+				NamespaceValidationError,
+			);
 		});
 	});
 
@@ -90,21 +94,29 @@ describe("NamespaceService", () => {
 		});
 
 		test("should convert to colon-separated format", () => {
-			expect(service.toColonSeparated("frontend/component")).toBe("frontend:component");
-			expect(service.toColonSeparated("backend/auth/jwt")).toBe("backend:auth:jwt");
+			expect(service.toColonSeparated("frontend/component")).toBe(
+				"frontend:component",
+			);
+			expect(service.toColonSeparated("backend/auth/jwt")).toBe(
+				"backend:auth:jwt",
+			);
 		});
 	});
 
 	describe("hierarchy operations", () => {
 		test("should get parent namespace", () => {
-			expect(service.getParent("frontend:component:button")).toBe("frontend:component");
+			expect(service.getParent("frontend:component:button")).toBe(
+				"frontend:component",
+			);
 			expect(service.getParent("frontend:component")).toBe("frontend");
 			expect(service.getParent("frontend")).toBe(null);
 		});
 
 		test("should check parent relationship", () => {
 			expect(service.isParentOf("frontend", "frontend:component")).toBe(true);
-			expect(service.isParentOf("frontend:component", "frontend:component:button")).toBe(true);
+			expect(
+				service.isParentOf("frontend:component", "frontend:component:button"),
+			).toBe(true);
 			expect(service.isParentOf("frontend", "backend:api")).toBe(false);
 			expect(service.isParentOf("frontend:component", "frontend")).toBe(false);
 		});

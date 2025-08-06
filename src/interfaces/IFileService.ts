@@ -156,7 +156,10 @@ export default interface IFileService {
 	 * @throws FilePermissionError when create access is denied
 	 * @throws FileIOError for other I/O failures
 	 */
-	createNamespaceDirectories(basePath: string, namespacePath: string): Promise<string>;
+	createNamespaceDirectories(
+		basePath: string,
+		namespacePath: string,
+	): Promise<string>;
 
 	/**
 	 * Scan directory hierarchy for command files
@@ -168,17 +171,24 @@ export default interface IFileService {
 	 * @throws FilePermissionError when read access is denied
 	 * @throws FileIOError for other I/O failures
 	 */
-	scanNamespaceHierarchy(basePath: string, maxDepth?: number): Promise<NamespacedFile[]>;
+	scanNamespaceHierarchy(
+		basePath: string,
+		maxDepth?: number,
+	): Promise<NamespacedFile[]>;
 
 	/**
 	 * Resolve path for namespaced command file
 	 *
 	 * @param basePath - Base directory path
-	 * @param namespacePath - Namespace path (e.g., "project/frontend/component") 
+	 * @param namespacePath - Namespace path (e.g., "project/frontend/component")
 	 * @param fileName - Command file name (e.g., "create-component.md")
 	 * @returns Full path to the command file
 	 */
-	resolveNamespacedPath(basePath: string, namespacePath: string, fileName: string): string;
+	resolveNamespacedPath(
+		basePath: string,
+		namespacePath: string,
+		fileName: string,
+	): string;
 
 	/**
 	 * Remove a directory and optionally its contents
@@ -199,16 +209,16 @@ export default interface IFileService {
 export interface NamespacedFile {
 	/** Full file path */
 	readonly filePath: string;
-	
+
 	/** Relative path from base directory */
 	readonly relativePath: string;
-	
+
 	/** Namespace path (directory structure) */
 	readonly namespacePath: string;
-	
+
 	/** File name without path */
 	readonly fileName: string;
-	
+
 	/** Depth level in hierarchy (0 = root) */
 	readonly depth: number;
 }

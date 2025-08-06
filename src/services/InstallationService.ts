@@ -4,7 +4,6 @@ import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
 import type { Command } from "../types/Command.js";
 import type {
-	DirectoryInfo,
 	InstallationInfo,
 	InstallOptions,
 	RemoveOptions,
@@ -125,10 +124,10 @@ export class InstallationService implements IInstallationService {
 		try {
 			// Use LocalCommandRepository for sophisticated local command discovery
 			// This provides proper namespace support and consistent metadata extraction
-			const manifest = await this.localCommandRepository.getManifest('en', {
+			const manifest = await this.localCommandRepository.getManifest("en", {
 				forceRefresh: options?.forceRefresh,
 			});
-			
+
 			return manifest.commands;
 		} catch (error) {
 			throw new InstallationError(
@@ -198,5 +197,4 @@ export class InstallationService implements IInstallationService {
 
 		return null;
 	}
-
 }

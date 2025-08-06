@@ -39,24 +39,14 @@ export function handleError(error: unknown, defaultMessage: string): void {
  */
 export async function detectLanguage(
 	optionLanguage: string | undefined,
-	languageDetector: LanguageDetector,
+	_languageDetector: LanguageDetector,
 ): Promise<string> {
 	if (optionLanguage) {
 		return optionLanguage;
 	}
 
-	// Get config services to populate DetectionContext
-	const { projectConfigService, userConfigService } = getServices();
-	
-	// Get config values
-	const projectConfig = await projectConfigService.getProjectConfig();
-	const userLanguage = await userConfigService.getCurrentLanguage();
+	// Use ConfigManager for unified language detection
+	const { configManager } = getServices();
 
-	return languageDetector.detect({
-		cliFlag: "",
-		envVar: process.env.CLAUDE_CMD_LANG ?? "",
-		projectConfig: projectConfig?.preferredLanguage ?? "",
-		userConfig: userLanguage ?? "",
-		posixLocale: process.env.LANG ?? "",
-	});
+	return await configManager.getEffectiveLanguage();
 }

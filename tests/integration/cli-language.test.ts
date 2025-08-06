@@ -17,7 +17,8 @@ describe("CLI Language Command Integration", () => {
 
 			expect(result).toBe(0);
 			expect(stdout).toContain("Available languages:");
-			expect(stdout).toContain("Current language:");
+			expect(stdout).toContain("Current user language:");
+			expect(stdout).toContain("Effective language:");
 		});
 
 		it("should show English as available language", async () => {
@@ -38,7 +39,9 @@ describe("CLI Language Command Integration", () => {
 				"list",
 			]);
 			expect(listResult).toBe(0);
-			currentLang = listStdout.match(/Current language: (\w{2})/)?.[1] || "en";
+			currentLang =
+				listStdout.match(/Current user language: (\w{2}|not set)/)?.[1] || "en";
+			if (currentLang === "not") currentLang = "en"; // Handle "not set" case
 		});
 
 		afterEach(async () => {
@@ -74,7 +77,7 @@ describe("CLI Language Command Integration", () => {
 			const { result, stderr } = await runCli(["language", "set", "invalid"]);
 
 			expect(result).toBe(1);
-			expect(stderr).toContain("Invalid language code");
+			expect(stderr).toContain("Invalid configuration");
 		});
 
 		it("should require language argument", async () => {

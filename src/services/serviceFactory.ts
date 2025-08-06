@@ -1,16 +1,18 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import BunFileService from "./BunFileService.js";
 import BunHTTPClient from "./BunHTTPClient.js";
 import { CacheManager } from "./CacheManager.js";
 import { CommandParser } from "./CommandParser.js";
 import { CommandService } from "./CommandService.js";
+import { ConfigManager } from "./ConfigManager.js";
+import { ConfigService } from "./ConfigService.js";
 import { DirectoryDetector } from "./DirectoryDetector.js";
 import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import NamespaceService from "./NamespaceService.js";
-import { ProjectConfigService } from "./ProjectConfigService.js";
-import { UserConfigService } from "./UserConfigService.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -25,9 +27,10 @@ let services: {
 	commandService: CommandService;
 	languageDetector: LanguageDetector;
 	installationService: InstallationService;
-	userConfigService: UserConfigService;
+	userConfigService: ConfigService;
+	projectConfigService: ConfigService;
+	configManager: ConfigManager;
 	localCommandRepository: LocalCommandRepository;
-	projectConfigService: ProjectConfigService;
 } | null = null;
 
 /**
@@ -65,11 +68,35 @@ export function getServices() {
 			localCommandRepository,
 		);
 
-		// Create UserConfigService
-		const userConfigService = new UserConfigService(fileService, repository);
+		// Create ConfigService instances with shared LanguageDetector
+		const userConfigPath = path.join(
+			os.homedir(),
+			".config",
+			"claude-cmd",
+			"config.claude-cmd.json",
+		);
+		const projectConfigPath = path.join(".claude", "config.claude-cmd.json");
 
-		// Create ProjectConfigService
-		const projectConfigService = new ProjectConfigService(fileService);
+		const userConfigService = new ConfigService(
+			userConfigPath,
+			fileService,
+			repository,
+			languageDetector,
+		);
+
+		const projectConfigService = new ConfigService(
+			projectConfigPath,
+			fileService,
+			repository,
+			languageDetector,
+		);
+
+		// Create ConfigManager to orchestrate precedence
+		const configManager = new ConfigManager(
+			userConfigService,
+			projectConfigService,
+			languageDetector,
+		);
 
 		// Create CommandService with all dependencies including InstallationService
 		const commandService = new CommandService(
@@ -84,8 +111,9 @@ export function getServices() {
 			languageDetector,
 			installationService,
 			userConfigService,
-			localCommandRepository,
 			projectConfigService,
+			configManager,
+			localCommandRepository,
 		};
 	}
 

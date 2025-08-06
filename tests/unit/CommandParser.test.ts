@@ -423,7 +423,10 @@ allowed-tools: Read, Edit
 # Component Generator
 `;
 
-			const command = await parser.parseCommandFile(content, "frontend/component.md");
+			const command = await parser.parseCommandFile(
+				content,
+				"frontend/component.md",
+			);
 
 			expect(command.name).toBe("component");
 			expect(command.description).toBe("Frontend component generator");
@@ -440,7 +443,10 @@ allowed-tools: Read, Edit, Bash(npm:*)
 # JWT Auth
 `;
 
-			const command = await parser.parseCommandFile(content, "backend/auth/jwt.md");
+			const command = await parser.parseCommandFile(
+				content,
+				"backend/auth/jwt.md",
+			);
 
 			expect(command.name).toBe("jwt");
 			expect(command.description).toBe("JWT authentication helper");
@@ -464,7 +470,6 @@ allowed-tools: Read, Edit
 			expect(command.file).toBe("debug-help.md");
 			expect(command.namespace).toBeUndefined();
 		});
-
 
 		test("should handle commands without namespace in root directory", async () => {
 			const content = `---

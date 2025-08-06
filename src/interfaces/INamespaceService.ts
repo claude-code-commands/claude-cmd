@@ -50,10 +50,7 @@ export abstract class NamespaceError extends Error {
  */
 export class InvalidNamespaceSyntaxError extends NamespaceError {
 	constructor(namespace: string, reason: string) {
-		super(
-			`Invalid namespace syntax "${namespace}": ${reason}`,
-			namespace,
-		);
+		super(`Invalid namespace syntax "${namespace}": ${reason}`, namespace);
 		this.reason = reason;
 	}
 
@@ -82,7 +79,7 @@ export class NamespaceValidationError extends NamespaceError {
  *
  * Provides functionality to work with namespaced command identifiers that support
  * hierarchical organization (e.g., "project:frontend:component", "backend:api:auth").
- * 
+ *
  * Supports two primary formats:
  * - Colon-separated: "project:frontend:component"
  * - Path-based: "project/frontend/component"

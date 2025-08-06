@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { CommandParser } from "../../src/services/CommandParser.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
-import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
-import NamespaceService from "../../src/services/NamespaceService.js";
 import {
 	CommandExistsError,
 	CommandNotInstalledError,
 	InstallationError,
 	InstallationService,
 } from "../../src/services/InstallationService.js";
+import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 import type { Command } from "../../src/types/Command.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
