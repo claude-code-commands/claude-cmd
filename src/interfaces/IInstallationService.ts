@@ -2,6 +2,7 @@ import type { CommandServiceOptions } from "../services/CommandService.js";
 import type { Command } from "../types/Command.js";
 import type {
 	InstallationInfo,
+	InstallationSummary,
 	InstallOptions,
 	RemoveOptions,
 } from "../types/Installation.js";
@@ -58,4 +59,16 @@ export default interface IInstallationService {
 	 * @returns Promise resolving to file path or null if not installed
 	 */
 	getInstallationPath(commandName: string): Promise<string | null>;
+
+	/**
+	 * Get detailed information about all installed commands
+	 * @returns Promise resolving to array of installation info
+	 */
+	getAllInstallationInfo(): Promise<InstallationInfo[]>;
+
+	/**
+	 * Get summary information about all installed commands
+	 * @returns Promise resolving to installation summary
+	 */
+	getInstallationSummary(): Promise<InstallationSummary>;
 }

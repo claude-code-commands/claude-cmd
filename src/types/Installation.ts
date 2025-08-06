@@ -39,6 +39,18 @@ export interface RemoveOptions {
 }
 
 /**
+ * Installation metadata containing additional details
+ */
+export interface InstallationMetadata {
+	/** Repository version when command was installed */
+	readonly repositoryVersion?: string;
+	/** Language used for installation */
+	readonly language: string;
+	/** Installation options used */
+	readonly installationOptions?: InstallOptions;
+}
+
+/**
  * Information about an installed command
  */
 export interface InstallationInfo {
@@ -52,6 +64,12 @@ export interface InstallationInfo {
 	readonly installedAt: Date;
 	/** File size in bytes */
 	readonly size: number;
+	/** Command source (repository or local) */
+	readonly source: "repository" | "local";
+	/** Command version identifier */
+	readonly version?: string;
+	/** Detailed installation metadata */
+	readonly metadata: InstallationMetadata;
 }
 
 /**
@@ -62,6 +80,20 @@ export interface CommandScanResult {
 	readonly personal: string[];
 	/** Command files found in project directory */
 	readonly project: string[];
+}
+
+/**
+ * Summary information about all installed commands
+ */
+export interface InstallationSummary {
+	/** Total number of installed commands */
+	readonly totalCommands: number;
+	/** Number of commands in personal directory */
+	readonly personalCount: number;
+	/** Number of commands in project directory */
+	readonly projectCount: number;
+	/** Available installation locations */
+	readonly locations: ReadonlyArray<"personal" | "project">;
 }
 
 /**

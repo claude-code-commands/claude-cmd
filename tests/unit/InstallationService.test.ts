@@ -626,4 +626,194 @@ allowed-tools: [invalid yaml
 			expect(await fileService.exists(namespacedPath)).toBe(false);
 		});
 	});
+
+	describe("Milestone 2.3: Enhanced Location Tracking and Metadata", () => {
+		describe("location tracking and metadata", () => {
+			test("should track installation source and enhanced metadata", async () => {
+				const beforeInstall = new Date();
+				await installationService.installCommand("test-command");
+				const afterInstall = new Date();
+
+				const info = await installationService.getInstallationInfo("test-command");
+
+				expect(info).toBeDefined();
+				expect(info!.name).toBe("test-command");
+				expect(info!.location).toBe("personal");
+				expect(info!.source).toBe("repository");
+				expect(info!.installedAt).toBeInstanceOf(Date);
+				expect(info!.installedAt.getTime()).toBeGreaterThanOrEqual(beforeInstall.getTime());
+				expect(info!.installedAt.getTime()).toBeLessThanOrEqual(afterInstall.getTime());
+				expect(info!.version).toBeDefined();
+			});
+
+			test("should differentiate between repository and local sources", async () => {
+				// Install from repository
+				await installationService.installCommand("test-command");
+				const repoInfo = await installationService.getInstallationInfo("test-command");
+
+				// Manually create a local command file (simulating local source)
+				const localPath = "/home/testuser/.claude/commands/local-command.md";
+				await fileService.writeFile(localPath, mockCommandContent);
+
+				const localInfo = await installationService.getInstallationInfo("local-command");
+
+				expect(repoInfo!.source).toBe("repository");
+				expect(localInfo!.source).toBe("local");
+			});
+
+			test("should track installation metadata for project vs personal", async () => {
+				// Install to personal directory
+				await installationService.installCommand("test-command", { target: "personal" });
+				const personalInfo = await installationService.getInstallationInfo("test-command");
+
+				// Install to project directory 
+				await installationService.installCommand("test-command", { target: "project", force: true });
+				const projectInfo = await installationService.getInstallationInfo("test-command");
+
+				expect(personalInfo!.location).toBe("personal");
+				expect(projectInfo!.location).toBe("project");
+				expect(personalInfo!.filePath).toContain("/.claude/commands/");
+				expect(projectInfo!.filePath).toContain(".claude/commands/");
+			});
+
+			test("should provide detailed installation metadata", async () => {
+				await installationService.installCommand("test-command");
+				const info = await installationService.getInstallationInfo("test-command");
+
+				expect(info).toBeDefined();
+				expect(info!.metadata).toBeDefined();
+				expect(info!.metadata.repositoryVersion).toBe("1.0.0");
+				expect(info!.metadata.language).toBe("en");
+				expect(info!.metadata.installationOptions).toBeDefined();
+			});
+
+			test("should return enhanced installation info for all installed commands", async () => {
+				await installationService.installCommand("test-command");
+				
+				const allInfo = await installationService.getAllInstallationInfo();
+				
+				expect(allInfo).toHaveLength(1);
+				expect(allInfo[0].name).toBe("test-command");
+				expect(allInfo[0].location).toBe("personal");
+				expect(allInfo[0].source).toBe("repository");
+				expect(allInfo[0].installedAt).toBeInstanceOf(Date);
+			});
+
+			test("should return installation info with location indicators", async () => {
+				// Install same command to both locations
+				await installationService.installCommand("test-command", { target: "personal" });
+				await installationService.installCommand("test-command", { target: "project", force: true });
+
+				const allInfo = await installationService.getAllInstallationInfo();
+				
+				expect(allInfo).toHaveLength(2);
+				const locations = allInfo.map(info => info.location);
+				expect(locations).toContain("personal");
+				expect(locations).toContain("project");
+			});
+
+			test("should provide command count and summary information", async () => {
+				await installationService.installCommand("test-command", { target: "personal" });
+				
+				// Add project command
+				const projectCommand: Command = {
+					name: "project-command",
+					description: "A project-specific command",
+					file: "project-command.md",
+					"allowed-tools": ["Read", "Write"],
+				};
+
+				repository.setManifest("en", {
+					version: "1.0.0",
+					updated: "2025-01-01T00:00:00Z",
+					commands: [mockCommand, projectCommand],
+				});
+
+				const projectContent = `---
+description: A project-specific command
+allowed-tools: Read, Write
+---
+
+# Project Command
+`;
+				repository.setCommand("project-command", "en", projectContent);
+				await installationService.installCommand("project-command", { target: "project" });
+
+				const summary = await installationService.getInstallationSummary();
+
+				expect(summary.totalCommands).toBe(2);
+				expect(summary.personalCount).toBe(1);
+				expect(summary.projectCount).toBe(1);
+				expect(summary.locations).toEqual(["personal", "project"]);
+			});
+		});
+	});
+
+	describe("security validation", () => {
+		test("should reject command names with path traversal attempts", async () => {
+			await expect(
+				installationService.installCommand("../../../etc/passwd")
+			).rejects.toThrow(InstallationError);
+		});
+
+		test("should reject command names with dangerous path segments", async () => {
+			await expect(
+				installationService.installCommand("valid/../invalid")
+			).rejects.toThrow(InstallationError);
+		});
+
+		test("should reject absolute path command names", async () => {
+			await expect(
+				installationService.installCommand("/etc/passwd")
+			).rejects.toThrow(InstallationError);
+		});
+
+		test("should reject empty command names", async () => {
+			await expect(
+				installationService.installCommand("")
+			).rejects.toThrow(InstallationError);
+		});
+
+		test("should accept valid namespaced command names", async () => {
+			// Set up a valid namespaced command in the repository
+			const namespacedCommand = {
+				name: "frontend:component",
+				description: "Create a frontend component",
+				file: "frontend/component.md",
+				"allowed-tools": ["Read", "Write"],
+			};
+			
+			repository.setManifest("en", {
+				version: "1.0.0",
+				updated: "2025-01-01T00:00:00Z",
+				commands: [mockCommand, namespacedCommand],
+			});
+			
+			repository.setCommand("frontend:component", "en", mockCommandContent);
+			
+			// This should not throw
+			await installationService.installCommand("frontend:component");
+		});
+
+		test("should accept valid command names with slash separators", async () => {
+			// Set up a valid command with slash separators in the repository
+			const slashCommand = {
+				name: "project/frontend/component",
+				description: "Create a project frontend component",
+				file: "project/frontend/component.md", 
+				"allowed-tools": ["Read", "Write"],
+			};
+			
+			repository.setManifest("en", {
+				version: "1.0.0",
+				updated: "2025-01-01T00:00:00Z",
+				commands: [mockCommand, slashCommand],
+			});
+			
+			repository.setCommand("project/frontend/component", "en", mockCommandContent);
+			
+			// This should not throw
+			await installationService.installCommand("project/frontend/component");
+		});
+	});
 });
