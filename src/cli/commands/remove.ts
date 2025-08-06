@@ -10,8 +10,6 @@ export const removeCommand = new Command("remove")
 	.option("-y, --yes", "Skip confirmation prompt")
 	.action(async (commandName, options) => {
 		try {
-			console.log(`Removing command: ${commandName}`);
-
 			// Get singleton service instances from factory
 			const { installationService } = getServices();
 
@@ -21,21 +19,12 @@ export const removeCommand = new Command("remove")
 				return;
 			}
 
-			// Get installation info for user feedback
-			const installationInfo =
-				await installationService.getInstallationInfo(commandName);
-			if (installationInfo) {
-				console.log(
-					`Found '${commandName}' in ${installationInfo.location} directory: ${installationInfo.filePath}`,
-				);
-			}
-
 			// Prepare removal options
 			const removeOptions = {
 				yes: options.yes,
 			};
 
-			// Remove the command
+			// Remove the command (includes interactive confirmation)
 			await installationService.removeCommand(commandName, removeOptions);
 
 			console.log(`✓ Successfully removed command: ${commandName}`);

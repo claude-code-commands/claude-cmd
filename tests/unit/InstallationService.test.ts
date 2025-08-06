@@ -13,6 +13,7 @@ import type { Command } from "../../src/types/Command.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
+import InMemoryUserInteractionService from "../mocks/InMemoryUserInteractionService.js";
 
 describe("InstallationService", () => {
 	let fileService: InMemoryFileService;
@@ -20,6 +21,7 @@ describe("InstallationService", () => {
 	let _directoryDetector: DirectoryDetector;
 	let _commandParser: CommandParser;
 	let installationService: InstallationService;
+	let userInteractionService: InMemoryUserInteractionService;
 
 	const mockCommand: Command = {
 		name: "test-command",
@@ -55,12 +57,18 @@ Use this command when you need help with debugging.
 			directoryDetector,
 			commandParser,
 		);
+		userInteractionService = new InMemoryUserInteractionService();
+		
+		// Set default confirmation to true for most tests
+		userInteractionService.setDefaultResponses({ confirmation: true });
+		
 		installationService = new InstallationService(
 			repository,
 			fileService,
 			directoryDetector,
 			commandParser,
 			localCommandRepository,
+			userInteractionService,
 		);
 
 		// Set up mock home directory
@@ -467,6 +475,155 @@ allowed-tools: [invalid yaml
 
 			// Restore original method
 			fileService.writeFile = originalWriteFile;
+		});
+	});
+
+	describe("namespace-aware command discovery", () => {
+		beforeEach(async () => {
+			// Set up directory structure for namespace tests
+			const personalDir = "/home/testuser/.claude/commands";
+			const projectDir = "./.claude/commands";
+			await fileService.mkdir(personalDir);
+			await fileService.mkdir(projectDir);
+		});
+
+		test("should find namespaced command with colon separator", async () => {
+			// Create a namespaced command structure: frontend/component.md
+			const namespacedPath = "/home/testuser/.claude/commands/frontend/component.md";
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Should find the command using colon notation
+			const path = await installationService.getInstallationPath("frontend:component");
+			expect(path).toBe(namespacedPath);
+
+			// Should also work with isInstalled
+			const isInstalled = await installationService.isInstalled("frontend:component");
+			expect(isInstalled).toBe(true);
+		});
+
+		test("should find namespaced command with slash separator", async () => {
+			// Create a namespaced command structure: api/endpoints/user.md
+			const namespacedPath = "/home/testuser/.claude/commands/api/endpoints/user.md";
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Should find the command using slash notation
+			const path = await installationService.getInstallationPath("api/endpoints/user");
+			expect(path).toBe(namespacedPath);
+
+			// Should also work with isInstalled
+			const isInstalled = await installationService.isInstalled("api/endpoints/user");
+			expect(isInstalled).toBe(true);
+		});
+
+		test("should support removing namespaced commands with confirmation", async () => {
+			// Create a namespaced command
+			const namespacedPath = "/home/testuser/.claude/commands/frontend/component.md";
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Verify it exists
+			expect(await fileService.exists(namespacedPath)).toBe(true);
+
+			// Remove using colon notation with --yes flag
+			await installationService.removeCommand("frontend:component", { yes: true });
+
+			// Should be removed
+			expect(await fileService.exists(namespacedPath)).toBe(false);
+		});
+
+		test("should return installation info for namespaced commands", async () => {
+			// Create a namespaced command in project directory
+			const projectDir = ".claude/commands";
+			const namespacedPath = `${projectDir}/backend/database/migrations.md`;
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Get installation info using colon notation
+			const info = await installationService.getInstallationInfo("backend:database:migrations");
+
+			expect(info).not.toBeNull();
+			expect(info!.name).toBe("backend:database:migrations");
+			expect(info!.filePath).toBe(namespacedPath);
+			expect(info!.location).toBe("project");
+		});
+
+		test("should handle deep namespaces correctly", async () => {
+			// Create deeply nested command: tools/cli/commands/generate/component.md
+			const deepPath = "/home/testuser/.claude/commands/tools/cli/commands/generate/component.md";
+			await fileService.writeFile(deepPath, mockCommandContent);
+
+			// Should find using colon notation
+			const pathColon = await installationService.getInstallationPath("tools:cli:commands:generate:component");
+			expect(pathColon).toBe(deepPath);
+
+			// Should also find using slash notation
+			const pathSlash = await installationService.getInstallationPath("tools/cli/commands/generate/component");
+			expect(pathSlash).toBe(deepPath);
+		});
+
+		test("should prioritize personal directory over project for namespaced commands", async () => {
+			// Create same namespaced command in both directories
+			const personalPath = "/home/testuser/.claude/commands/shared/util.md";
+			const projectPath = "./.claude/commands/shared/util.md";
+
+			await fileService.writeFile(personalPath, mockCommandContent);
+			await fileService.writeFile(projectPath, "project version");
+
+			// Should return personal directory path (higher precedence)
+			const path = await installationService.getInstallationPath("shared:util");
+			expect(path).toBe(personalPath);
+		});
+
+		test("should return null for non-existent namespaced commands", async () => {
+			// Try to find non-existent namespaced command
+			const path = await installationService.getInstallationPath("nonexistent:command");
+			expect(path).toBeNull();
+
+			const isInstalled = await installationService.isInstalled("nonexistent:command");
+			expect(isInstalled).toBe(false);
+		});
+
+		test("should handle mixed flat and namespaced commands correctly", async () => {
+			// Create both flat and namespaced commands
+			const flatPath = "/home/testuser/.claude/commands/helper.md";
+			const namespacedPath = "/home/testuser/.claude/commands/utils/helper.md";
+
+			await fileService.writeFile(flatPath, mockCommandContent);
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Should find flat command
+			const flatFound = await installationService.getInstallationPath("helper");
+			expect(flatFound).toBe(flatPath);
+
+			// Should find namespaced command
+			const namespacedFound = await installationService.getInstallationPath("utils:helper");
+			expect(namespacedFound).toBe(namespacedPath);
+
+			// Should not find wrong namespace
+			const wrongNamespace = await installationService.getInstallationPath("wrong:helper");
+			expect(wrongNamespace).toBeNull();
+		});
+
+		test("should handle interactive confirmation for namespaced command removal", async () => {
+			// Create a namespaced command
+			const namespacedPath = "/home/testuser/.claude/commands/test/interactive.md";
+			await fileService.writeFile(namespacedPath, mockCommandContent);
+
+			// Configure mock to cancel removal
+			userInteractionService.setDefaultResponses({ confirmation: false });
+
+			// Try to remove without --yes flag (should be cancelled)
+			await installationService.removeCommand("test:interactive");
+
+			// Should still exist because user cancelled
+			expect(await fileService.exists(namespacedPath)).toBe(true);
+
+			// Configure mock to confirm removal
+			userInteractionService.setDefaultResponses({ confirmation: true });
+
+			// Remove without --yes flag (should succeed)
+			await installationService.removeCommand("test:interactive");
+
+			// Should be removed because user confirmed
+			expect(await fileService.exists(namespacedPath)).toBe(false);
 		});
 	});
 });

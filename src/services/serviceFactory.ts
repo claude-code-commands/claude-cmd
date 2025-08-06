@@ -13,6 +13,7 @@ import { InstallationService } from "./InstallationService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import NamespaceService from "./NamespaceService.js";
+import { UserInteractionService } from "./UserInteractionService.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -31,6 +32,7 @@ let services: {
 	projectConfigService: ConfigService;
 	configManager: ConfigManager;
 	localCommandRepository: LocalCommandRepository;
+	userInteractionService: UserInteractionService;
 } | null = null;
 
 /**
@@ -59,13 +61,17 @@ export function getServices() {
 			commandParser,
 		);
 
-		// Create InstallationService first
+		// Create UserInteractionService
+		const userInteractionService = new UserInteractionService();
+
+		// Create InstallationService with UserInteractionService dependency
 		const installationService = new InstallationService(
 			repository,
 			fileService,
 			directoryDetector,
 			commandParser,
 			localCommandRepository,
+			userInteractionService,
 		);
 
 		// Create ConfigService instances with shared LanguageDetector
@@ -114,6 +120,7 @@ export function getServices() {
 			projectConfigService,
 			configManager,
 			localCommandRepository,
+			userInteractionService,
 		};
 	}
 

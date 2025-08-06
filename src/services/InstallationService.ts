@@ -2,6 +2,7 @@ import path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
 import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
+import type IUserInteractionService from "../interfaces/IUserInteractionService.js";
 import type { Command } from "../types/Command.js";
 import type {
 	InstallationInfo,
@@ -32,6 +33,7 @@ export class InstallationService implements IInstallationService {
 		private readonly directoryDetector: DirectoryDetector,
 		private readonly commandParser: CommandParser,
 		private readonly localCommandRepository: LocalCommandRepository,
+		private readonly userInteractionService: IUserInteractionService,
 	) {}
 
 	async installCommand(
@@ -88,7 +90,7 @@ export class InstallationService implements IInstallationService {
 
 	async removeCommand(
 		commandName: string,
-		_options?: RemoveOptions,
+		options?: RemoveOptions,
 	): Promise<void> {
 		try {
 			const installationPath = await this.getInstallationPath(commandName);
@@ -97,8 +99,29 @@ export class InstallationService implements IInstallationService {
 				throw new CommandNotInstalledError(commandName);
 			}
 
-			// For simplicity, we'll skip the confirmation prompt in this implementation
-			// In a real CLI, we would prompt the user unless options.yes is true
+			// Set --yes mode on user interaction service
+			this.userInteractionService.setYesMode(options?.yes ?? false);
+
+			// If --yes flag is provided, skip confirmation entirely
+			if (!options?.yes) {
+				// Get installation info for detailed confirmation message
+				const installationInfo = await this.getInstallationInfo(commandName);
+				const locationText = installationInfo ? installationInfo.location : "unknown";
+				const pathText = installationInfo ? installationInfo.filePath : installationPath;
+
+				// Ask for confirmation
+				const confirmMessage = `Are you sure you want to remove '${commandName}' from ${locationText} directory: ${pathText}?`;
+				const shouldRemove = await this.userInteractionService.confirmAction({
+					message: confirmMessage,
+					defaultResponse: false,
+					skipWithYes: true,
+				});
+
+				if (!shouldRemove) {
+					console.log(`Command removal cancelled.`);
+					return;
+				}
+			}
 
 			// Remove the file
 			if (await this.fileService.exists(installationPath)) {
@@ -185,13 +208,32 @@ export class InstallationService implements IInstallationService {
 	async getInstallationPath(commandName: string): Promise<string | null> {
 		const directories = await this.directoryDetector.getClaudeDirectories();
 
+		// Parse namespace from command name if present
+		let namespacePath = "";
+		let actualCommandName = commandName;
+
+		// Check if command contains namespace separators
+		if (commandName.includes(":")) {
+			const parts = commandName.split(":");
+			actualCommandName = parts.pop() || commandName;
+			namespacePath = parts.join("/");
+		} else if (commandName.includes("/")) {
+			const parts = commandName.split("/");
+			actualCommandName = parts.pop() || commandName;
+			namespacePath = parts.join("/");
+		}
+
 		// Check personal directory first, then project directory
 		for (const dir of directories) {
 			if (!dir.exists) continue;
 
-			const filePath = path.join(dir.path, `${commandName}.md`);
-			if (await this.fileService.exists(filePath)) {
-				return filePath;
+			// Build the full path considering namespace
+			const fullPath = namespacePath 
+				? path.join(dir.path, namespacePath, `${actualCommandName}.md`)
+				: path.join(dir.path, `${actualCommandName}.md`);
+
+			if (await this.fileService.exists(fullPath)) {
+				return fullPath;
 			}
 		}
 
