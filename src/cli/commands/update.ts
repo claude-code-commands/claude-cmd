@@ -35,19 +35,14 @@ export const updateCommand = new Command("update")
 			console.log(summary);
 
 			// If detailed changes are requested and there were changes, show them
-			if (options.showChanges && result.hasChanges) {
+			if (options.showChanges && result.hasChanges && result.comparisonResult) {
 				console.log("\n" + "=".repeat(50));
 				console.log("Detailed Changes:");
 				console.log("=".repeat(50));
 				
-				// Get detailed comparison for display
-				const oldManifest = await commandService.listCommands({ 
-					...serviceOptions,
-					forceRefresh: false 
-				});
-				// Note: This is a simplified approach. In a full implementation,
-				// we might want to store the comparison result from updateCacheWithChanges
-				console.log("Use --show-changes with the list command for detailed change information.");
+				// Use the ChangeDisplayFormatter to show the detailed changes
+				const detailedOutput = changeDisplayFormatter.formatComparisonDetails(result.comparisonResult);
+				console.log(detailedOutput);
 			}
 		} catch (error) {
 			console.error("Error updating command manifest:");

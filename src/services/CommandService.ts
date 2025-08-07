@@ -2,6 +2,7 @@ import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
 import type IManifestComparison from "../interfaces/IManifestComparison.js";
 import type { CacheUpdateResult, CacheUpdateResultWithChanges, Command } from "../types/Command.js";
+import type { ManifestComparisonResult } from "../types/ManifestComparison.js";
 import { CommandNotFoundError } from "../types/Command.js";
 import type { CacheManager } from "./CacheManager.js";
 import type { LanguageDetector } from "./LanguageDetector.js";
@@ -353,17 +354,18 @@ export class CommandService implements ICommandService {
 			let added = 0;
 			let removed = 0;
 			let modified = 0;
+		let comparisonResult: ManifestComparisonResult | undefined;
 
 			// Compare manifests if old one exists
 			if (oldManifest) {
-				const comparison = await this.manifestComparison.compareManifests(
+				comparisonResult = await this.manifestComparison.compareManifests(
 					oldManifest,
 					newManifest,
 				);
-				hasChanges = comparison.summary.hasChanges;
-				added = comparison.summary.added;
-				removed = comparison.summary.removed;
-				modified = comparison.summary.modified;
+				hasChanges = comparisonResult.summary.hasChanges;
+				added = comparisonResult.summary.added;
+				removed = comparisonResult.summary.removed;
+				modified = comparisonResult.summary.modified;
 			} else {
 				// If no old manifest exists, all commands are considered "added"
 				hasChanges = newManifest.commands.length > 0;
@@ -381,6 +383,7 @@ export class CommandService implements ICommandService {
 				added,
 				removed,
 				modified,
+				comparisonResult,
 			};
 		});
 	}

@@ -1,3 +1,5 @@
+import type { ManifestComparisonResult } from "./ManifestComparison.js";
+
 /**
  * Represents a single Claude Code command from the repository manifest
  */
@@ -64,6 +66,9 @@ export interface CacheUpdateResultWithChanges extends CacheUpdateResult {
 
 	/** Number of commands modified */
 	readonly modified: number;
+
+	/** Full comparison result for detailed analysis (if available) */
+	readonly comparisonResult?: ManifestComparisonResult;
 }
 
 /**
