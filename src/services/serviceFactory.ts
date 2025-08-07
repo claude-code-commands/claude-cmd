@@ -14,6 +14,8 @@ import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import NamespaceService from "./NamespaceService.js";
 import { UserInteractionService } from "./UserInteractionService.js";
+import { ManifestComparison } from "./ManifestComparison.js";
+import { ChangeDisplayFormatter } from "./ChangeDisplayFormatter.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.
@@ -33,6 +35,8 @@ let services: {
 	configManager: ConfigManager;
 	localCommandRepository: LocalCommandRepository;
 	userInteractionService: UserInteractionService;
+	manifestComparison: ManifestComparison;
+	changeDisplayFormatter: ChangeDisplayFormatter;
 } | null = null;
 
 /**
@@ -63,6 +67,12 @@ export function getServices() {
 
 		// Create UserInteractionService
 		const userInteractionService = new UserInteractionService();
+
+		// Create ManifestComparison service
+		const manifestComparison = new ManifestComparison();
+
+		// Create ChangeDisplayFormatter service
+		const changeDisplayFormatter = new ChangeDisplayFormatter();
 
 		// Create InstallationService with UserInteractionService dependency
 		const installationService = new InstallationService(
@@ -110,6 +120,7 @@ export function getServices() {
 			cacheManager,
 			languageDetector,
 			installationService,
+			manifestComparison,
 		);
 
 		services = {
@@ -121,6 +132,8 @@ export function getServices() {
 			configManager,
 			localCommandRepository,
 			userInteractionService,
+			manifestComparison,
+			changeDisplayFormatter,
 		};
 	}
 

@@ -14,7 +14,9 @@ import {
 } from "../../src/types/Command.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
+import InMemoryManifestComparison from "../mocks/InMemoryManifestComparison.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
+import InMemoryUserInteractionService from "../mocks/InMemoryUserInteractionService.js";
 
 describe("CommandService", () => {
 	let commandService: CommandService;
@@ -22,6 +24,7 @@ describe("CommandService", () => {
 	let cacheManager: CacheManager;
 	let languageDetector: LanguageDetector;
 	let installationService: InstallationService;
+	let manifestComparison: InMemoryManifestComparison;
 	let fileService: InMemoryFileService;
 	let httpClient: InMemoryHTTPClient;
 
@@ -35,13 +38,16 @@ describe("CommandService", () => {
 		const directoryDetector = new DirectoryDetector(fileService);
 		const namespaceService = new NamespaceService();
 		const commandParser = new CommandParser(namespaceService);
+		const userInteractionService = new InMemoryUserInteractionService();
 		installationService = new InstallationService(
 			repository,
 			fileService,
 			directoryDetector,
 			commandParser,
 			new LocalCommandRepository(directoryDetector, commandParser),
+			userInteractionService,
 		);
+		manifestComparison = new InMemoryManifestComparison();
 
 		// Create CommandService with in-memory dependencies
 		commandService = new CommandService(
@@ -49,6 +55,7 @@ describe("CommandService", () => {
 			cacheManager,
 			languageDetector,
 			installationService,
+			manifestComparison,
 		);
 	});
 
@@ -407,6 +414,195 @@ describe("CommandService", () => {
 			expect(commandService.updateCache({ language: "" })).rejects.toThrow(
 				"Language not supported by repository",
 			);
+		});
+	});
+
+	describe("updateCacheWithChanges", () => {
+		it("should detect changes when cache exists", async () => {
+			// Setup: Pre-populate cache with old manifest
+			const oldManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "old-command",
+						description: "An old command",
+						file: "old-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+			await cacheManager.set("en", oldManifest);
+
+			// Setup: New manifest with changes
+			const newManifest: Manifest = {
+				version: "1.1.0",
+				updated: "2025-01-15T11:00:00Z",
+				commands: [
+					{
+						name: "old-command",
+						description: "Updated old command",
+						file: "old-command.md",
+						"allowed-tools": ["read", "write"],
+					},
+					{
+						name: "new-command",
+						description: "A new command",
+						file: "new-command.md",
+						"allowed-tools": ["bash"],
+					},
+				],
+			};
+			repository.setManifest("en", newManifest);
+
+			// Setup: Configure manifestComparison mock
+			manifestComparison.setComparisonResult({
+				oldManifest,
+				newManifest,
+				summary: {
+					total: 2,
+					added: 1,
+					removed: 0,
+					modified: 1,
+					hasChanges: true,
+				},
+				changes: [],
+				comparedAt: "2025-01-15T12:00:00Z",
+			});
+
+			// Execute
+			const result = await commandService.updateCacheWithChanges({ language: "en" });
+
+			// Verify
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(2);
+			expect(result.hasChanges).toBe(true);
+			expect(result.added).toBe(1);
+			expect(result.removed).toBe(0);
+			expect(result.modified).toBe(1);
+		});
+
+		it("should mark all as added when no cache exists", async () => {
+			// Setup: No pre-existing cache
+			const newManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "test-command",
+						description: "A test command",
+						file: "test-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+			repository.setManifest("en", newManifest);
+
+			// Execute
+			const result = await commandService.updateCacheWithChanges({ language: "en" });
+
+			// Verify
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(1);
+			expect(result.hasChanges).toBe(true);
+			expect(result.added).toBe(1);
+			expect(result.removed).toBe(0);
+			expect(result.modified).toBe(0);
+		});
+
+		it("should detect no changes when manifests are identical", async () => {
+			// Setup: Same manifest in cache and repository
+			const manifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "test-command",
+						description: "A test command",
+						file: "test-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+			await cacheManager.set("en", manifest);
+			repository.setManifest("en", manifest);
+
+			// Setup: Configure manifestComparison to show no changes
+			manifestComparison.setComparisonResult({
+				oldManifest: manifest,
+				newManifest: manifest,
+				summary: {
+					total: 0,
+					added: 0,
+					removed: 0,
+					modified: 0,
+					hasChanges: false,
+				},
+				changes: [],
+				comparedAt: "2025-01-15T12:00:00Z",
+			});
+
+			// Execute
+			const result = await commandService.updateCacheWithChanges({ language: "en" });
+
+			// Verify
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(1);
+			expect(result.hasChanges).toBe(false);
+			expect(result.added).toBe(0);
+			expect(result.removed).toBe(0);
+			expect(result.modified).toBe(0);
+		});
+
+		it("should handle empty new manifest correctly", async () => {
+			// Setup: Pre-populate cache with commands
+			const oldManifest: Manifest = {
+				version: "1.0.0",
+				updated: "2025-01-15T10:00:00Z",
+				commands: [
+					{
+						name: "test-command",
+						description: "A test command",
+						file: "test-command.md",
+						"allowed-tools": ["read"],
+					},
+				],
+			};
+			await cacheManager.set("en", oldManifest);
+
+			// Setup: Empty new manifest
+			const newManifest: Manifest = {
+				version: "1.1.0",
+				updated: "2025-01-15T11:00:00Z",
+				commands: [],
+			};
+			repository.setManifest("en", newManifest);
+
+			// Setup: Configure manifestComparison to show removal
+			manifestComparison.setComparisonResult({
+				oldManifest,
+				newManifest,
+				summary: {
+					total: 1,
+					added: 0,
+					removed: 1,
+					modified: 0,
+					hasChanges: true,
+				},
+				changes: [],
+				comparedAt: "2025-01-15T12:00:00Z",
+			});
+
+			// Execute
+			const result = await commandService.updateCacheWithChanges({ language: "en" });
+
+			// Verify
+			expect(result.language).toBe("en");
+			expect(result.commandCount).toBe(0);
+			expect(result.hasChanges).toBe(true);
+			expect(result.added).toBe(0);
+			expect(result.removed).toBe(1);
+			expect(result.modified).toBe(0);
 		});
 	});
 });

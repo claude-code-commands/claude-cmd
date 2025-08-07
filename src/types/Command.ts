@@ -50,6 +50,23 @@ export interface CacheUpdateResult {
 }
 
 /**
+ * Enhanced result of a cache update operation with change detection
+ */
+export interface CacheUpdateResultWithChanges extends CacheUpdateResult {
+	/** Whether there were any changes detected */
+	readonly hasChanges: boolean;
+
+	/** Number of commands added */
+	readonly added: number;
+
+	/** Number of commands removed */
+	readonly removed: number;
+
+	/** Number of commands modified */
+	readonly modified: number;
+}
+
+/**
  * Options for repository operations that may affect caching behavior
  */
 export interface RepositoryOptions {

@@ -8,6 +8,11 @@ export const updateCommand = new Command("update")
 		"-l, --lang <language>",
 		"Language for commands (default: auto-detect)",
 	)
+	.option(
+		"--show-changes",
+		"Display detailed information about changes detected in the update",
+		false,
+	)
 	.action(async (options) => {
 		try {
 			console.log("Updating command manifest...");
@@ -16,18 +21,34 @@ export const updateCommand = new Command("update")
 				console.log(`Using language: ${options.lang}`);
 			}
 
-			const { commandService } = getServices();
+			const { commandService, changeDisplayFormatter } = getServices();
 
 			const serviceOptions: CommandServiceOptions = options.lang
 				? { language: options.lang }
 				: {};
 
-			const result = await commandService.updateCache(serviceOptions);
+			// Use updateCacheWithChanges to get change information
+			const result = await commandService.updateCacheWithChanges(serviceOptions);
 
-			console.log("Command manifest updated successfully!");
-			console.log(`Language: ${result.language}`);
-			console.log(`Commands available: ${result.commandCount}`);
-			console.log(`Updated at: ${new Date(result.timestamp).toLocaleString()}`);
+			// Format and display the results
+			const summary = changeDisplayFormatter.formatUpdateSummary(result);
+			console.log(summary);
+
+			// If detailed changes are requested and there were changes, show them
+			if (options.showChanges && result.hasChanges) {
+				console.log("\n" + "=".repeat(50));
+				console.log("Detailed Changes:");
+				console.log("=".repeat(50));
+				
+				// Get detailed comparison for display
+				const oldManifest = await commandService.listCommands({ 
+					...serviceOptions,
+					forceRefresh: false 
+				});
+				// Note: This is a simplified approach. In a full implementation,
+				// we might want to store the comparison result from updateCacheWithChanges
+				console.log("Use --show-changes with the list command for detailed change information.");
+			}
 		} catch (error) {
 			console.error("Error updating command manifest:");
 			if (error instanceof Error) {

@@ -1,6 +1,7 @@
 import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
-import type { CacheUpdateResult, Command } from "../types/Command.js";
+import type IManifestComparison from "../interfaces/IManifestComparison.js";
+import type { CacheUpdateResult, CacheUpdateResultWithChanges, Command } from "../types/Command.js";
 import { CommandNotFoundError } from "../types/Command.js";
 import type { CacheManager } from "./CacheManager.js";
 import type { LanguageDetector } from "./LanguageDetector.js";
@@ -97,6 +98,13 @@ export interface ICommandService {
 	 * @returns Promise resolving to update operation result information
 	 */
 	updateCache(options?: CommandServiceOptions): Promise<CacheUpdateResult>;
+
+	/**
+	 * Update the local cache with fresh manifest data and detect changes
+	 * @param options - Optional language override
+	 * @returns Promise resolving to update operation result with change information
+	 */
+	updateCacheWithChanges(options?: CommandServiceOptions): Promise<CacheUpdateResultWithChanges>;
 }
 
 /**
@@ -108,6 +116,7 @@ export class CommandService implements ICommandService {
 		private readonly cacheManager: CacheManager,
 		private readonly languageDetector: LanguageDetector,
 		private readonly installationService: IInstallationService,
+		private readonly manifestComparison: IManifestComparison,
 	) {}
 
 	/**
@@ -322,6 +331,56 @@ export class CommandService implements ICommandService {
 				language,
 				timestamp: Date.now(),
 				commandCount: manifest.commands.length,
+			};
+		});
+	}
+
+	async updateCacheWithChanges(
+		options?: CommandServiceOptions,
+	): Promise<CacheUpdateResultWithChanges> {
+		const language = this.resolveLanguage(options);
+
+		return this.withErrorHandling("updateCacheWithChanges", language, async () => {
+			// Get the current cached manifest for comparison (if it exists)
+			const oldManifest = await this.cacheManager.get(language);
+
+			// Always force refresh for explicit updates
+			const newManifest = await this.repository.getManifest(language, {
+				forceRefresh: true,
+			});
+
+			let hasChanges = false;
+			let added = 0;
+			let removed = 0;
+			let modified = 0;
+
+			// Compare manifests if old one exists
+			if (oldManifest) {
+				const comparison = await this.manifestComparison.compareManifests(
+					oldManifest,
+					newManifest,
+				);
+				hasChanges = comparison.summary.hasChanges;
+				added = comparison.summary.added;
+				removed = comparison.summary.removed;
+				modified = comparison.summary.modified;
+			} else {
+				// If no old manifest exists, all commands are considered "added"
+				hasChanges = newManifest.commands.length > 0;
+				added = newManifest.commands.length;
+			}
+
+			// Update cache with fresh manifest
+			await this.cacheManager.set(language, newManifest);
+
+			return {
+				language,
+				timestamp: Date.now(),
+				commandCount: newManifest.commands.length,
+				hasChanges,
+				added,
+				removed,
+				modified,
 			};
 		});
 	}
