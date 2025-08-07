@@ -152,7 +152,7 @@ All features must follow a DESIGN-RED-GREEN-REFACTOR-REVIEW workflow:
 - **Interface Isolation**: All I/O operations must use interface abstractions
 - **Dependency Injection**: Use `serviceFactory.ts` for service management
 - **Test Coverage**: Maintain comprehensive unit and integration test coverage
-
+- **MVP mode**: UX/UI breaking changes are authorized since there are no users yet
 
 ## Cache Directory Structure
 
