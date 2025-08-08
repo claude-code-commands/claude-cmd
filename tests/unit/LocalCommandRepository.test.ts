@@ -114,7 +114,7 @@ Creates React components.`,
 			}
 		});
 
-		test("should handle malformed command files gracefully", async () => {
+		test("should handle mixed valid and basic command files", async () => {
 			const originalHome = process.env.HOME;
 			process.env.HOME = "/Users/testuser";
 
@@ -132,18 +132,19 @@ description: "Valid command"
 
 				await fileService.writeFile(
 					"/Users/testuser/.claude/commands/invalid.md",
-					`---
-description: "Invalid command"
-invalid-yaml: [unclosed
----
-# Invalid Command`,
+					`This file has no frontmatter at all and should be treated as basic command`,
 				);
 
 				const manifest = await repository.getManifest("en");
 
-				// Should only include valid command
-				expect(manifest.commands).toHaveLength(1);
-				expect(manifest.commands[0]?.name).toBe("valid");
+				// Should include both valid command with frontmatter and invalid command treated as basic
+				expect(manifest.commands).toHaveLength(2);
+				const validCmd = manifest.commands.find(c => c.name === "valid");
+				const invalidCmd = manifest.commands.find(c => c.name === "invalid");
+				expect(validCmd).toBeDefined();
+				expect(invalidCmd).toBeDefined();
+				expect(validCmd?.description).toBe("Valid command");
+				expect(invalidCmd?.description).toBe("Custom slash command: invalid");
 			} finally {
 				process.env.HOME = originalHome;
 			}
