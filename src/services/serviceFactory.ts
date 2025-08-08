@@ -121,6 +121,7 @@ export function getServices() {
 			languageDetector,
 			installationService,
 			manifestComparison,
+			localCommandRepository,
 		);
 
 		services = {

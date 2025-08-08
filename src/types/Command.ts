@@ -72,6 +72,42 @@ export interface CacheUpdateResultWithChanges extends CacheUpdateResult {
 }
 
 /**
+ * Source of a command for attribution
+ */
+export type CommandSource = "repository" | "personal" | "project";
+
+/**
+ * Installation status of a repository command
+ */
+export interface InstallationStatus {
+	/** Whether the command is installed locally */
+	readonly isInstalled: boolean;
+
+	/** Installation location if installed */
+	readonly installLocation?: "personal" | "project";
+
+	/** Full path to installed file if available */
+	readonly installPath?: string;
+
+	/** Whether local version differs from repository version */
+	readonly hasLocalChanges?: boolean;
+}
+
+/**
+ * Enhanced command information with source and installation details
+ */
+export interface EnhancedCommandInfo extends Command {
+	/** Source where this command was found */
+	readonly source: CommandSource;
+
+	/** Installation status (only for repository commands) */
+	readonly installationStatus?: InstallationStatus;
+
+	/** Whether this command exists in multiple sources */
+	readonly availableInSources: CommandSource[];
+}
+
+/**
  * Options for repository operations that may affect caching behavior
  */
 export interface RepositoryOptions {
