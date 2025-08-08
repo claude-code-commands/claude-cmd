@@ -66,8 +66,8 @@ export class CommandParser {
 		);
 
 		try {
-			// Parse frontmatter using gray-matter
-			const parsed = matter(content);
+			// Parse frontmatter using gray-matter with consistent error handling
+			const parsed = this.parseFrontmatterSafely(content);
 
 			// Handle missing or empty frontmatter (optional frontmatter support)
 			const hasValidFrontmatter =
@@ -161,6 +161,97 @@ export class CommandParser {
 		} catch {
 			return false;
 		}
+	}
+
+	/**
+	 * Parse frontmatter safely, handling gray-matter's stateful behavior
+	 * 
+	 * The gray-matter library has internal state that causes malformed YAML
+	 * to behave inconsistently between parses:
+	 * - First parse: throws error (correct)
+	 * - Subsequent parses: returns empty object {} (incorrect)
+	 * 
+     * This is a bug, reported here: https://github.com/jonschlinkert/gray-matter/issues/166
+     * 
+	 * This method ensures consistent behavior by pre-validating YAML syntax.
+	 */
+	private parseFrontmatterSafely(content: string): any {
+		// Check if content has frontmatter delimiters
+		const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+		
+		if (frontmatterMatch) {
+			const yamlContent = frontmatterMatch[1];
+			
+			// Pre-validate YAML syntax to ensure consistent behavior
+			if (yamlContent.trim()) {
+				// Basic syntax checks for common YAML errors that gray-matter might inconsistently handle
+				const hasUnmatchedBrackets = this.hasUnmatchedBrackets(yamlContent);
+				const hasUnmatchedQuotes = this.hasUnmatchedQuotes(yamlContent);
+				
+				if (hasUnmatchedBrackets || hasUnmatchedQuotes) {
+					throw new Error("Invalid YAML syntax detected");
+				}
+			}
+		}
+		
+		// Now use gray-matter, which should behave consistently
+		return matter(content);
+	}
+
+	/**
+	 * Check for unmatched brackets in YAML content
+	 */
+	private hasUnmatchedBrackets(yaml: string): boolean {
+		let squareBrackets = 0;
+		let curlyBrackets = 0;
+		let inString = false;
+		let stringChar = '';
+		
+		for (let i = 0; i < yaml.length; i++) {
+			const char = yaml[i];
+			const prevChar = i > 0 ? yaml[i - 1] : '';
+			
+			// Handle string boundaries
+			if ((char === '"' || char === "'") && prevChar !== '\\') {
+				if (!inString) {
+					inString = true;
+					stringChar = char;
+				} else if (char === stringChar) {
+					inString = false;
+				}
+			}
+			
+			// Count brackets only outside of strings
+			if (!inString) {
+				if (char === '[') squareBrackets++;
+				else if (char === ']') squareBrackets--;
+				else if (char === '{') curlyBrackets++;
+				else if (char === '}') curlyBrackets--;
+			}
+		}
+		
+		return squareBrackets !== 0 || curlyBrackets !== 0;
+	}
+
+	/**
+	 * Check for unmatched quotes in YAML content
+	 */
+	private hasUnmatchedQuotes(yaml: string): boolean {
+		let singleQuotes = 0;
+		let doubleQuotes = 0;
+		
+		for (let i = 0; i < yaml.length; i++) {
+			const char = yaml[i];
+			const prevChar = i > 0 ? yaml[i - 1] : '';
+			
+			// Skip escaped quotes
+			if (prevChar === '\\') continue;
+			
+			if (char === "'") singleQuotes++;
+			else if (char === '"') doubleQuotes++;
+		}
+		
+		return singleQuotes % 2 !== 0 || doubleQuotes % 2 !== 0;
 	}
 
 	/**
