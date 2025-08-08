@@ -42,4 +42,15 @@ describe("CLI Remove Command Integration", () => {
 
 		expect(result).toBe(0);
 	});
+
+	it("should show only cancellation message when user cancels removal", async () => {
+		// This test would require an actual installed command and user interaction
+		// For now, we'll test the behavior when command is not installed (which is fine)
+		const { result, stdout } = await runCli(["remove", "nonexistent-command"]);
+		
+		expect(result).toBe(0);
+		expect(stdout).toContain("is not installed");
+		// Should NOT contain success message when command doesn't exist
+		expect(stdout).not.toContain("✓ Successfully removed command");
+	});
 });

@@ -26,8 +26,6 @@ export const removeCommand = new Command("remove")
 
 			// Remove the command (includes interactive confirmation)
 			await installationService.removeCommand(commandName, removeOptions);
-
-			console.log(`✓ Successfully removed command: ${commandName}`);
 		} catch (error) {
 			handleError(error, `Failed to remove command '${commandName}'`);
 		}

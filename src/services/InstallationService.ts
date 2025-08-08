@@ -165,7 +165,7 @@ export class InstallationService implements IInstallationService {
 				});
 
 				if (!shouldRemove) {
-					console.log(`Command removal cancelled.`);
+					console.log(`Command removal canceled.`);
 					return;
 				}
 			}
@@ -176,6 +176,8 @@ export class InstallationService implements IInstallationService {
 				
 				// Clear cache entries for this command
 				this.invalidateCommandCache(commandName);
+				
+				console.log(`✓ Successfully removed command: ${commandName}`);
 			}
 		} catch (error) {
 			if (error instanceof InstallationError) {
