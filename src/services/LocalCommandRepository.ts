@@ -70,16 +70,7 @@ export class LocalCommandRepository implements IRepository {
 
 			for (const filePath of allFiles) {
 				try {
-					// Extract command name from file path to check for duplicates
-					const fileName = path.basename(filePath, ".md");
-
-					// Skip if we've already processed a command with this name
-					// (personal directory files are processed first, so they take precedence)
-					if (processedNames.has(fileName)) {
-						continue;
-					}
-
-					// Read and parse the command file
+					// Read and parse the command file first to get the actual command name
 					const content =
 						await this.directoryDetector.fileService.readFile(filePath);
 
@@ -90,8 +81,14 @@ export class LocalCommandRepository implements IRepository {
 						relativePath,
 					);
 
+					// Use the actual command name (which includes namespace if present) for deduplication
+					// (personal directory files are processed first, so they take precedence)
+					if (processedNames.has(command.name)) {
+						continue;
+					}
+
 					commands.push(command);
-					processedNames.add(fileName);
+					processedNames.add(command.name);
 				} catch (_error) {}
 			}
 
@@ -131,27 +128,36 @@ export class LocalCommandRepository implements IRepository {
 		_options?: RepositoryOptions,
 	): Promise<string> {
 		try {
-			// Scan all Claude directories for command files
-			const scanResult =
-				await this.directoryDetector.scanAllClaudeDirectories();
+			// Get the manifest which now has properly namespaced command names
+			const manifest = await this.getManifest(language);
+			
+			// Find command by exact name match only (strict matching)
+			const matchingCommand = manifest.commands.find(cmd => cmd.name === commandName);
+			
+			if (!matchingCommand) {
+				throw new CommandNotFoundError(commandName, language);
+			}
 
-			// Search personal directory first (higher precedence)
-			for (const filePath of scanResult.personal) {
-				const fileName = path.basename(filePath, ".md");
-				if (fileName === commandName) {
-					return await this.directoryDetector.fileService.readFile(filePath);
+			// Now find the actual file path for this command
+			const scanResult = await this.directoryDetector.scanAllClaudeDirectories();
+			const allFiles = [...scanResult.personal, ...scanResult.project];
+
+			for (const filePath of allFiles) {
+				try {
+					const content = await this.directoryDetector.fileService.readFile(filePath);
+					const relativePath = await this.getRelativeCommandPath(filePath);
+					const parsedCommand = await this.commandParser.parseCommandFile(content, relativePath);
+					
+					// Match by the parsed command name
+					if (parsedCommand.name === matchingCommand.name) {
+						return content;
+					}
+				} catch (_error) {
+					// Skip files that can't be parsed
 				}
 			}
 
-			// Search project directory if not found in personal
-			for (const filePath of scanResult.project) {
-				const fileName = path.basename(filePath, ".md");
-				if (fileName === commandName) {
-					return await this.directoryDetector.fileService.readFile(filePath);
-				}
-			}
-
-			// Command not found in any directory
+			// This shouldn't happen if manifest is in sync, but handle gracefully
 			throw new CommandNotFoundError(commandName, language);
 		} catch (error) {
 			if (error instanceof CommandNotFoundError) {

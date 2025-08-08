@@ -96,8 +96,10 @@ export class CommandParser {
 				}
 
 				// Build Command object with frontmatter data
+				// For namespaced commands, include namespace in the name for consistency
+				const fullCommandName = namespace ? `${namespace}:${commandName}` : commandName;
 				const command: Command = {
-					name: commandName,
+					name: fullCommandName,
 					description: parsed.data.description,
 					file: file,
 					"allowed-tools": allowedTools,
@@ -117,9 +119,11 @@ export class CommandParser {
 			} else {
 				// No frontmatter - create basic command with safe defaults
 				// This supports basic Markdown files without YAML frontmatter
+				// For namespaced commands, include namespace in the name for consistency
+				const fullCommandName = namespace ? `${namespace}:${commandName}` : commandName;
 				const command: Command = {
-					name: commandName,
-					description: `Custom slash command: ${commandName}`,
+					name: fullCommandName,
+					description: `Custom slash command: ${fullCommandName}`,
 					file: file,
 					"allowed-tools": [], // No tools allowed for basic commands without frontmatter
 				};
