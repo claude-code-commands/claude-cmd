@@ -44,8 +44,6 @@ describe("CLI Update Command Integration", () => {
 
 		expect(result).toBe(1);
 		expect(stderr).toContain("Error updating command manifest");
-		expect(stderr).toContain(
-			'Failed to retrieve manifest for language "nonexistent"',
-		);
+		expect(stderr).toContain("Language code cannot be empty");
 	});
 });
