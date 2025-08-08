@@ -79,7 +79,7 @@ Creates React components.`,
 					(c) => c.name === "local-helper",
 				);
 				const componentCmd = manifest.commands.find(
-					(c) => c.name === "component",
+					(c) => c.name === "frontend:component",
 				);
 
 				expect(globalCmd).toBeDefined();
@@ -201,7 +201,7 @@ description: "Login authentication helper"
 				expect(manifest.commands).toHaveLength(1);
 				const loginCmd = manifest.commands[0];
 				expect(loginCmd).toBeDefined();
-				expect(loginCmd?.name).toBe("login");
+				expect(loginCmd?.name).toBe("backend:auth:login");
 				expect(loginCmd?.namespace).toBe("backend:auth");
 				expect(loginCmd?.file).toBe("backend/auth/login.md");
 			} finally {
@@ -254,7 +254,7 @@ description: "Component generator"
 				);
 
 				// Should find command by name regardless of namespace
-				const content = await repository.getCommand("component", "en");
+				const content = await repository.getCommand("frontend:component", "en");
 				expect(content).toBe(commandContent);
 			} finally {
 				process.env.HOME = originalHome;

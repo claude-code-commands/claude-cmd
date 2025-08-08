@@ -58,10 +58,10 @@ Use this command when you need help with debugging.
 			commandParser,
 		);
 		userInteractionService = new InMemoryUserInteractionService();
-		
+
 		// Set default confirmation to true for most tests
 		userInteractionService.setDefaultResponses({ confirmation: true });
-		
+
 		installationService = new InstallationService(
 			repository,
 			fileService,
@@ -348,8 +348,8 @@ allowed-tools: Bash(docker:*)
 
 			const commandNames = commands.map((c) => c.name);
 			expect(commandNames).toContain("test-command");
-			expect(commandNames).toContain("code-review");
-			expect(commandNames).toContain("deploy");
+			expect(commandNames).toContain("ai:code-review");
+			expect(commandNames).toContain("tools:docker:deploy");
 		});
 
 		test("should handle nested directories with malformed files gracefully", async () => {
@@ -386,8 +386,8 @@ allowed-tools: [invalid yaml
 
 			const commandNames = commands.map((c) => c.name);
 			expect(commandNames).toContain("test-command");
-			expect(commandNames).toContain("valid");
-			expect(commandNames).not.toContain("malformed");
+			expect(commandNames).toContain("category:valid");
+			expect(commandNames).not.toContain("category:malformed");
 		});
 	});
 
@@ -489,42 +489,51 @@ allowed-tools: [invalid yaml
 
 		test("should find namespaced command with colon separator", async () => {
 			// Create a namespaced command structure: frontend/component.md
-			const namespacedPath = "/home/testuser/.claude/commands/frontend/component.md";
+			const namespacedPath =
+				"/home/testuser/.claude/commands/frontend/component.md";
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Should find the command using colon notation
-			const path = await installationService.getInstallationPath("frontend:component");
+			const path =
+				await installationService.getInstallationPath("frontend:component");
 			expect(path).toBe(namespacedPath);
 
 			// Should also work with isInstalled
-			const isInstalled = await installationService.isInstalled("frontend:component");
+			const isInstalled =
+				await installationService.isInstalled("frontend:component");
 			expect(isInstalled).toBe(true);
 		});
 
 		test("should find namespaced command with slash separator", async () => {
 			// Create a namespaced command structure: api/endpoints/user.md
-			const namespacedPath = "/home/testuser/.claude/commands/api/endpoints/user.md";
+			const namespacedPath =
+				"/home/testuser/.claude/commands/api/endpoints/user.md";
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Should find the command using slash notation
-			const path = await installationService.getInstallationPath("api/endpoints/user");
+			const path =
+				await installationService.getInstallationPath("api/endpoints/user");
 			expect(path).toBe(namespacedPath);
 
 			// Should also work with isInstalled
-			const isInstalled = await installationService.isInstalled("api/endpoints/user");
+			const isInstalled =
+				await installationService.isInstalled("api/endpoints/user");
 			expect(isInstalled).toBe(true);
 		});
 
 		test("should support removing namespaced commands with confirmation", async () => {
 			// Create a namespaced command
-			const namespacedPath = "/home/testuser/.claude/commands/frontend/component.md";
+			const namespacedPath =
+				"/home/testuser/.claude/commands/frontend/component.md";
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Verify it exists
 			expect(await fileService.exists(namespacedPath)).toBe(true);
 
 			// Remove using colon notation with --yes flag
-			await installationService.removeCommand("frontend:component", { yes: true });
+			await installationService.removeCommand("frontend:component", {
+				yes: true,
+			});
 
 			// Should be removed
 			expect(await fileService.exists(namespacedPath)).toBe(false);
@@ -537,7 +546,9 @@ allowed-tools: [invalid yaml
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Get installation info using colon notation
-			const info = await installationService.getInstallationInfo("backend:database:migrations");
+			const info = await installationService.getInstallationInfo(
+				"backend:database:migrations",
+			);
 
 			expect(info).not.toBeNull();
 			expect(info!.name).toBe("backend:database:migrations");
@@ -547,15 +558,20 @@ allowed-tools: [invalid yaml
 
 		test("should handle deep namespaces correctly", async () => {
 			// Create deeply nested command: tools/cli/commands/generate/component.md
-			const deepPath = "/home/testuser/.claude/commands/tools/cli/commands/generate/component.md";
+			const deepPath =
+				"/home/testuser/.claude/commands/tools/cli/commands/generate/component.md";
 			await fileService.writeFile(deepPath, mockCommandContent);
 
 			// Should find using colon notation
-			const pathColon = await installationService.getInstallationPath("tools:cli:commands:generate:component");
+			const pathColon = await installationService.getInstallationPath(
+				"tools:cli:commands:generate:component",
+			);
 			expect(pathColon).toBe(deepPath);
 
 			// Should also find using slash notation
-			const pathSlash = await installationService.getInstallationPath("tools/cli/commands/generate/component");
+			const pathSlash = await installationService.getInstallationPath(
+				"tools/cli/commands/generate/component",
+			);
 			expect(pathSlash).toBe(deepPath);
 		});
 
@@ -574,10 +590,14 @@ allowed-tools: [invalid yaml
 
 		test("should return null for non-existent namespaced commands", async () => {
 			// Try to find non-existent namespaced command
-			const path = await installationService.getInstallationPath("nonexistent:command");
+			const path = await installationService.getInstallationPath(
+				"nonexistent:command",
+			);
 			expect(path).toBeNull();
 
-			const isInstalled = await installationService.isInstalled("nonexistent:command");
+			const isInstalled = await installationService.isInstalled(
+				"nonexistent:command",
+			);
 			expect(isInstalled).toBe(false);
 		});
 
@@ -594,17 +614,20 @@ allowed-tools: [invalid yaml
 			expect(flatFound).toBe(flatPath);
 
 			// Should find namespaced command
-			const namespacedFound = await installationService.getInstallationPath("utils:helper");
+			const namespacedFound =
+				await installationService.getInstallationPath("utils:helper");
 			expect(namespacedFound).toBe(namespacedPath);
 
 			// Should not find wrong namespace
-			const wrongNamespace = await installationService.getInstallationPath("wrong:helper");
+			const wrongNamespace =
+				await installationService.getInstallationPath("wrong:helper");
 			expect(wrongNamespace).toBeNull();
 		});
 
 		test("should handle interactive confirmation for namespaced command removal", async () => {
 			// Create a namespaced command
-			const namespacedPath = "/home/testuser/.claude/commands/test/interactive.md";
+			const namespacedPath =
+				"/home/testuser/.claude/commands/test/interactive.md";
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Configure mock to cancel removal
@@ -634,28 +657,35 @@ allowed-tools: [invalid yaml
 				await installationService.installCommand("test-command");
 				const afterInstall = new Date();
 
-				const info = await installationService.getInstallationInfo("test-command");
+				const info =
+					await installationService.getInstallationInfo("test-command");
 
 				expect(info).toBeDefined();
 				expect(info!.name).toBe("test-command");
 				expect(info!.location).toBe("personal");
 				expect(info!.source).toBe("repository");
 				expect(info!.installedAt).toBeInstanceOf(Date);
-				expect(info!.installedAt.getTime()).toBeGreaterThanOrEqual(beforeInstall.getTime());
-				expect(info!.installedAt.getTime()).toBeLessThanOrEqual(afterInstall.getTime());
+				expect(info!.installedAt.getTime()).toBeGreaterThanOrEqual(
+					beforeInstall.getTime(),
+				);
+				expect(info!.installedAt.getTime()).toBeLessThanOrEqual(
+					afterInstall.getTime(),
+				);
 				expect(info!.version).toBeDefined();
 			});
 
 			test("should differentiate between repository and local sources", async () => {
 				// Install from repository
 				await installationService.installCommand("test-command");
-				const repoInfo = await installationService.getInstallationInfo("test-command");
+				const repoInfo =
+					await installationService.getInstallationInfo("test-command");
 
 				// Manually create a local command file (simulating local source)
 				const localPath = "/home/testuser/.claude/commands/local-command.md";
 				await fileService.writeFile(localPath, mockCommandContent);
 
-				const localInfo = await installationService.getInstallationInfo("local-command");
+				const localInfo =
+					await installationService.getInstallationInfo("local-command");
 
 				expect(repoInfo!.source).toBe("repository");
 				expect(localInfo!.source).toBe("local");
@@ -663,12 +693,19 @@ allowed-tools: [invalid yaml
 
 			test("should track installation metadata for project vs personal", async () => {
 				// Install to personal directory
-				await installationService.installCommand("test-command", { target: "personal" });
-				const personalInfo = await installationService.getInstallationInfo("test-command");
+				await installationService.installCommand("test-command", {
+					target: "personal",
+				});
+				const personalInfo =
+					await installationService.getInstallationInfo("test-command");
 
-				// Install to project directory 
-				await installationService.installCommand("test-command", { target: "project", force: true });
-				const projectInfo = await installationService.getInstallationInfo("test-command");
+				// Install to project directory
+				await installationService.installCommand("test-command", {
+					target: "project",
+					force: true,
+				});
+				const projectInfo =
+					await installationService.getInstallationInfo("test-command");
 
 				expect(personalInfo!.location).toBe("personal");
 				expect(projectInfo!.location).toBe("project");
@@ -678,7 +715,8 @@ allowed-tools: [invalid yaml
 
 			test("should provide detailed installation metadata", async () => {
 				await installationService.installCommand("test-command");
-				const info = await installationService.getInstallationInfo("test-command");
+				const info =
+					await installationService.getInstallationInfo("test-command");
 
 				expect(info).toBeDefined();
 				expect(info!.metadata).toBeDefined();
@@ -689,9 +727,9 @@ allowed-tools: [invalid yaml
 
 			test("should return enhanced installation info for all installed commands", async () => {
 				await installationService.installCommand("test-command");
-				
+
 				const allInfo = await installationService.getAllInstallationInfo();
-				
+
 				expect(allInfo).toHaveLength(1);
 				expect(allInfo[0].name).toBe("test-command");
 				expect(allInfo[0].location).toBe("personal");
@@ -701,20 +739,27 @@ allowed-tools: [invalid yaml
 
 			test("should return installation info with location indicators", async () => {
 				// Install same command to both locations
-				await installationService.installCommand("test-command", { target: "personal" });
-				await installationService.installCommand("test-command", { target: "project", force: true });
+				await installationService.installCommand("test-command", {
+					target: "personal",
+				});
+				await installationService.installCommand("test-command", {
+					target: "project",
+					force: true,
+				});
 
 				const allInfo = await installationService.getAllInstallationInfo();
-				
+
 				expect(allInfo).toHaveLength(2);
-				const locations = allInfo.map(info => info.location);
+				const locations = allInfo.map((info) => info.location);
 				expect(locations).toContain("personal");
 				expect(locations).toContain("project");
 			});
 
 			test("should provide command count and summary information", async () => {
-				await installationService.installCommand("test-command", { target: "personal" });
-				
+				await installationService.installCommand("test-command", {
+					target: "personal",
+				});
+
 				// Add project command
 				const projectCommand: Command = {
 					name: "project-command",
@@ -737,7 +782,9 @@ allowed-tools: Read, Write
 # Project Command
 `;
 				repository.setCommand("project-command", "en", projectContent);
-				await installationService.installCommand("project-command", { target: "project" });
+				await installationService.installCommand("project-command", {
+					target: "project",
+				});
 
 				const summary = await installationService.getInstallationSummary();
 
@@ -752,26 +799,26 @@ allowed-tools: Read, Write
 	describe("security validation", () => {
 		test("should reject command names with path traversal attempts", async () => {
 			await expect(
-				installationService.installCommand("../../../etc/passwd")
+				installationService.installCommand("../../../etc/passwd"),
 			).rejects.toThrow(InstallationError);
 		});
 
 		test("should reject command names with dangerous path segments", async () => {
 			await expect(
-				installationService.installCommand("valid/../invalid")
+				installationService.installCommand("valid/../invalid"),
 			).rejects.toThrow(InstallationError);
 		});
 
 		test("should reject absolute path command names", async () => {
 			await expect(
-				installationService.installCommand("/etc/passwd")
+				installationService.installCommand("/etc/passwd"),
 			).rejects.toThrow(InstallationError);
 		});
 
 		test("should reject empty command names", async () => {
-			await expect(
-				installationService.installCommand("")
-			).rejects.toThrow(InstallationError);
+			await expect(installationService.installCommand("")).rejects.toThrow(
+				InstallationError,
+			);
 		});
 
 		test("should accept valid namespaced command names", async () => {
@@ -782,15 +829,15 @@ allowed-tools: Read, Write
 				file: "frontend/component.md",
 				"allowed-tools": ["Read", "Write"],
 			};
-			
+
 			repository.setManifest("en", {
 				version: "1.0.0",
 				updated: "2025-01-01T00:00:00Z",
 				commands: [mockCommand, namespacedCommand],
 			});
-			
+
 			repository.setCommand("frontend:component", "en", mockCommandContent);
-			
+
 			// This should not throw
 			await installationService.installCommand("frontend:component");
 		});
@@ -800,18 +847,22 @@ allowed-tools: Read, Write
 			const slashCommand = {
 				name: "project/frontend/component",
 				description: "Create a project frontend component",
-				file: "project/frontend/component.md", 
+				file: "project/frontend/component.md",
 				"allowed-tools": ["Read", "Write"],
 			};
-			
+
 			repository.setManifest("en", {
 				version: "1.0.0",
 				updated: "2025-01-01T00:00:00Z",
 				commands: [mockCommand, slashCommand],
 			});
-			
-			repository.setCommand("project/frontend/component", "en", mockCommandContent);
-			
+
+			repository.setCommand(
+				"project/frontend/component",
+				"en",
+				mockCommandContent,
+			);
+
 			// This should not throw
 			await installationService.installCommand("project/frontend/component");
 		});

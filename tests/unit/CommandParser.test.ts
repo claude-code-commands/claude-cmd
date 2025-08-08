@@ -428,7 +428,7 @@ allowed-tools: Read, Edit
 				"frontend/component.md",
 			);
 
-			expect(command.name).toBe("component");
+			expect(command.name).toBe("frontend:component");
 			expect(command.description).toBe("Frontend component generator");
 			expect(command.file).toBe("frontend/component.md");
 			expect(command.namespace).toBe("frontend");
@@ -448,7 +448,7 @@ allowed-tools: Read, Edit, Bash(npm:*)
 				"backend/auth/jwt.md",
 			);
 
-			expect(command.name).toBe("jwt");
+			expect(command.name).toBe("backend:auth:jwt");
 			expect(command.description).toBe("JWT authentication helper");
 			expect(command.file).toBe("backend/auth/jwt.md");
 			expect(command.namespace).toBe("backend:auth");
@@ -495,8 +495,8 @@ This is a simple command without frontmatter.
 
 			const command = await parser.parseCommandFile(content, "tools/simple.md");
 
-			expect(command.name).toBe("simple");
-			expect(command.description).toBe("Custom slash command: simple");
+			expect(command.name).toBe("tools:simple");
+			expect(command.description).toBe("Custom slash command: tools:simple");
 			expect(command.file).toBe("tools/simple.md");
 			expect(command.namespace).toBe("tools");
 			expect(command["allowed-tools"]).toEqual([]);
