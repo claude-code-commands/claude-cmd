@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `CLAUDECODE=1 bun test` - Run all tests (unit + integration)
 - `bun run typecheck` - TypeScript type checking
 
-**IMPORTANT**: The `CLAUDECODE=1` environment variable is required for all test runs. Without it, tests may not execute properly.
+**IMPORTANT**: The `CLAUDECODE=1` environment variable is *ONLY* required for all test runs. You MUST NOT use it for any other Bun or Bash commands.
 
 ### Code Quality
 - `bun run check` - Run Biome linter checks
