@@ -1,9 +1,15 @@
 import type IInstallationService from "../interfaces/IInstallationService.js";
-import type IRepository from "../interfaces/IRepository.js";
 import type IManifestComparison from "../interfaces/IManifestComparison.js";
-import type { CacheUpdateResult, CacheUpdateResultWithChanges, Command, EnhancedCommandInfo, InstallationStatus } from "../types/Command.js";
-import type { ManifestComparisonResult } from "../types/ManifestComparison.js";
+import type IRepository from "../interfaces/IRepository.js";
+import type {
+	CacheUpdateResult,
+	CacheUpdateResultWithChanges,
+	Command,
+	EnhancedCommandInfo,
+	InstallationStatus,
+} from "../types/Command.js";
 import { CommandNotFoundError } from "../types/Command.js";
+import type { ManifestComparisonResult } from "../types/ManifestComparison.js";
 import type { CacheManager } from "./CacheManager.js";
 import type { DirectoryDetector } from "./DirectoryDetector.js";
 import type { LanguageDetector } from "./LanguageDetector.js";
@@ -118,7 +124,9 @@ export interface ICommandService {
 	 * @param options - Optional language override
 	 * @returns Promise resolving to update operation result with change information
 	 */
-	updateCacheWithChanges(options?: CommandServiceOptions): Promise<CacheUpdateResultWithChanges>;
+	updateCacheWithChanges(
+		options?: CommandServiceOptions,
+	): Promise<CacheUpdateResultWithChanges>;
 }
 
 /**
@@ -319,120 +327,139 @@ export class CommandService implements ICommandService {
 		this.validateCommandName(commandName);
 		const language = this.resolveLanguage(options);
 
-		return this.withErrorHandling("getEnhancedCommandInfo", language, async () => {
-			// Try to get command from both repository and local sources
-			let repositoryCommand: Command | undefined;
-			let localCommand: Command | undefined;
-			const availableInSources: ("repository" | "personal" | "project")[] = [];
+		return this.withErrorHandling(
+			"getEnhancedCommandInfo",
+			language,
+			async () => {
+				// Try to get command from both repository and local sources
+				let repositoryCommand: Command | undefined;
+				let localCommand: Command | undefined;
+				const availableInSources: ("repository" | "personal" | "project")[] =
+					[];
 
-			// Check repository first
-			try {
-				repositoryCommand = await this.getCommandInfo(commandName, options);
-				availableInSources.push("repository");
-			} catch (error) {
-				if (!(error instanceof CommandNotFoundError)) {
-					throw error;
+				// Check repository first
+				try {
+					repositoryCommand = await this.getCommandInfo(commandName, options);
+					availableInSources.push("repository");
+				} catch (error) {
+					if (!(error instanceof CommandNotFoundError)) {
+						throw error;
+					}
 				}
-			}
 
-			// Check local commands
-			try {
-				const localManifest = await this.localCommandRepository.getManifest(language);
-				localCommand = localManifest.commands.find(cmd => cmd.name === commandName);
+				// Check local commands
+				try {
+					const localManifest =
+						await this.localCommandRepository.getManifest(language);
+					localCommand = localManifest.commands.find(
+						(cmd) => cmd.name === commandName,
+					);
+					if (localCommand) {
+						// Determine actual installation location by scanning directories
+						const scanResult =
+							await this.directoryDetector.scanAllClaudeDirectories();
+						const personalFiles = scanResult.personal.filter((file: string) =>
+							file.includes(`${commandName}.md`),
+						);
+						const projectFiles = scanResult.project.filter((file: string) =>
+							file.includes(`${commandName}.md`),
+						);
+
+						if (personalFiles.length > 0) {
+							availableInSources.push("personal");
+						}
+						if (projectFiles.length > 0) {
+							availableInSources.push("project");
+						}
+					}
+				} catch (_error) {
+					// Ignore local repository errors
+				}
+
+				// Determine which command to use and its source
+				let baseCommand: Command;
+				let source: "repository" | "personal" | "project";
+				let _installPath: string | undefined;
+
 				if (localCommand) {
-					// Determine actual installation location by scanning directories
-					const scanResult = await this.directoryDetector.scanAllClaudeDirectories();
-					const personalFiles = scanResult.personal.filter((file: string) => file.includes(`${commandName}.md`));
-					const projectFiles = scanResult.project.filter((file: string) => file.includes(`${commandName}.md`));
-					
-					if (personalFiles.length > 0) {
-						availableInSources.push("personal");
-					}
-					if (projectFiles.length > 0) {
-						availableInSources.push("project");
-					}
-				}
-			} catch (error) {
-				// Ignore local repository errors
-			}
-
-			// Determine which command to use and its source
-			let baseCommand: Command;
-			let source: "repository" | "personal" | "project";
-			let installPath: string | undefined;
-
-			if (localCommand) {
-				// Local command takes precedence when available
-				baseCommand = localCommand;
-				// Personal directory takes precedence over project directory
-				if (availableInSources.includes("personal")) {
-					source = "personal";
-					const personalDir = await this.directoryDetector.getPersonalDirectory();
-					installPath = `${personalDir}/${commandName}.md`;
-				} else if (availableInSources.includes("project")) {
-					source = "project";
-					const projectDir = await this.directoryDetector.getProjectDirectory();
-					installPath = `${projectDir}/${commandName}.md`;
-				} else {
-					source = "personal"; // Fallback
-				}
-			} else if (repositoryCommand) {
-				baseCommand = repositoryCommand;
-				source = "repository";
-			} else {
-				throw new CommandNotFoundError(commandName, language);
-			}
-
-			// Build installation status if this is a repository command
-			let installationStatus: InstallationStatus | undefined;
-			if (repositoryCommand) {
-				const isInstalled = localCommand !== undefined;
-				let installLocation: "personal" | "project" | undefined;
-				let detectedInstallPath: string | undefined;
-				let hasLocalChanges = false;
-
-				if (isInstalled && localCommand) {
-					// Determine actual installation location
+					// Local command takes precedence when available
+					baseCommand = localCommand;
+					// Personal directory takes precedence over project directory
 					if (availableInSources.includes("personal")) {
-						installLocation = "personal";
-						const personalDir = await this.directoryDetector.getPersonalDirectory();
-						detectedInstallPath = `${personalDir}/${commandName}.md`;
+						source = "personal";
+						const personalDir =
+							await this.directoryDetector.getPersonalDirectory();
+						_installPath = `${personalDir}/${commandName}.md`;
 					} else if (availableInSources.includes("project")) {
-						installLocation = "project";
-						const projectDir = await this.directoryDetector.getProjectDirectory();
-						detectedInstallPath = `${projectDir}/${commandName}.md`;
+						source = "project";
+						const projectDir =
+							await this.directoryDetector.getProjectDirectory();
+						_installPath = `${projectDir}/${commandName}.md`;
+					} else {
+						source = "personal"; // Fallback
 					}
-					
-					// Compare content to detect local changes if both versions exist
-					if (localCommand && repositoryCommand) {
-						// Compare key metadata fields
-						hasLocalChanges = 
-							localCommand.description !== repositoryCommand.description ||
-							JSON.stringify(localCommand["allowed-tools"]) !== JSON.stringify(repositoryCommand["allowed-tools"]) ||
-							(localCommand["argument-hint"] || "") !== (repositoryCommand["argument-hint"] || "");
-						
-						// For a more thorough comparison, we could also compare the actual file content
-						// by fetching both the repository content and local content and comparing them
-					}
+				} else if (repositoryCommand) {
+					baseCommand = repositoryCommand;
+					source = "repository";
+				} else {
+					throw new CommandNotFoundError(commandName, language);
 				}
 
-				installationStatus = {
-					isInstalled,
-					installLocation,
-					installPath: detectedInstallPath,
-					hasLocalChanges,
+				// Build installation status if this is a repository command
+				let installationStatus: InstallationStatus | undefined;
+				if (repositoryCommand) {
+					const isInstalled = localCommand !== undefined;
+					let installLocation: "personal" | "project" | undefined;
+					let detectedInstallPath: string | undefined;
+					let hasLocalChanges = false;
+
+					if (isInstalled && localCommand) {
+						// Determine actual installation location
+						if (availableInSources.includes("personal")) {
+							installLocation = "personal";
+							const personalDir =
+								await this.directoryDetector.getPersonalDirectory();
+							detectedInstallPath = `${personalDir}/${commandName}.md`;
+						} else if (availableInSources.includes("project")) {
+							installLocation = "project";
+							const projectDir =
+								await this.directoryDetector.getProjectDirectory();
+							detectedInstallPath = `${projectDir}/${commandName}.md`;
+						}
+
+						// Compare content to detect local changes if both versions exist
+						if (localCommand && repositoryCommand) {
+							// Compare key metadata fields
+							hasLocalChanges =
+								localCommand.description !== repositoryCommand.description ||
+								JSON.stringify(localCommand["allowed-tools"]) !==
+									JSON.stringify(repositoryCommand["allowed-tools"]) ||
+								(localCommand["argument-hint"] || "") !==
+									(repositoryCommand["argument-hint"] || "");
+
+							// For a more thorough comparison, we could also compare the actual file content
+							// by fetching both the repository content and local content and comparing them
+						}
+					}
+
+					installationStatus = {
+						isInstalled,
+						installLocation,
+						installPath: detectedInstallPath,
+						hasLocalChanges,
+					};
+				}
+
+				const enhancedCommand: EnhancedCommandInfo = {
+					...baseCommand,
+					source,
+					installationStatus,
+					availableInSources,
 				};
-			}
 
-			const enhancedCommand: EnhancedCommandInfo = {
-				...baseCommand,
-				source,
-				installationStatus,
-				availableInSources,
-			};
-
-			return enhancedCommand;
-		});
+				return enhancedCommand;
+			},
+		);
 	}
 
 	async getInstalledCommands(
@@ -479,50 +506,54 @@ export class CommandService implements ICommandService {
 	): Promise<CacheUpdateResultWithChanges> {
 		const language = this.resolveLanguage(options);
 
-		return this.withErrorHandling("updateCacheWithChanges", language, async () => {
-			// Get the current cached manifest for comparison (if it exists)
-			const oldManifest = await this.cacheManager.get(language);
+		return this.withErrorHandling(
+			"updateCacheWithChanges",
+			language,
+			async () => {
+				// Get the current cached manifest for comparison (if it exists)
+				const oldManifest = await this.cacheManager.get(language);
 
-			// Always force refresh for explicit updates
-			const newManifest = await this.repository.getManifest(language, {
-				forceRefresh: true,
-			});
+				// Always force refresh for explicit updates
+				const newManifest = await this.repository.getManifest(language, {
+					forceRefresh: true,
+				});
 
-			let hasChanges = false;
-			let added = 0;
-			let removed = 0;
-			let modified = 0;
-		let comparisonResult: ManifestComparisonResult | undefined;
+				let hasChanges = false;
+				let added = 0;
+				let removed = 0;
+				let modified = 0;
+				let comparisonResult: ManifestComparisonResult | undefined;
 
-			// Compare manifests if old one exists
-			if (oldManifest) {
-				comparisonResult = await this.manifestComparison.compareManifests(
-					oldManifest,
-					newManifest,
-				);
-				hasChanges = comparisonResult.summary.hasChanges;
-				added = comparisonResult.summary.added;
-				removed = comparisonResult.summary.removed;
-				modified = comparisonResult.summary.modified;
-			} else {
-				// If no old manifest exists, all commands are considered "added"
-				hasChanges = newManifest.commands.length > 0;
-				added = newManifest.commands.length;
-			}
+				// Compare manifests if old one exists
+				if (oldManifest) {
+					comparisonResult = await this.manifestComparison.compareManifests(
+						oldManifest,
+						newManifest,
+					);
+					hasChanges = comparisonResult.summary.hasChanges;
+					added = comparisonResult.summary.added;
+					removed = comparisonResult.summary.removed;
+					modified = comparisonResult.summary.modified;
+				} else {
+					// If no old manifest exists, all commands are considered "added"
+					hasChanges = newManifest.commands.length > 0;
+					added = newManifest.commands.length;
+				}
 
-			// Update cache with fresh manifest
-			await this.cacheManager.set(language, newManifest);
+				// Update cache with fresh manifest
+				await this.cacheManager.set(language, newManifest);
 
-			return {
-				language,
-				timestamp: Date.now(),
-				commandCount: newManifest.commands.length,
-				hasChanges,
-				added,
-				removed,
-				modified,
-				comparisonResult,
-			};
-		});
+				return {
+					language,
+					timestamp: Date.now(),
+					commandCount: newManifest.commands.length,
+					hasChanges,
+					added,
+					removed,
+					modified,
+					comparisonResult,
+				};
+			},
+		);
 	}
 }

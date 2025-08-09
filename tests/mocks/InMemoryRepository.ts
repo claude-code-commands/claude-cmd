@@ -551,7 +551,7 @@ class InMemoryRepository implements IRepository {
 	 */
 	async getAvailableLanguages(): Promise<LanguageStatusInfo[]> {
 		const languages: LanguageStatusInfo[] = [];
-		
+
 		for (const [lang, manifest] of this.manifests) {
 			if (!(manifest instanceof Error)) {
 				languages.push({
@@ -561,7 +561,7 @@ class InMemoryRepository implements IRepository {
 				});
 			}
 		}
-		
+
 		return languages;
 	}
 

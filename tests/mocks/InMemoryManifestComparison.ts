@@ -1,9 +1,9 @@
 import type IManifestComparison from "../../src/interfaces/IManifestComparison.js";
 import type {
+	ChangeSummary,
+	CommandChange,
 	Manifest,
 	ManifestComparisonResult,
-	CommandChange,
-	ChangeSummary,
 } from "../../src/types/index.js";
 
 /**
@@ -49,8 +49,12 @@ export default class InMemoryManifestComparison implements IManifestComparison {
 		// Default behavior: perform actual comparison for testing
 		// This provides a simple implementation for when no mock result is set
 		const changes: CommandChange[] = [];
-		const oldCommandsMap = new Map(oldManifest.commands.map(cmd => [cmd.name, cmd]));
-		const newCommandsMap = new Map(newManifest.commands.map(cmd => [cmd.name, cmd]));
+		const oldCommandsMap = new Map(
+			oldManifest.commands.map((cmd) => [cmd.name, cmd]),
+		);
+		const newCommandsMap = new Map(
+			newManifest.commands.map((cmd) => [cmd.name, cmd]),
+		);
 
 		// Find added and modified commands
 		for (const [name, newCommand] of newCommandsMap) {
@@ -84,9 +88,9 @@ export default class InMemoryManifestComparison implements IManifestComparison {
 
 		const summary: ChangeSummary = {
 			total: changes.length,
-			added: changes.filter(c => c.type === "added").length,
-			removed: changes.filter(c => c.type === "removed").length,
-			modified: changes.filter(c => c.type === "modified").length,
+			added: changes.filter((c) => c.type === "added").length,
+			removed: changes.filter((c) => c.type === "removed").length,
+			modified: changes.filter((c) => c.type === "modified").length,
 			hasChanges: changes.length > 0,
 		};
 
@@ -100,8 +104,8 @@ export default class InMemoryManifestComparison implements IManifestComparison {
 	}
 
 	async areManifestsIdentical(
-		oldManifest: Manifest,
-		newManifest: Manifest,
+		_oldManifest: Manifest,
+		_newManifest: Manifest,
 	): Promise<boolean> {
 		return this.mockIdenticalResult;
 	}

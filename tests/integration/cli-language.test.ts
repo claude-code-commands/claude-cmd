@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { runCli } from "../testUtils.ts";
 import { getServices } from "../../src/services/serviceFactory.js";
+import { runCli } from "../testUtils.ts";
 
 describe("CLI Language Command Integration", () => {
 	describe("language list", () => {
@@ -47,7 +47,7 @@ describe("CLI Language Command Integration", () => {
 			expect(listResult).toBe(0);
 			const detectedLang =
 				listStdout.match(/Current language: (\w{2,3})/)?.[1] || "en";
-			
+
 			// Only use valid languages, default to "en" for invalid/unsupported ones
 			if (detectedLang === "not" || !validLanguages.includes(detectedLang)) {
 				currentLang = "en";

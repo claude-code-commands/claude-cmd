@@ -3,6 +3,7 @@ import * as path from "node:path";
 import BunFileService from "./BunFileService.js";
 import BunHTTPClient from "./BunHTTPClient.js";
 import { CacheManager } from "./CacheManager.js";
+import { ChangeDisplayFormatter } from "./ChangeDisplayFormatter.js";
 import { CommandParser } from "./CommandParser.js";
 import { CommandService } from "./CommandService.js";
 import { ConfigManager } from "./ConfigManager.js";
@@ -12,10 +13,9 @@ import HTTPRepository from "./HTTPRepository.js";
 import { InstallationService } from "./InstallationService.js";
 import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
+import { ManifestComparison } from "./ManifestComparison.js";
 import NamespaceService from "./NamespaceService.js";
 import { UserInteractionService } from "./UserInteractionService.js";
-import { ManifestComparison } from "./ManifestComparison.js";
-import { ChangeDisplayFormatter } from "./ChangeDisplayFormatter.js";
 
 /**
  * Service factory that creates and manages singleton instances of core services.

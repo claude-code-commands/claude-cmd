@@ -1,6 +1,6 @@
 import { stdin, stdout } from "node:process";
-import { createInterface } from "node:readline";
 import type { Interface as ReadlineInterface } from "node:readline";
+import { createInterface } from "node:readline";
 import type IUserInteractionService from "../interfaces/IUserInteractionService.js";
 import type {
 	ConfirmationOptions,
@@ -60,19 +60,22 @@ export class UserInteractionService implements IUserInteractionService {
 	 * Ask a question and wait for response with proper error handling
 	 * Includes timeout and interruption handling
 	 */
-	private askQuestion(rl: ReadlineInterface, question: string): Promise<string> {
+	private askQuestion(
+		rl: ReadlineInterface,
+		question: string,
+	): Promise<string> {
 		return new Promise((resolve, reject) => {
 			rl.question(question, (answer: string) => {
 				resolve(answer);
 			});
 
 			// Handle process interruption (Ctrl+C)
-			rl.on('SIGINT', () => {
+			rl.on("SIGINT", () => {
 				reject(new Error("Input interrupted by user"));
 			});
 
 			// Handle EOF (Ctrl+D)
-			rl.on('close', () => {
+			rl.on("close", () => {
 				reject(new Error("Input stream closed"));
 			});
 		});
@@ -84,14 +87,14 @@ export class UserInteractionService implements IUserInteractionService {
 	 */
 	private isValidChoice(input: string, maxChoice: number): boolean {
 		const trimmedInput = input.trim();
-		
+
 		// Must be digits only
 		if (!/^\d+$/.test(trimmedInput)) {
 			return false;
 		}
 
 		const num = Number.parseInt(trimmedInput, 10);
-		
+
 		// Check for NaN and range
 		if (Number.isNaN(num) || num < 1 || num > maxChoice) {
 			return false;
@@ -125,7 +128,7 @@ export class UserInteractionService implements IUserInteractionService {
 			while (true) {
 				try {
 					const answer = await this.askQuestion(rl, prompt);
-					
+
 					// Handle default response for empty input
 					if (answer.trim() === "") {
 						return effectiveDefault;
@@ -141,7 +144,9 @@ export class UserInteractionService implements IUserInteractionService {
 					}
 
 					// Invalid input - prompt again
-					stdout.write("Please enter 'y' or 'n' (or press Enter for default).\n");
+					stdout.write(
+						"Please enter 'y' or 'n' (or press Enter for default).\n",
+					);
 				} catch (error) {
 					// Handle interruption gracefully
 					if (error instanceof Error && error.message.includes("interrupt")) {
@@ -170,7 +175,7 @@ export class UserInteractionService implements IUserInteractionService {
 
 		// Use default or first choice if not in interactive mode
 		if (!this.shouldPrompt()) {
-			return options.defaultChoice ?? options.choices[0] as T;
+			return options.defaultChoice ?? (options.choices[0] as T);
 		}
 
 		const rl = this.createReadlineInterface();
@@ -181,18 +186,25 @@ export class UserInteractionService implements IUserInteractionService {
 			for (let i = 0; i < options.choices.length; i++) {
 				const choice = options.choices[i];
 				if (choice !== undefined) {
-					const displayText = options.displayFunction ? options.displayFunction(choice) : String(choice);
+					const displayText = options.displayFunction
+						? options.displayFunction(choice)
+						: String(choice);
 					stdout.write(`  ${i + 1}. ${displayText}\n`);
 				}
 			}
 
 			while (true) {
 				try {
-					const answer = await this.askQuestion(rl, `Enter choice (1-${options.choices.length}): `);
-					
+					const answer = await this.askQuestion(
+						rl,
+						`Enter choice (1-${options.choices.length}): `,
+					);
+
 					// Validate input using secure validation method
 					if (!this.isValidChoice(answer, options.choices.length)) {
-						stdout.write(`Please enter a number between 1 and ${options.choices.length}.\n`);
+						stdout.write(
+							`Please enter a number between 1 and ${options.choices.length}.\n`,
+						);
 						continue;
 					}
 
@@ -202,7 +214,7 @@ export class UserInteractionService implements IUserInteractionService {
 					// Handle interruption gracefully
 					if (error instanceof Error && error.message.includes("interrupt")) {
 						// Return default choice or first choice on interruption
-						return options.defaultChoice ?? options.choices[0] as T;
+						return options.defaultChoice ?? (options.choices[0] as T);
 					}
 					throw error;
 				}
@@ -217,7 +229,10 @@ export class UserInteractionService implements IUserInteractionService {
 	 */
 	async getTextInput(options: TextInputOptions): Promise<string> {
 		// Skip prompt if in --yes mode and configured to do so
-		if (this.shouldSkipPrompt(options.skipWithDefault) && options.defaultValue !== undefined) {
+		if (
+			this.shouldSkipPrompt(options.skipWithDefault) &&
+			options.defaultValue !== undefined
+		) {
 			return options.defaultValue;
 		}
 
@@ -229,12 +244,14 @@ export class UserInteractionService implements IUserInteractionService {
 		const rl = this.createReadlineInterface();
 
 		try {
-			const defaultHint = options.defaultValue ? ` [${options.defaultValue}]` : "";
+			const defaultHint = options.defaultValue
+				? ` [${options.defaultValue}]`
+				: "";
 			const prompt = `${options.message}${defaultHint}: `;
 
 			try {
 				const answer = await this.askQuestion(rl, prompt);
-				
+
 				// Use default value for empty input
 				if (answer.trim() === "" && options.defaultValue !== undefined) {
 					return options.defaultValue;

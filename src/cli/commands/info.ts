@@ -1,13 +1,16 @@
 import { Command } from "commander";
 import { getServices } from "../../services/serviceFactory.js";
-import type { Command as CommandType, EnhancedCommandInfo } from "../../types/Command.js";
+import type {
+	Command as CommandType,
+	EnhancedCommandInfo,
+} from "../../types/Command.js";
 import { detectLanguage, handleError } from "../cliUtils.js";
 
 /**
  * Format command information for terminal output
  * Handles presentation layer concerns for the info command
  */
-function formatCommandInfo(
+function _formatCommandInfo(
 	command: CommandType,
 	language: string,
 	content?: string,
@@ -45,11 +48,13 @@ function formatEnhancedCommandInfo(
 	output += `Description: ${command.description}\n`;
 	output += `File: ${command.file}\n`;
 	output += `Language: ${language}\n`;
-	
+
 	// Source information
 	output += `Source: ${command.source}`;
 	if (command.availableInSources.length > 1) {
-		const otherSources = command.availableInSources.filter(s => s !== command.source);
+		const otherSources = command.availableInSources.filter(
+			(s) => s !== command.source,
+		);
 		output += ` (also available in: ${otherSources.join(", ")})`;
 	}
 	output += "\n";
@@ -138,7 +143,7 @@ export const infoCommand = new Command("info")
 							language,
 							serviceOptions,
 						);
-					} catch (error) {
+					} catch (_error) {
 						// Fallback to repository if local content isn't available
 						content = await commandService.getCommandContent(
 							commandName,
@@ -149,7 +154,11 @@ export const infoCommand = new Command("info")
 			}
 
 			// Format and display output using enhanced formatting
-			const output = formatEnhancedCommandInfo(enhancedCommand, language, content);
+			const output = formatEnhancedCommandInfo(
+				enhancedCommand,
+				language,
+				content,
+			);
 			console.log(output);
 		} catch (error) {
 			handleError(error, "Failed to get command info");

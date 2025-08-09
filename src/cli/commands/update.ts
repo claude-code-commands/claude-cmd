@@ -28,7 +28,8 @@ export const updateCommand = new Command("update")
 				: {};
 
 			// Use updateCacheWithChanges to get change information
-			const result = await commandService.updateCacheWithChanges(serviceOptions);
+			const result =
+				await commandService.updateCacheWithChanges(serviceOptions);
 
 			// Format and display the results
 			const summary = changeDisplayFormatter.formatUpdateSummary(result);
@@ -36,12 +37,14 @@ export const updateCommand = new Command("update")
 
 			// If detailed changes are requested and there were changes, show them
 			if (options.showChanges && result.hasChanges && result.comparisonResult) {
-				console.log("\n" + "=".repeat(50));
+				console.log(`\n${"=".repeat(50)}`);
 				console.log("Detailed Changes:");
 				console.log("=".repeat(50));
-				
+
 				// Use the ChangeDisplayFormatter to show the detailed changes
-				const detailedOutput = changeDisplayFormatter.formatComparisonDetails(result.comparisonResult);
+				const detailedOutput = changeDisplayFormatter.formatComparisonDetails(
+					result.comparisonResult,
+				);
 				console.log(detailedOutput);
 			}
 		} catch (error) {

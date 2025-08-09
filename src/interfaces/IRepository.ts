@@ -8,17 +8,17 @@ export interface LanguageStatusInfo {
 	 * ISO 639-1 language code (e.g., "en", "fr", "es")
 	 */
 	code: string;
-	
+
 	/**
 	 * Human-readable language name (e.g., "English", "Français", "Español")
 	 */
 	name: string;
-	
+
 	/**
 	 * Number of commands available for this language
 	 */
 	commandCount: number;
-	
+
 	/**
 	 * When the language manifest was last updated (optional)
 	 */

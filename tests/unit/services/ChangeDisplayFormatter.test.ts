@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { ChangeDisplayFormatter } from "../../../src/services/ChangeDisplayFormatter.js";
 import type {
 	CacheUpdateResultWithChanges,
-	ManifestComparisonResult,
 	Command,
 	CommandChange,
+	ManifestComparisonResult,
 } from "../../../src/types/index.js";
 
 describe("ChangeDisplayFormatter", () => {
@@ -181,7 +181,9 @@ describe("ChangeDisplayFormatter", () => {
 			expect(formatted).toContain("+ new-command: A new command");
 			expect(formatted).toContain("🔄 Modified Commands:");
 			expect(formatted).toContain("~ test-command");
-			expect(formatted).toContain("description: \"A test command\" → \"Updated test command\"");
+			expect(formatted).toContain(
+				'description: "A test command" → "Updated test command"',
+			);
 			expect(formatted).toContain("➖ Removed Commands:");
 			expect(formatted).toContain("- old-command: An old command");
 		});
@@ -287,7 +289,9 @@ describe("ChangeDisplayFormatter", () => {
 
 			const formatted = formatter.formatCommandChange(change);
 			expect(formatted).toContain("🔄 test-command");
-			expect(formatted).toContain("description: \"A test command\" → \"Updated description\"");
+			expect(formatted).toContain(
+				'description: "A test command" → "Updated description"',
+			);
 		});
 
 		test("handles commands with no description", () => {
@@ -325,11 +329,14 @@ describe("ChangeDisplayFormatter", () => {
 			};
 
 			const formatted = formatter.formatCommandChange(change);
-			expect(formatted).toContain("allowed-tools: [read, write] → [read, write, bash]");
+			expect(formatted).toContain(
+				"allowed-tools: [read, write] → [read, write, bash]",
+			);
 		});
 
 		test("handles long string values", () => {
-			const longDescription = "This is a very long description that exceeds fifty characters and should be truncated";
+			const longDescription =
+				"This is a very long description that exceeds fifty characters and should be truncated";
 			const change: CommandChange = {
 				type: "modified",
 				name: "test-command",
@@ -346,7 +353,9 @@ describe("ChangeDisplayFormatter", () => {
 			};
 
 			const formatted = formatter.formatCommandChange(change);
-			expect(formatted).toContain("\"This is a very long description that exceeds f...\"");
+			expect(formatted).toContain(
+				'"This is a very long description that exceeds f..."',
+			);
 		});
 
 		test("handles undefined and null values", () => {
@@ -366,7 +375,7 @@ describe("ChangeDisplayFormatter", () => {
 			};
 
 			const formatted = formatter.formatCommandChange(change);
-			expect(formatted).toContain("argument-hint: (none) → \"some hint\"");
+			expect(formatted).toContain('argument-hint: (none) → "some hint"');
 		});
 	});
 });

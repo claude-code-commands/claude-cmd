@@ -1,5 +1,8 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import type { InstallationInfo, InstallationSummary } from "../../src/types/Installation.js";
+import { describe, expect, test } from "bun:test";
+import type {
+	InstallationInfo,
+	InstallationSummary,
+} from "../../src/types/Installation.js";
 
 // We'll need to import the formatting functions once they're created
 // For now, this will fail since the functions don't exist
@@ -53,10 +56,15 @@ describe("Installed Command Formatter", () => {
 	describe("formatInstalledCommandsEnhanced", () => {
 		test("should format commands with location indicators", async () => {
 			// This will fail since formatInstalledCommandsEnhanced doesn't exist
-			const { formatInstalledCommandsEnhanced } = await import("../../src/cli/commands/installed.js");
-			
-			const result = formatInstalledCommandsEnhanced(mockInstallationInfos, "en");
-			
+			const { formatInstalledCommandsEnhanced } = await import(
+				"../../src/cli/commands/installed.js"
+			);
+
+			const result = formatInstalledCommandsEnhanced(
+				mockInstallationInfos,
+				"en",
+			);
+
 			expect(result).toContain("[personal]");
 			expect(result).toContain("[project]");
 			expect(result).toContain("test-command");
@@ -64,46 +72,57 @@ describe("Installed Command Formatter", () => {
 		});
 
 		test("should show summary with command counts", async () => {
-			const { formatInstalledCommandsSummary } = await import("../../src/cli/commands/installed.js");
-			
+			const { formatInstalledCommandsSummary } = await import(
+				"../../src/cli/commands/installed.js"
+			);
+
 			// Create a mock summary object based on the mock installation infos
 			const mockSummary: InstallationSummary = {
 				totalCommands: 3,
 				personalCount: 2,
 				projectCount: 1,
-				locations: ["personal", "project"]
+				locations: ["personal", "project"],
 			};
-			
+
 			const result = formatInstalledCommandsSummary(mockSummary, "en");
-			
+
 			expect(result).toMatch(/Total: 3/);
 			expect(result).toMatch(/Personal: 2/);
 			expect(result).toMatch(/Project: 1/);
 		});
 
 		test("should format namespaced commands in tree structure", async () => {
-			const { formatInstalledCommandsTree } = await import("../../src/cli/commands/installed.js");
-			
+			const { formatInstalledCommandsTree } = await import(
+				"../../src/cli/commands/installed.js"
+			);
+
 			const result = formatInstalledCommandsTree(mockInstallationInfos, "en");
-			
+
 			expect(result).toContain("frontend:");
 			expect(result).toContain("  └ component");
 			expect(result).toMatch(/^├/m); // Tree characters at start of line
 		});
 
 		test("should handle empty command list", async () => {
-			const { formatInstalledCommandsEnhanced } = await import("../../src/cli/commands/installed.js");
-			
+			const { formatInstalledCommandsEnhanced } = await import(
+				"../../src/cli/commands/installed.js"
+			);
+
 			const result = formatInstalledCommandsEnhanced([], "en");
-			
+
 			expect(result).toBe("No commands are currently installed.");
 		});
 
 		test("should group commands by location", async () => {
-			const { formatInstalledCommandsEnhanced } = await import("../../src/cli/commands/installed.js");
-			
-			const result = formatInstalledCommandsEnhanced(mockInstallationInfos, "en");
-			
+			const { formatInstalledCommandsEnhanced } = await import(
+				"../../src/cli/commands/installed.js"
+			);
+
+			const result = formatInstalledCommandsEnhanced(
+				mockInstallationInfos,
+				"en",
+			);
+
 			// Should group personal and project commands
 			expect(result).toMatch(/Personal.*Commands:/);
 			expect(result).toMatch(/Project.*Commands:/);

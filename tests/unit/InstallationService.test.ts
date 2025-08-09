@@ -551,9 +551,9 @@ allowed-tools: [invalid yaml
 			);
 
 			expect(info).not.toBeNull();
-			expect(info!.name).toBe("backend:database:migrations");
-			expect(info!.filePath).toBe(namespacedPath);
-			expect(info!.location).toBe("project");
+			expect(info?.name).toBe("backend:database:migrations");
+			expect(info?.filePath).toBe(namespacedPath);
+			expect(info?.location).toBe("project");
 		});
 
 		test("should handle deep namespaces correctly", async () => {
@@ -661,17 +661,17 @@ allowed-tools: [invalid yaml
 					await installationService.getInstallationInfo("test-command");
 
 				expect(info).toBeDefined();
-				expect(info!.name).toBe("test-command");
-				expect(info!.location).toBe("personal");
-				expect(info!.source).toBe("repository");
-				expect(info!.installedAt).toBeInstanceOf(Date);
-				expect(info!.installedAt.getTime()).toBeGreaterThanOrEqual(
+				expect(info?.name).toBe("test-command");
+				expect(info?.location).toBe("personal");
+				expect(info?.source).toBe("repository");
+				expect(info?.installedAt).toBeInstanceOf(Date);
+				expect(info?.installedAt.getTime()).toBeGreaterThanOrEqual(
 					beforeInstall.getTime(),
 				);
-				expect(info!.installedAt.getTime()).toBeLessThanOrEqual(
+				expect(info?.installedAt.getTime()).toBeLessThanOrEqual(
 					afterInstall.getTime(),
 				);
-				expect(info!.version).toBeDefined();
+				expect(info?.version).toBeDefined();
 			});
 
 			test("should differentiate between repository and local sources", async () => {
@@ -687,8 +687,8 @@ allowed-tools: [invalid yaml
 				const localInfo =
 					await installationService.getInstallationInfo("local-command");
 
-				expect(repoInfo!.source).toBe("repository");
-				expect(localInfo!.source).toBe("local");
+				expect(repoInfo?.source).toBe("repository");
+				expect(localInfo?.source).toBe("local");
 			});
 
 			test("should track installation metadata for project vs personal", async () => {
@@ -707,10 +707,10 @@ allowed-tools: [invalid yaml
 				const projectInfo =
 					await installationService.getInstallationInfo("test-command");
 
-				expect(personalInfo!.location).toBe("personal");
-				expect(projectInfo!.location).toBe("project");
-				expect(personalInfo!.filePath).toContain("/.claude/commands/");
-				expect(projectInfo!.filePath).toContain(".claude/commands/");
+				expect(personalInfo?.location).toBe("personal");
+				expect(projectInfo?.location).toBe("project");
+				expect(personalInfo?.filePath).toContain("/.claude/commands/");
+				expect(projectInfo?.filePath).toContain(".claude/commands/");
 			});
 
 			test("should provide detailed installation metadata", async () => {
@@ -719,10 +719,10 @@ allowed-tools: [invalid yaml
 					await installationService.getInstallationInfo("test-command");
 
 				expect(info).toBeDefined();
-				expect(info!.metadata).toBeDefined();
-				expect(info!.metadata.repositoryVersion).toBe("1.0.0");
-				expect(info!.metadata.language).toBe("en");
-				expect(info!.metadata.installationOptions).toBeDefined();
+				expect(info?.metadata).toBeDefined();
+				expect(info?.metadata.repositoryVersion).toBe("1.0.0");
+				expect(info?.metadata.language).toBe("en");
+				expect(info?.metadata.installationOptions).toBeDefined();
 			});
 
 			test("should return enhanced installation info for all installed commands", async () => {
@@ -731,10 +731,10 @@ allowed-tools: [invalid yaml
 				const allInfo = await installationService.getAllInstallationInfo();
 
 				expect(allInfo).toHaveLength(1);
-				expect(allInfo[0]!.name).toBe("test-command");
-				expect(allInfo[0]!.location).toBe("personal");
-				expect(allInfo[0]!.source).toBe("repository");
-				expect(allInfo[0]!.installedAt).toBeInstanceOf(Date);
+				expect(allInfo[0]?.name).toBe("test-command");
+				expect(allInfo[0]?.location).toBe("personal");
+				expect(allInfo[0]?.source).toBe("repository");
+				expect(allInfo[0]?.installedAt).toBeInstanceOf(Date);
 			});
 
 			test("should return installation info with location indicators", async () => {

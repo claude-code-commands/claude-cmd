@@ -131,24 +131,31 @@ export class LocalCommandRepository implements IRepository {
 		try {
 			// Get the manifest which now has properly namespaced command names
 			const manifest = await this.getManifest(language);
-			
+
 			// Find command by exact name match only (strict matching)
-			const matchingCommand = manifest.commands.find(cmd => cmd.name === commandName);
-			
+			const matchingCommand = manifest.commands.find(
+				(cmd) => cmd.name === commandName,
+			);
+
 			if (!matchingCommand) {
 				throw new CommandNotFoundError(commandName, language);
 			}
 
 			// Now find the actual file path for this command
-			const scanResult = await this.directoryDetector.scanAllClaudeDirectories();
+			const scanResult =
+				await this.directoryDetector.scanAllClaudeDirectories();
 			const allFiles = [...scanResult.personal, ...scanResult.project];
 
 			for (const filePath of allFiles) {
 				try {
-					const content = await this.directoryDetector.fileService.readFile(filePath);
+					const content =
+						await this.directoryDetector.fileService.readFile(filePath);
 					const relativePath = await this.getRelativeCommandPath(filePath);
-					const parsedCommand = await this.commandParser.parseCommandFile(content, relativePath);
-					
+					const parsedCommand = await this.commandParser.parseCommandFile(
+						content,
+						relativePath,
+					);
+
 					// Match by the parsed command name
 					if (parsedCommand.name === matchingCommand.name) {
 						return content;
@@ -218,10 +225,12 @@ export class LocalCommandRepository implements IRepository {
 	async getAvailableLanguages(): Promise<LanguageStatusInfo[]> {
 		// Local commands are language-agnostic, so we return a single entry
 		const manifest = await this.getManifest("en");
-		return [{
-			code: "en",
-			name: "English",
-			commandCount: manifest.commands.length,
-		}];
+		return [
+			{
+				code: "en",
+				name: "English",
+				commandCount: manifest.commands.length,
+			},
+		];
 	}
 }

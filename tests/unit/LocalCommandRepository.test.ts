@@ -3,7 +3,7 @@ import { CommandParser } from "../../src/services/CommandParser.js";
 import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
 import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
 import NamespaceService from "../../src/services/NamespaceService.js";
-import { CommandNotFoundError } from "../../src/types/Command.js";
+import { CommandNotFoundError } from "../../src/types";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 
 describe("LocalCommandRepository", () => {
@@ -139,8 +139,8 @@ description: "Valid command"
 
 				// Should include both valid command with frontmatter and invalid command treated as basic
 				expect(manifest.commands).toHaveLength(2);
-				const validCmd = manifest.commands.find(c => c.name === "valid");
-				const invalidCmd = manifest.commands.find(c => c.name === "invalid");
+				const validCmd = manifest.commands.find((c) => c.name === "valid");
+				const invalidCmd = manifest.commands.find((c) => c.name === "invalid");
 				expect(validCmd).toBeDefined();
 				expect(invalidCmd).toBeDefined();
 				expect(validCmd?.description).toBe("Valid command");
@@ -172,7 +172,7 @@ description: "Test command"
 				expect(manifestFr.commands).toHaveLength(1);
 				expect(manifestEn.commands[0]).toBeDefined();
 				expect(manifestFr.commands[0]).toBeDefined();
-				expect(manifestEn.commands[0]!.name).toBe(manifestFr.commands[0]!.name);
+				expect(manifestEn.commands[0]?.name).toBe(manifestFr.commands[0]!.name);
 			} finally {
 				process.env.HOME = originalHome;
 			}
@@ -331,7 +331,7 @@ description: "Test command"
 				expect(manifest2.commands).toHaveLength(1);
 				expect(manifest1.commands[0]).toBeDefined();
 				expect(manifest2.commands[0]).toBeDefined();
-				expect(manifest1.commands[0]!.name).toBe(manifest2.commands[0]!.name);
+				expect(manifest1.commands[0]?.name).toBe(manifest2.commands[0]!.name);
 			} finally {
 				process.env.HOME = originalHome;
 			}

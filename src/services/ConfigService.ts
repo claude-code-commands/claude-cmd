@@ -1,8 +1,12 @@
 import path from "node:path";
-import type { Config, IConfigService, LanguageStatus } from "../interfaces/IConfigService.js";
+import type {
+	Config,
+	IConfigManager,
+	IConfigService,
+	LanguageStatus,
+} from "../interfaces/IConfigService.js";
 import type IFileService from "../interfaces/IFileService.js";
 import type IRepository from "../interfaces/IRepository.js";
-import type { IConfigManager } from "../interfaces/IConfigService.js";
 /**
  * Available languages supported by claude-cmd
  */
@@ -253,10 +257,10 @@ export class ConfigService implements IConfigService {
 
 		// Get repository languages with command counts
 		const repositoryLanguages = await this.repository.getAvailableLanguages();
-		
+
 		// Create a set of repository language codes for efficient lookup
-		const repoLangCodes = new Set(repositoryLanguages.map(l => l.code));
-		
+		const repoLangCodes = new Set(repositoryLanguages.map((l) => l.code));
+
 		// Get common languages that are not in the repository
 		const commonNotInRepo = Array.from(this.knownLanguages.entries())
 			.filter(([code]) => !repoLangCodes.has(code))

@@ -1,12 +1,16 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { ManifestComparison } from "../../../src/services/ManifestComparison.js";
-import type { Manifest, Command } from "../../../src/types/index.js";
+import type { Command, Manifest } from "../../../src/types/index.js";
 
 describe("ManifestComparison", () => {
 	const service = new ManifestComparison();
 
 	// Sample manifests for testing
-	const createManifest = (commands: Command[], version = "1.0", updated = "2024-01-01T00:00:00Z"): Manifest => ({
+	const createManifest = (
+		commands: Command[],
+		version = "1.0",
+		updated = "2024-01-01T00:00:00Z",
+	): Manifest => ({
 		version,
 		updated,
 		commands,
@@ -46,8 +50,16 @@ describe("ManifestComparison", () => {
 		});
 
 		test("returns false for different update times", async () => {
-			const manifest1 = createManifest(baseCommands, "1.0", "2024-01-01T00:00:00Z");
-			const manifest2 = createManifest(baseCommands, "1.0", "2024-01-02T00:00:00Z");
+			const manifest1 = createManifest(
+				baseCommands,
+				"1.0",
+				"2024-01-01T00:00:00Z",
+			);
+			const manifest2 = createManifest(
+				baseCommands,
+				"1.0",
+				"2024-01-02T00:00:00Z",
+			);
 
 			const result = await service.areManifestsIdentical(manifest1, manifest2);
 			expect(result).toBe(false);
@@ -127,7 +139,7 @@ describe("ManifestComparison", () => {
 			expect(result.summary.removed).toBe(0);
 			expect(result.summary.modified).toBe(0);
 
-			const addedChange = result.changes.find(c => c.type === "added");
+			const addedChange = result.changes.find((c) => c.type === "added");
 			expect(addedChange).toBeDefined();
 			expect(addedChange?.name).toBe("backend:api");
 			expect(addedChange?.newCommand).toEqual(newCommand);
@@ -146,7 +158,7 @@ describe("ManifestComparison", () => {
 			expect(result.summary.removed).toBe(1);
 			expect(result.summary.modified).toBe(0);
 
-			const removedChange = result.changes.find(c => c.type === "removed");
+			const removedChange = result.changes.find((c) => c.type === "removed");
 			expect(removedChange).toBeDefined();
 			expect(removedChange?.name).toBe("frontend:component");
 			expect(removedChange?.oldCommand).toEqual(baseCommands[1]!);
@@ -170,15 +182,19 @@ describe("ManifestComparison", () => {
 			expect(result.summary.removed).toBe(0);
 			expect(result.summary.modified).toBe(1);
 
-			const modifiedChange = result.changes.find(c => c.type === "modified");
+			const modifiedChange = result.changes.find((c) => c.type === "modified");
 			expect(modifiedChange).toBeDefined();
 			expect(modifiedChange?.name).toBe("debug-help");
 			expect(modifiedChange?.oldCommand).toEqual(baseCommands[0]!);
 			expect(modifiedChange?.newCommand).toEqual(modifiedCommand);
 			expect(modifiedChange?.details?.fields).toContain("description");
 			expect(modifiedChange?.details?.fields).toContain("allowed-tools");
-			expect(modifiedChange?.details?.oldValues.description).toBe("Debug help command");
-			expect(modifiedChange?.details?.newValues.description).toBe("Updated debug help command");
+			expect(modifiedChange?.details?.oldValues.description).toBe(
+				"Debug help command",
+			);
+			expect(modifiedChange?.details?.newValues.description).toBe(
+				"Updated debug help command",
+			);
 		});
 
 		test("handles multiple types of changes", async () => {
@@ -204,9 +220,15 @@ describe("ManifestComparison", () => {
 			expect(result.summary.removed).toBe(1);
 			expect(result.summary.modified).toBe(1);
 
-			expect(result.changes.find(c => c.type === "added")?.name).toBe("test:unit");
-			expect(result.changes.find(c => c.type === "removed")?.name).toBe("frontend:component");
-			expect(result.changes.find(c => c.type === "modified")?.name).toBe("debug-help");
+			expect(result.changes.find((c) => c.type === "added")?.name).toBe(
+				"test:unit",
+			);
+			expect(result.changes.find((c) => c.type === "removed")?.name).toBe(
+				"frontend:component",
+			);
+			expect(result.changes.find((c) => c.type === "modified")?.name).toBe(
+				"debug-help",
+			);
 		});
 
 		test("includes comparison metadata", async () => {
@@ -292,7 +314,7 @@ describe("ManifestComparison", () => {
 			expect(result.summary.hasChanges).toBe(true);
 			expect(result.summary.modified).toBe(1);
 
-			const modifiedChange = result.changes.find(c => c.type === "modified");
+			const modifiedChange = result.changes.find((c) => c.type === "modified");
 			expect(modifiedChange?.details?.fields).toContain("allowed-tools");
 		});
 	});

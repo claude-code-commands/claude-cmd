@@ -28,13 +28,16 @@ export { InstallationError, CommandExistsError, CommandNotInstalledError };
  * across personal and project-specific Claude directories.
  */
 export class InstallationService implements IInstallationService {
-	private readonly installationMetadataCache = new Map<string, {
-		source: "repository" | "local";
-		version?: string;
-		metadata: any;
-		installedAt: Date;
-		location: "personal" | "project";
-	}>();
+	private readonly installationMetadataCache = new Map<
+		string,
+		{
+			source: "repository" | "local";
+			version?: string;
+			metadata: any;
+			installedAt: Date;
+			location: "personal" | "project";
+		}
+	>();
 
 	constructor(
 		private readonly repository: IRepository,
@@ -47,11 +50,11 @@ export class InstallationService implements IInstallationService {
 
 	/**
 	 * Install a command from the repository to local directory
-	 * 
+	 *
 	 * Downloads and validates command content, creates necessary directory structure,
 	 * and stores installation metadata for tracking. Includes security validation
 	 * to prevent path traversal attacks.
-	 * 
+	 *
 	 * @param commandName Name of the command to install (supports namespaced commands)
 	 * @param options Installation options (target directory, force overwrite, language)
 	 * @throws InstallationError if installation fails or command name is invalid
@@ -153,8 +156,12 @@ export class InstallationService implements IInstallationService {
 			if (!options?.yes) {
 				// Get installation info for detailed confirmation message
 				const installationInfo = await this.getInstallationInfo(commandName);
-				const locationText = installationInfo ? installationInfo.location : "unknown";
-				const pathText = installationInfo ? installationInfo.filePath : installationPath;
+				const locationText = installationInfo
+					? installationInfo.location
+					: "unknown";
+				const pathText = installationInfo
+					? installationInfo.filePath
+					: installationPath;
 
 				// Ask for confirmation
 				const confirmMessage = `Are you sure you want to remove '${commandName}' from ${locationText} directory: ${pathText}?`;
@@ -173,10 +180,10 @@ export class InstallationService implements IInstallationService {
 			// Remove the file
 			if (await this.fileService.exists(installationPath)) {
 				await this.fileService.deleteFile(installationPath);
-				
+
 				// Clear cache entries for this command
 				this.invalidateCommandCache(commandName);
-				
+
 				console.log(`✓ Successfully removed command: ${commandName}`);
 			}
 		} catch (error) {
@@ -216,11 +223,11 @@ export class InstallationService implements IInstallationService {
 
 	/**
 	 * Get detailed information about an installed command
-	 * 
+	 *
 	 * Returns comprehensive metadata including installation source, location,
 	 * timestamp, and repository information. When a command exists in multiple
 	 * locations, returns information for the most recently installed version.
-	 * 
+	 *
 	 * @param commandName Name of the command (supports namespaced commands with : or / separators)
 	 * @returns Promise resolving to installation info or null if not found
 	 * @throws InstallationError if command name validation fails
@@ -241,7 +248,11 @@ export class InstallationService implements IInstallationService {
 				const filePath = this.buildCommandPath(commandName, dir.path);
 
 				if (await this.fileService.exists(filePath)) {
-					const info = await this.getInstallationInfoFromPath(commandName, filePath, dir.type as "personal" | "project");
+					const info = await this.getInstallationInfoFromPath(
+						commandName,
+						filePath,
+						dir.type as "personal" | "project",
+					);
 					if (info && info.installedAt > mostRecentTime) {
 						mostRecentInfo = info;
 						mostRecentTime = info.installedAt;
@@ -288,10 +299,10 @@ export class InstallationService implements IInstallationService {
 	 * @throws InstallationError if command name is invalid
 	 */
 	private validateCommandName(commandName: string): void {
-		if (!commandName || commandName.trim() === '') {
+		if (!commandName || commandName.trim() === "") {
 			throw new InstallationError(
-				'Command name cannot be empty',
-				'validation',
+				"Command name cannot be empty",
+				"validation",
 				commandName,
 			);
 		}
@@ -299,11 +310,11 @@ export class InstallationService implements IInstallationService {
 		// Check for dangerous path segments that could enable directory traversal
 		const unsafe = /(^\\.{1,2}$|[\\\\\\/]{2,}|^\\s*$)/;
 		const segments = commandName.split(/[:/]/);
-		
-		if (segments.some(segment => unsafe.test(segment))) {
+
+		if (segments.some((segment) => unsafe.test(segment))) {
 			throw new InstallationError(
 				`Invalid command name '${commandName}': contains dangerous path segments`,
-				'validation',
+				"validation",
 				commandName,
 			);
 		}
@@ -312,7 +323,7 @@ export class InstallationService implements IInstallationService {
 		if (path.isAbsolute(commandName)) {
 			throw new InstallationError(
 				`Invalid command name '${commandName}': absolute paths not allowed`,
-				'validation',
+				"validation",
 				commandName,
 			);
 		}
@@ -329,12 +340,12 @@ export class InstallationService implements IInstallationService {
 		this.validateCommandName(commandName);
 
 		let filePath: string;
-		if (commandName.includes(':') || commandName.includes('/')) {
+		if (commandName.includes(":") || commandName.includes("/")) {
 			// Handle namespaced commands
 			const parts = commandName.split(/[:/]/);
 			const actualCommandName = parts.pop() || commandName;
-			const namespacePath = parts.join('/');
-			filePath = namespacePath 
+			const namespacePath = parts.join("/");
+			filePath = namespacePath
 				? path.join(baseDir, namespacePath, `${actualCommandName}.md`)
 				: path.join(baseDir, `${actualCommandName}.md`);
 		} else {
@@ -347,7 +358,7 @@ export class InstallationService implements IInstallationService {
 		if (!resolvedFile.startsWith(resolvedBase)) {
 			throw new InstallationError(
 				`Invalid command name '${commandName}': path escapes base directory`,
-				'validation',
+				"validation",
 				commandName,
 			);
 		}
@@ -361,16 +372,16 @@ export class InstallationService implements IInstallationService {
 	 */
 	private invalidateCommandCache(commandName: string): void {
 		// Remove location-aware cache entries for all possible locations
-		for (const location of ['personal', 'project'] as const) {
+		for (const location of ["personal", "project"] as const) {
 			const cacheKey = `${commandName}#${location}`;
 			this.installationMetadataCache.delete(cacheKey);
 		}
 	}
 
 	private async getInstallationInfoFromPath(
-		commandName: string, 
-		filePath: string, 
-		locationType: "personal" | "project"
+		commandName: string,
+		filePath: string,
+		locationType: "personal" | "project",
 	): Promise<InstallationInfo | null> {
 		try {
 			// Get file stats
@@ -380,12 +391,12 @@ export class InstallationService implements IInstallationService {
 			// Check if we have cached metadata for this command + location
 			const cacheKey = `${commandName}#${locationType}`;
 			const cachedMetadata = this.installationMetadataCache.get(cacheKey);
-			
+
 			// Determine source - if we have cache info, use it; otherwise, assume local
 			const source = cachedMetadata ? cachedMetadata.source : "local";
 			const version = cachedMetadata?.version;
 			const installedAt = cachedMetadata?.installedAt || new Date(); // Fallback for existing files
-			
+
 			// Build metadata object
 			const metadata = cachedMetadata?.metadata || {
 				language: "en",
@@ -403,18 +414,18 @@ export class InstallationService implements IInstallationService {
 				version,
 				metadata,
 			};
-		} catch (error) {
+		} catch (_error) {
 			return null;
 		}
 	}
 
 	/**
 	 * Get detailed information about all installed commands
-	 * 
+	 *
 	 * Scans all Claude directories and returns comprehensive metadata for every
 	 * installed command. Commands existing in multiple locations are included
 	 * separately with their respective location metadata.
-	 * 
+	 *
 	 * @returns Promise resolving to array of installation info objects
 	 * @throws InstallationError if scanning fails
 	 */
@@ -423,11 +434,11 @@ export class InstallationService implements IInstallationService {
 			// Get all installed commands first
 			const commands = await this.listInstalledCommands();
 			const installationInfos: InstallationInfo[] = [];
-			
+
 			// For each command, check both locations
 			for (const command of commands) {
 				const directories = await this.directoryDetector.getClaudeDirectories();
-				
+
 				for (const dir of directories) {
 					if (!dir.exists) continue;
 
@@ -435,7 +446,11 @@ export class InstallationService implements IInstallationService {
 					const filePath = this.buildCommandPath(command.name, dir.path);
 
 					if (await this.fileService.exists(filePath)) {
-						const info = await this.getInstallationInfoFromPath(command.name, filePath, dir.type as "personal" | "project");
+						const info = await this.getInstallationInfoFromPath(
+							command.name,
+							filePath,
+							dir.type as "personal" | "project",
+						);
 						if (info) {
 							installationInfos.push(info);
 						}
@@ -456,21 +471,25 @@ export class InstallationService implements IInstallationService {
 
 	/**
 	 * Get summary statistics about all installed commands
-	 * 
+	 *
 	 * Provides aggregate information including total command count,
 	 * commands per location, and available installation locations.
 	 * Useful for displaying overview information to users.
-	 * 
+	 *
 	 * @returns Promise resolving to installation summary
 	 * @throws InstallationError if summary generation fails
 	 */
 	async getInstallationSummary(): Promise<InstallationSummary> {
 		try {
 			const allInfo = await this.getAllInstallationInfo();
-			
-			const personalCount = allInfo.filter(info => info.location === "personal").length;
-			const projectCount = allInfo.filter(info => info.location === "project").length;
-			
+
+			const personalCount = allInfo.filter(
+				(info) => info.location === "personal",
+			).length;
+			const projectCount = allInfo.filter(
+				(info) => info.location === "project",
+			).length;
+
 			const locations: Array<"personal" | "project"> = [];
 			if (personalCount > 0) locations.push("personal");
 			if (projectCount > 0) locations.push("project");

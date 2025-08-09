@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type IUserInteractionService from "../../src/interfaces/IUserInteractionService.js";
-import type {
-	ConfirmationOptions,
-	SelectionOptions,
-	TextInputOptions,
-} from "../../src/interfaces/IUserInteractionService.js";
 import { UserInteractionService } from "../../src/services/UserInteractionService.js";
 import InMemoryUserInteractionService from "../mocks/InMemoryUserInteractionService.js";
 
@@ -112,7 +107,10 @@ describe("UserInteractionService Interface Contract", () => {
 
 		test("should support custom display function", async () => {
 			const mockService = service as InMemoryUserInteractionService;
-			const choices = [{ id: 1, name: "First" }, { id: 2, name: "Second" }];
+			const choices = [
+				{ id: 1, name: "First" },
+				{ id: 2, name: "Second" },
+			];
 			mockService.setPreConfiguredResponse("Select item:", choices[0]);
 
 			const result = await service.selectOption({
@@ -230,10 +228,12 @@ describe("UserInteractionService Real Implementation", () => {
 
 		test("should handle empty choice arrays gracefully", async () => {
 			// Should handle empty choices array without crashing
-			await expect(service.selectOption({
-				message: "Choose:",
-				choices: [],
-			})).rejects.toThrow(); // Should throw an error for empty choices
+			await expect(
+				service.selectOption({
+					message: "Choose:",
+					choices: [],
+				}),
+			).rejects.toThrow(); // Should throw an error for empty choices
 		});
 
 		test("should handle text input with no default", async () => {
@@ -262,16 +262,21 @@ describe("Command Removal Confirmation Scenarios", () => {
 			const mockService = service as InMemoryUserInteractionService;
 			mockService.setPreConfiguredResponse(
 				"Are you sure you want to remove 'debug-helper' from personal directory: /home/user/.claude/commands/debug-helper.md? (y/N)",
-				true
+				true,
 			);
 
 			const result = await service.confirmAction({
-				message: "Are you sure you want to remove 'debug-helper' from personal directory: /home/user/.claude/commands/debug-helper.md? (y/N)",
+				message:
+					"Are you sure you want to remove 'debug-helper' from personal directory: /home/user/.claude/commands/debug-helper.md? (y/N)",
 				defaultResponse: false,
 			});
 
 			expect(result).toBe(true);
-			expect(mockService.wasMessagePrompted("Are you sure you want to remove 'debug-helper' from personal directory: /home/user/.claude/commands/debug-helper.md? (y/N)")).toBe(true);
+			expect(
+				mockService.wasMessagePrompted(
+					"Are you sure you want to remove 'debug-helper' from personal directory: /home/user/.claude/commands/debug-helper.md? (y/N)",
+				),
+			).toBe(true);
 		});
 
 		test("should handle cancellation", async () => {
@@ -292,11 +297,12 @@ describe("Command Removal Confirmation Scenarios", () => {
 			const mockService = service as InMemoryUserInteractionService;
 			mockService.setPreConfiguredResponse(
 				"Are you sure you want to remove 'frontend:component' from project directory: ./.claude/commands/frontend/component.md? (y/N)",
-				true
+				true,
 			);
 
 			const result = await service.confirmAction({
-				message: "Are you sure you want to remove 'frontend:component' from project directory: ./.claude/commands/frontend/component.md? (y/N)",
+				message:
+					"Are you sure you want to remove 'frontend:component' from project directory: ./.claude/commands/frontend/component.md? (y/N)",
 				defaultResponse: false,
 			});
 
@@ -342,7 +348,7 @@ describe("Edge Cases and Error Conditions", () => {
 	});
 
 	test("should handle very long confirmation messages", async () => {
-		const longMessage = "A".repeat(1000) + "?";
+		const longMessage = `${"A".repeat(1000)}?`;
 		const mockService = service as InMemoryUserInteractionService;
 		mockService.setDefaultResponses({ confirmation: false });
 
@@ -389,7 +395,7 @@ describe("Edge Cases and Error Conditions", () => {
 		];
 
 		const results = await Promise.all(promises);
-		
+
 		expect(results).toEqual([true, true, true]);
 		expect(mockService.countInteractions("confirmation")).toBe(3);
 	});

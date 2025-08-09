@@ -40,7 +40,10 @@ describe("CommandService", () => {
 		const namespaceService = new NamespaceService();
 		const commandParser = new CommandParser(namespaceService);
 		const userInteractionService = new InMemoryUserInteractionService();
-		localCommandRepository = new LocalCommandRepository(directoryDetector, commandParser);
+		localCommandRepository = new LocalCommandRepository(
+			directoryDetector,
+			commandParser,
+		);
 		installationService = new InstallationService(
 			repository,
 			fileService,
@@ -281,18 +284,21 @@ describe("CommandService", () => {
 				file: "debug-help.md",
 				"allowed-tools": ["Bash(echo)"],
 			};
-			
+
 			// Create the project directory structure first
 			await fileService.mkdir(".claude/commands");
-			
-			await fileService.writeFile(".claude/commands/debug-help.md", `---
+
+			await fileService.writeFile(
+				".claude/commands/debug-help.md",
+				`---
 description: ${localCommand.description}
 allowed-tools: ${JSON.stringify(localCommand["allowed-tools"])}
 ---
 
 # Local Debug Command
 
-This is a local override of the debug command.`);
+This is a local override of the debug command.`,
+			);
 
 			// Execute
 			const result = await commandService.getEnhancedCommandInfo("debug-help", {
@@ -324,14 +330,17 @@ This is a local override of the debug command.`);
 		it("should detect installation status and local changes", async () => {
 			// Setup: Create a local command that differs from repository version
 			await fileService.mkdir(".claude/commands");
-			await fileService.writeFile(".claude/commands/debug-help.md", `---
+			await fileService.writeFile(
+				".claude/commands/debug-help.md",
+				`---
 description: Modified debug command
 allowed-tools: ["Bash(echo)", "Read"]
 ---
 
 # Modified Debug Command
 
-This is a modified version.`);
+This is a modified version.`,
+			);
 
 			// Execute
 			const result = await commandService.getEnhancedCommandInfo("debug-help", {
@@ -574,7 +583,9 @@ This is a modified version.`);
 			});
 
 			// Execute
-			const result = await commandService.updateCacheWithChanges({ language: "en" });
+			const result = await commandService.updateCacheWithChanges({
+				language: "en",
+			});
 
 			// Verify
 			expect(result.language).toBe("en");
@@ -602,7 +613,9 @@ This is a modified version.`);
 			repository.setManifest("en", newManifest);
 
 			// Execute
-			const result = await commandService.updateCacheWithChanges({ language: "en" });
+			const result = await commandService.updateCacheWithChanges({
+				language: "en",
+			});
 
 			// Verify
 			expect(result.language).toBe("en");
@@ -646,7 +659,9 @@ This is a modified version.`);
 			});
 
 			// Execute
-			const result = await commandService.updateCacheWithChanges({ language: "en" });
+			const result = await commandService.updateCacheWithChanges({
+				language: "en",
+			});
 
 			// Verify
 			expect(result.language).toBe("en");
@@ -697,7 +712,9 @@ This is a modified version.`);
 			});
 
 			// Execute
-			const result = await commandService.updateCacheWithChanges({ language: "en" });
+			const result = await commandService.updateCacheWithChanges({
+				language: "en",
+			});
 
 			// Verify
 			expect(result.language).toBe("en");

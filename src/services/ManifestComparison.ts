@@ -1,12 +1,11 @@
 import type IManifestComparison from "../interfaces/IManifestComparison.js";
 import type {
-	Manifest,
+	ChangeSummary,
 	Command,
-	ManifestComparisonResult,
 	CommandChange,
 	CommandChangeDetails,
-	ChangeSummary,
-	ChangeType,
+	Manifest,
+	ManifestComparisonResult,
 } from "../types/index.js";
 
 /**
@@ -136,7 +135,12 @@ export class ManifestComparison implements IManifestComparison {
 		}
 
 		// Compare allowed-tools (can be string[] or string)
-		if (!this.areAllowedToolsEqual(oldCommand["allowed-tools"], newCommand["allowed-tools"])) {
+		if (
+			!this.areAllowedToolsEqual(
+				oldCommand["allowed-tools"],
+				newCommand["allowed-tools"],
+			)
+		) {
 			return false;
 		}
 
@@ -151,8 +155,12 @@ export class ManifestComparison implements IManifestComparison {
 		newTools: string[] | string,
 	): boolean {
 		// Normalize to arrays for comparison
-		const oldArray = Array.isArray(oldTools) ? oldTools : oldTools.split(",").map(s => s.trim());
-		const newArray = Array.isArray(newTools) ? newTools : newTools.split(",").map(s => s.trim());
+		const oldArray = Array.isArray(oldTools)
+			? oldTools
+			: oldTools.split(",").map((s) => s.trim());
+		const newArray = Array.isArray(newTools)
+			? newTools
+			: newTools.split(",").map((s) => s.trim());
 
 		// Compare lengths
 		if (oldArray.length !== newArray.length) {
@@ -202,7 +210,12 @@ export class ManifestComparison implements IManifestComparison {
 			newValues.namespace = newCommand.namespace;
 		}
 
-		if (!this.areAllowedToolsEqual(oldCommand["allowed-tools"], newCommand["allowed-tools"])) {
+		if (
+			!this.areAllowedToolsEqual(
+				oldCommand["allowed-tools"],
+				newCommand["allowed-tools"],
+			)
+		) {
 			fields.push("allowed-tools");
 			oldValues["allowed-tools"] = oldCommand["allowed-tools"];
 			newValues["allowed-tools"] = newCommand["allowed-tools"];

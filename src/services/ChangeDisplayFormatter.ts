@@ -1,8 +1,8 @@
 import type {
-	ManifestComparisonResult,
-	CommandChange,
-	ChangeType,
 	CacheUpdateResultWithChanges,
+	ChangeType,
+	CommandChange,
+	ManifestComparisonResult,
 } from "../types/index.js";
 
 /**
@@ -27,7 +27,7 @@ export class ChangeDisplayFormatter {
 		if (result.hasChanges) {
 			const totalChanges = result.added + result.removed + result.modified;
 			lines.push(`📊 Changes detected: ${totalChanges} total`);
-			
+
 			if (result.added > 0) {
 				lines.push(`  ➕ Added: ${result.added} commands`);
 			}
@@ -51,7 +51,9 @@ export class ChangeDisplayFormatter {
 		const lines: string[] = [];
 
 		lines.push(`📋 Manifest Comparison Results`);
-		lines.push(`Compared at: ${new Date(comparison.comparedAt).toLocaleString()}`);
+		lines.push(
+			`Compared at: ${new Date(comparison.comparedAt).toLocaleString()}`,
+		);
 		lines.push("");
 
 		if (!comparison.summary.hasChanges) {
@@ -73,16 +75,22 @@ export class ChangeDisplayFormatter {
 		lines.push("");
 
 		// Group changes by type for better organization
-		const addedChanges = comparison.changes.filter(c => c.type === "added");
-		const modifiedChanges = comparison.changes.filter(c => c.type === "modified");
-		const removedChanges = comparison.changes.filter(c => c.type === "removed");
+		const addedChanges = comparison.changes.filter((c) => c.type === "added");
+		const modifiedChanges = comparison.changes.filter(
+			(c) => c.type === "modified",
+		);
+		const removedChanges = comparison.changes.filter(
+			(c) => c.type === "removed",
+		);
 
 		// Show added commands
 		if (addedChanges.length > 0) {
 			lines.push("➕ Added Commands:");
 			for (const change of addedChanges) {
 				const description = change.newCommand?.description;
-				lines.push(`  + ${change.name}: ${description !== undefined ? description : 'No description'}`);
+				lines.push(
+					`  + ${change.name}: ${description !== undefined ? description : "No description"}`,
+				);
 			}
 			lines.push("");
 		}
@@ -94,8 +102,14 @@ export class ChangeDisplayFormatter {
 				lines.push(`  ~ ${change.name}`);
 				if (change.details) {
 					for (const field of change.details.fields) {
-						const oldValue = this.formatFieldValue(field, change.details.oldValues[field]);
-						const newValue = this.formatFieldValue(field, change.details.newValues[field]);
+						const oldValue = this.formatFieldValue(
+							field,
+							change.details.oldValues[field],
+						);
+						const newValue = this.formatFieldValue(
+							field,
+							change.details.newValues[field],
+						);
 						lines.push(`    ${field}: ${oldValue} → ${newValue}`);
 					}
 				}
@@ -108,7 +122,9 @@ export class ChangeDisplayFormatter {
 			lines.push("➖ Removed Commands:");
 			for (const change of removedChanges) {
 				const description = change.oldCommand?.description;
-				lines.push(`  - ${change.name}: ${description !== undefined ? description : 'No description'}`);
+				lines.push(
+					`  - ${change.name}: ${description !== undefined ? description : "No description"}`,
+				);
 			}
 		}
 
@@ -118,7 +134,13 @@ export class ChangeDisplayFormatter {
 	/**
 	 * Format a compact change summary for status display
 	 */
-	formatCompactSummary(summary: { total: number; added: number; modified: number; removed: number; hasChanges: boolean }): string {
+	formatCompactSummary(summary: {
+		total: number;
+		added: number;
+		modified: number;
+		removed: number;
+		hasChanges: boolean;
+	}): string {
 		if (!summary.hasChanges) {
 			return "No changes";
 		}
@@ -148,7 +170,7 @@ export class ChangeDisplayFormatter {
 	/**
 	 * Format a field value for display
 	 */
-	private formatFieldValue(field: string, value: unknown): string {
+	private formatFieldValue(_field: string, value: unknown): string {
 		if (value === undefined || value === null) {
 			return "(none)";
 		}
@@ -169,26 +191,35 @@ export class ChangeDisplayFormatter {
 	 */
 	formatCommandChange(change: CommandChange): string {
 		const indicator = this.getChangeIndicator(change.type);
-		
+
 		switch (change.type) {
-			case "added":
+			case "added": {
 				const addedDescription = change.newCommand?.description;
-				return `${indicator} ${change.name}: ${addedDescription !== undefined ? addedDescription : 'No description'}`;
-			
-			case "removed":
+				return `${indicator} ${change.name}: ${addedDescription !== undefined ? addedDescription : "No description"}`;
+			}
+
+			case "removed": {
 				const removedDescription = change.oldCommand?.description;
-				return `${indicator} ${change.name}: ${removedDescription !== undefined ? removedDescription : 'No description'}`;
-			
-			case "modified":
+				return `${indicator} ${change.name}: ${removedDescription !== undefined ? removedDescription : "No description"}`;
+			}
+
+			case "modified": {
 				const lines = [`${indicator} ${change.name}`];
 				if (change.details) {
 					for (const field of change.details.fields) {
-						const oldValue = this.formatFieldValue(field, change.details.oldValues[field]);
-						const newValue = this.formatFieldValue(field, change.details.newValues[field]);
+						const oldValue = this.formatFieldValue(
+							field,
+							change.details.oldValues[field],
+						);
+						const newValue = this.formatFieldValue(
+							field,
+							change.details.newValues[field],
+						);
 						lines.push(`  ${field}: ${oldValue} → ${newValue}`);
 					}
 				}
 				return lines.join("\n");
+			}
 		}
 	}
 }

@@ -12,25 +12,29 @@ languageCommand
 		try {
 			const { userConfigService } = getServices();
 			const status = await userConfigService.getLanguageStatus();
-			
+
 			console.log(`Current language: ${status.current}`);
-			
+
 			if (status.repository.length > 0) {
 				console.log("\nRepository languages:");
 				for (const lang of status.repository) {
 					const marker = status.current === lang.code ? " (current)" : "";
-					console.log(`  ✓ ${lang.code} - ${lang.name} (${lang.commandCount} commands)${marker}`);
+					console.log(
+						`  ✓ ${lang.code} - ${lang.name} (${lang.commandCount} commands)${marker}`,
+					);
 				}
 			}
-			
+
 			if (status.common.length > 0) {
 				console.log("\nCommon languages (not yet in repository):");
 				for (const lang of status.common) {
 					console.log(`  - ${lang.code} - ${lang.name}`);
 				}
-				console.log("\nNote: You can set any of these and start contributing commands!");
+				console.log(
+					"\nNote: You can set any of these and start contributing commands!",
+				);
 			}
-			
+
 			console.log(
 				"\nYou can set any valid language code (e.g., 'ru' for Russian, 'pl' for Polish).",
 			);

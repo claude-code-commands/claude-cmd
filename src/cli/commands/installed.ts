@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import { getServices } from "../../services/serviceFactory.ts";
-import type { Command as CommandType } from "../../types/Command.js";
-import type { InstallationInfo, InstallationSummary } from "../../types/Installation.js";
+import type {
+	InstallationInfo,
+	InstallationSummary,
+} from "../../types/Installation.js";
 import { detectLanguage, handleError } from "../cliUtils.js";
-
 
 /**
  * Format installed commands with enhanced display including location indicators
@@ -27,10 +28,10 @@ export function formatInstalledCommandsEnhanced(
 			}
 			return acc;
 		},
-		{ 
-			personalCommands: [] as InstallationInfo[], 
-			projectCommands: [] as InstallationInfo[] 
-		}
+		{
+			personalCommands: [] as InstallationInfo[],
+			projectCommands: [] as InstallationInfo[],
+		},
 	);
 
 	let output = `${installationInfos.length} installed Claude Code Commands (${language}):\n\n`;
@@ -93,12 +94,12 @@ export function formatInstalledCommandsTree(
 	const flatCommands: string[] = [];
 
 	for (const info of installationInfos) {
-		if (info.name.includes(':')) {
+		if (info.name.includes(":")) {
 			// Namespaced command
-			const parts = info.name.split(':');
-			const namespace = parts.slice(0, -1).join(':');
+			const parts = info.name.split(":");
+			const namespace = parts.slice(0, -1).join(":");
 			const commandName = parts[parts.length - 1];
-			
+
 			if (commandName && !tree.has(namespace)) {
 				tree.set(namespace, []);
 			}
@@ -124,7 +125,7 @@ export function formatInstalledCommandsTree(
 		output += `├ ${namespace}:\n`;
 		for (let i = 0; i < commands.length; i++) {
 			const isLast = i === commands.length - 1;
-			const treeChar = isLast ? '└' : '├';
+			const treeChar = isLast ? "└" : "├";
 			output += `  ${treeChar} ${commands[i]}\n`;
 		}
 	}
@@ -159,15 +160,22 @@ export const installedCommand = new Command("installed")
 				console.log(output);
 			} else {
 				// For tree and enhanced modes, fetch installation info once
-				const installationInfos = await installationService.getAllInstallationInfo();
-				
+				const installationInfos =
+					await installationService.getAllInstallationInfo();
+
 				if (options.tree) {
 					// Tree mode: show hierarchical display for namespaced commands
-					const output = formatInstalledCommandsTree(installationInfos, language);
+					const output = formatInstalledCommandsTree(
+						installationInfos,
+						language,
+					);
 					console.log(output);
 				} else {
 					// Default enhanced mode: show location information by default
-					const output = formatInstalledCommandsEnhanced(installationInfos, language);
+					const output = formatInstalledCommandsEnhanced(
+						installationInfos,
+						language,
+					);
 					console.log(output);
 				}
 			}
