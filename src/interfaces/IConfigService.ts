@@ -54,6 +54,13 @@ export interface IConfigService {
 	 * @returns Path to the configuration file
 	 */
 	getConfigPath(): string;
+
+	/**
+	 * Get list of supported language codes
+	 *
+	 * @returns Array of valid language codes
+	 */
+	getSupportedLanguageCodes(): string[];
 }
 
 /**

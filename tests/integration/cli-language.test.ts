@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { runCli } from "../testUtils.ts";
+import { getServices } from "../../src/services/serviceFactory.js";
 
 describe("CLI Language Command Integration", () => {
 	describe("language list", () => {
@@ -32,16 +33,27 @@ describe("CLI Language Command Integration", () => {
 
 	describe("language set", () => {
 		let currentLang: string;
+		let validLanguages: string[];
 
 		beforeEach(async () => {
+			// Get valid languages from the domain layer
+			const services = getServices();
+			validLanguages = services.userConfigService.getSupportedLanguageCodes();
+
 			const { result: listResult, stdout: listStdout } = await runCli([
 				"language",
 				"list",
 			]);
 			expect(listResult).toBe(0);
-			currentLang =
-				listStdout.match(/Current user language: (\w{2}|not set)/)?.[1] || "en";
-			if (currentLang === "not") currentLang = "en"; // Handle "not set" case
+			const detectedLang =
+				listStdout.match(/Current user language: (\w{2,3}|not set)/)?.[1] || "en";
+			
+			// Only use valid languages, default to "en" for invalid/unsupported ones
+			if (detectedLang === "not" || !validLanguages.includes(detectedLang)) {
+				currentLang = "en";
+			} else {
+				currentLang = detectedLang;
+			}
 		});
 
 		afterEach(async () => {

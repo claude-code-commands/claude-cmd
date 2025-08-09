@@ -176,6 +176,15 @@ export class ConfigService implements IConfigService {
 	}
 
 	/**
+	 * Get list of supported language codes
+	 *
+	 * @returns Array of valid language codes
+	 */
+	getSupportedLanguageCodes(): string[] {
+		return Array.from(this.knownLanguages.keys());
+	}
+
+	/**
 	 * Validate configuration structure and values
 	 *
 	 * @param config - Configuration object to validate
@@ -196,6 +205,11 @@ export class ConfigService implements IConfigService {
 				config.preferredLanguage,
 			);
 			if (!sanitized) {
+				return false;
+			}
+
+			// Check if the language is actually supported
+			if (!this.knownLanguages.has(sanitized)) {
 				return false;
 			}
 		}
