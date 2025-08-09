@@ -3,6 +3,7 @@
 import { join } from "node:path";
 import { Command } from "commander";
 import { addCommand } from "./cli/commands/add.js";
+import { cacheCommand } from "./cli/commands/cache.js";
 import { completionCommand } from "./cli/commands/completion.js";
 import { infoCommand } from "./cli/commands/info.js";
 import { installedCommand } from "./cli/commands/installed.js";
@@ -11,7 +12,6 @@ import { listCommand } from "./cli/commands/list.js";
 import { removeCommand } from "./cli/commands/remove.js";
 import { searchCommand } from "./cli/commands/search.js";
 import { statusCommand } from "./cli/commands/status.js";
-import { updateCommand } from "./cli/commands/update.js";
 
 // Read version from package.json using Bun's file API with error handling
 let version = "0.0.0";
@@ -42,13 +42,13 @@ program
 
 // Add modular commands
 program.addCommand(addCommand);
+program.addCommand(cacheCommand);
 program.addCommand(listCommand);
 program.addCommand(searchCommand);
 program.addCommand(infoCommand);
 program.addCommand(installedCommand);
 program.addCommand(removeCommand);
 program.addCommand(statusCommand);
-program.addCommand(updateCommand);
 program.addCommand(languageCommand);
 program.addCommand(completionCommand);
 

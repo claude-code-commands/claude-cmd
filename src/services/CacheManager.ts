@@ -45,7 +45,7 @@ export class CacheError extends Error {
  */
 export class CacheManager {
 	private readonly cacheDir: string;
-	private readonly defaultMaxAge: number = 60 * 60 * 1000; // 1 hour in milliseconds
+	private readonly defaultMaxAge: number = 604800000; // 1 week (7 days) in milliseconds
 	private readonly languageDetector = new LanguageDetector();
 
 	/**

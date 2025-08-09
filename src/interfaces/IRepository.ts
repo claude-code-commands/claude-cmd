@@ -66,8 +66,8 @@ export class CacheConfig {
 		// Set cache directory with OS-specific default
 		this.cacheDir = options?.cacheDir ?? this.getDefaultCacheDir();
 
-		// Set TTL with 2-week default
-		this.ttl = options?.ttl ?? 1209600000; // 2 weeks (14 days) in milliseconds
+		// Set TTL with 1-week default
+		this.ttl = options?.ttl ?? 604800000; // 1 week (7 days) in milliseconds
 
 		// Validate configuration
 		this.validateCacheDir(this.cacheDir);

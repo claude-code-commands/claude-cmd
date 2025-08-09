@@ -41,6 +41,8 @@ let services: {
 	changeDisplayFormatter: ChangeDisplayFormatter;
 	statusService: StatusService;
 	statusFormatter: StatusFormatter;
+	cacheManager: CacheManager;
+	fileService: BunFileService;
 } | null = null;
 
 /**
@@ -165,6 +167,8 @@ export function getServices() {
 			changeDisplayFormatter,
 			statusService,
 			statusFormatter,
+			cacheManager,
+			fileService,
 		};
 	}
 
