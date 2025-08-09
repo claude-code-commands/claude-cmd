@@ -19,7 +19,7 @@ import {
 	ManifestError,
 } from "../../src/types/Command.js";
 
-describe.skip("HTTPRepository Integration", () => {
+describe("HTTPRepository Integration", () => {
 	let repository: IRepository;
 	let httpClient: IHTTPClient;
 	let fileService: IFileService;
