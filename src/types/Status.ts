@@ -73,7 +73,7 @@ export type StatusOutputFormat = "default" | "compact" | "json";
 export class StatusError extends Error {
 	constructor(
 		message: string,
-		public readonly cause?: Error,
+		public override readonly cause?: Error,
 	) {
 		super(message);
 		this.name = this.constructor.name;

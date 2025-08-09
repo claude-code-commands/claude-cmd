@@ -72,36 +72,85 @@ export class StatusService {
 	}
 
 	/**
-	 * Collect cache status information for all relevant languages
+	 * Collect cache status information for all existing cached languages
 	 *
 	 * @returns Promise resolving to array of cache information
 	 */
 	private async collectCacheStatus(): Promise<readonly CacheInfo[]> {
 		const cacheInfos: CacheInfo[] = [];
 		
-		// For now, check commonly used languages
-		// TODO: In the future, this could be dynamic based on actual cache files or config
-		const supportedLanguages = ["en", "es", "fr", "de", "ja", "zh"];
-		
-		for (const language of supportedLanguages) {
-			try {
-				const cacheInfo = await this.analyzeCacheForLanguage(language);
-				cacheInfos.push(cacheInfo);
-			} catch (error) {
-				// Continue with other languages if one fails
-				cacheInfos.push({
-					language,
-					exists: false,
-					path: this.cacheManager.getCachePath(language),
-					isExpired: true,
-					ageMs: undefined,
-					sizeBytes: undefined,
-					commandCount: undefined,
-				});
+		try {
+			// Discover languages that actually have cache files
+			const existingLanguages = await this.getExistingCachedLanguages();
+			
+			for (const language of existingLanguages) {
+				try {
+					const cacheInfo = await this.analyzeCacheForLanguage(language);
+					cacheInfos.push(cacheInfo);
+				} catch (error) {
+					// Continue with other languages if one fails
+					cacheInfos.push({
+						language,
+						exists: false,
+						path: this.cacheManager.getCachePath(language),
+						isExpired: true,
+						ageMs: undefined,
+						sizeBytes: undefined,
+						commandCount: undefined,
+					});
+				}
 			}
+		} catch (error) {
+			// If we can't discover cached languages, return empty array
+			// This gracefully handles cases where cache directory doesn't exist
 		}
 
 		return cacheInfos;
+	}
+
+	/**
+	 * Discover languages that actually have cache files by scanning the cache directory
+	 *
+	 * @returns Promise resolving to array of language codes with existing cache files
+	 */
+	private async getExistingCachedLanguages(): Promise<string[]> {
+		const languages: string[] = [];
+		
+		try {
+			// Get the base cache directory (e.g., ~/.cache/claude-cmd/pages)
+			const cacheBaseDir = path.dirname(this.cacheManager.getCachePath("dummy"));
+			
+			// Check if cache directory exists
+			const exists = await this.fileService.exists(cacheBaseDir);
+			if (!exists) {
+				return languages;
+			}
+			
+			// List all entries in the cache directory
+			const entries = await this.fileService.listFiles(cacheBaseDir);
+			
+			for (const entry of entries) {
+				// Check if this entry has a corresponding manifest.json file
+				const manifestPath = path.join(cacheBaseDir, entry, "manifest.json");
+				const hasManifest = await this.fileService.exists(manifestPath);
+				
+				if (hasManifest) {
+					// Validate that this is a valid language code
+					try {
+						if (this.languageDetector.isValidLanguageCode(entry)) {
+							languages.push(entry);
+						}
+					} catch {
+						// Skip invalid language codes
+					}
+				}
+			}
+		} catch (error) {
+			// If we can't scan the directory, return empty array
+			// This handles cases where cache directory doesn't exist or isn't readable
+		}
+		
+		return languages.sort(); // Sort for consistent output
 	}
 
 	/**
@@ -220,8 +269,8 @@ export class StatusService {
 				// Count installed commands using LocalCommandRepository
 				const detectedLanguage = await this.configManager.getEffectiveLanguage();
 				try {
-					const commands = await this.localCommandRepository.getCommands(detectedLanguage);
-					commandCount = commands.length;
+					const manifest = await this.localCommandRepository.getManifest(detectedLanguage);
+					commandCount = manifest.commands.length;
 				} catch {
 					// If we can't get commands, at least try to count files
 					try {

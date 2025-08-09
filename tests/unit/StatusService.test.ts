@@ -79,7 +79,7 @@ describe("StatusService", () => {
 			const status = await statusService.getSystemStatus();
 
 			expect(status.timestamp).toBeGreaterThan(0);
-			expect(status.cache).toHaveLength(6); // en, es, fr, de, ja, zh
+			expect(status.cache).toHaveLength(0); // No cache files exist, so should be empty
 			expect(status.installations).toHaveLength(2); // project and personal
 			expect(status.health).toBeDefined();
 			expect(status.health.status).toBe("healthy");
