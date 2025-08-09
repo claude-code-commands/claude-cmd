@@ -12,26 +12,19 @@ languageCommand
 		try {
 			const { userConfigService, configManager } = getServices();
 
-			const [userConfig, availableLanguages, effectiveLanguage] =
-				await Promise.all([
-					userConfigService.getConfig(),
-					userConfigService.getAvailableLanguages(),
-					configManager.getEffectiveLanguage(),
-				]);
+			const [availableLanguages, currentLanguage] = await Promise.all([
+				userConfigService.getAvailableLanguages(),
+				configManager.getEffectiveLanguage(),
+			]);
 
-			const currentUserLanguage = userConfig?.preferredLanguage;
+			console.log(`Current language: ${currentLanguage}`);
+			console.log("\nAvailable languages:");
 
-			console.log("Available languages:");
 			for (const lang of availableLanguages) {
 				const status = lang.available ? "✓" : "✗";
-				const marker = currentUserLanguage === lang.code ? " (current)" : "";
+				const marker = currentLanguage === lang.code ? " (current)" : "";
 				console.log(`  ${status} ${lang.code} - ${lang.name}${marker}`);
 			}
-
-			console.log(
-				`\nCurrent user language: ${currentUserLanguage || "not set (using auto-detection)"}`,
-			);
-			console.log(`Effective language: ${effectiveLanguage}`);
 		} catch (error) {
 			console.error(
 				"Error listing languages:",
