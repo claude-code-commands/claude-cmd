@@ -9,6 +9,7 @@ import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
+import { runRepositoryContractTests } from "../shared/IRepository.contract.js";
 
 describe("Repository Interface", () => {
 	let repository: InMemoryRepository;
@@ -21,6 +22,18 @@ describe("Repository Interface", () => {
 		mockFileService = new InMemoryFileService();
 		repository = new InMemoryRepository(mockHttpClient, mockFileService);
 	});
+
+	// Run contract tests to ensure InMemoryRepository behaves like real implementation
+	runRepositoryContractTests(
+		() =>
+			new InMemoryRepository(
+				new InMemoryHTTPClient(),
+				new InMemoryFileService(),
+			),
+		{
+			isRealRepository: false,
+		},
+	);
 
 	describe("getManifest", () => {
 		test("should retrieve manifest for English language", async () => {

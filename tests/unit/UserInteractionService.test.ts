@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type IUserInteractionService from "../../src/interfaces/IUserInteractionService.js";
 import { UserInteractionService } from "../../src/services/UserInteractionService.js";
 import InMemoryUserInteractionService from "../mocks/InMemoryUserInteractionService.js";
+import { runUserInteractionServiceContractTests } from "../shared/IUserInteractionService.contract.js";
 
 describe("UserInteractionService Interface Contract", () => {
 	let service: IUserInteractionService;
@@ -9,6 +10,14 @@ describe("UserInteractionService Interface Contract", () => {
 	beforeEach(() => {
 		service = new InMemoryUserInteractionService();
 	});
+
+	// Run contract tests to ensure InMemoryUserInteractionService behaves like real implementation
+	runUserInteractionServiceContractTests(
+		() => new InMemoryUserInteractionService(),
+		{
+			isRealTerminal: false,
+		},
+	);
 
 	describe("--yes mode functionality", () => {
 		test("should start in non-yes mode by default", () => {

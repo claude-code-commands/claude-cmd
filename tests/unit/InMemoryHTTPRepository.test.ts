@@ -14,6 +14,7 @@ import {
 import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
+import { runRepositoryContractTests } from "../shared/IRepository.contract.js";
 
 describe("HTTPRepository", () => {
 	let repository: HTTPRepository;
@@ -34,6 +35,22 @@ describe("HTTPRepository", () => {
 			defaultCacheConfig,
 		);
 	});
+
+	// Run contract tests to ensure HTTPRepository behaves according to IRepository contract
+	runRepositoryContractTests(
+		() => {
+			const httpClient = new InMemoryHTTPClient();
+			createClaudeCmdResponses(httpClient);
+			return new HTTPRepository(
+				httpClient,
+				new InMemoryFileService(),
+				defaultCacheConfig,
+			);
+		},
+		{
+			isRealRepository: false, // Using mock HTTP client, not real network
+		},
+	);
 
 	describe("constructor", () => {
 		test("should initialize with required dependencies", () => {
