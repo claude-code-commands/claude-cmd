@@ -1,7 +1,8 @@
 import path from "node:path";
-import type { Config, IConfigService } from "../interfaces/IConfigService.js";
+import type { Config, IConfigService, LanguageStatus } from "../interfaces/IConfigService.js";
 import type IFileService from "../interfaces/IFileService.js";
 import type IRepository from "../interfaces/IRepository.js";
+import type { IConfigManager } from "../interfaces/IConfigService.js";
 /**
  * Available languages supported by claude-cmd
  */
@@ -67,12 +68,14 @@ export class ConfigService implements IConfigService {
 	 * @param fileService - File service implementation for configuration persistence
 	 * @param repository - Repository service for checking language availability
 	 * @param languageDetector - Language detector for validation
+	 * @param configManager - Optional config manager for getting effective language
 	 */
 	constructor(
 		private readonly configPath: string,
 		private readonly fileService: IFileService,
 		private readonly repository: IRepository,
 		private readonly languageDetector: LanguageDetector,
+		private readonly configManager?: IConfigManager,
 	) {
 		this.configDir = path.dirname(configPath);
 	}
@@ -228,5 +231,45 @@ export class ConfigService implements IConfigService {
 
 		// Configuration is valid (unknown fields are allowed for forward compatibility)
 		return true;
+	}
+
+	/**
+	 * Get comprehensive language status information
+	 *
+	 * Combines current language, repository-available languages with command counts,
+	 * and common languages for contribution encouragement.
+	 *
+	 * @returns Language status with current, repository, and common languages
+	 */
+	async getLanguageStatus(): Promise<LanguageStatus> {
+		// Get current language - use configManager if available, otherwise from config
+		let currentLang: string;
+		if (this.configManager) {
+			currentLang = await this.configManager.getEffectiveLanguage();
+		} else {
+			const config = await this.getConfig();
+			currentLang = config?.preferredLanguage || "en";
+		}
+
+		// Get repository languages with command counts
+		const repositoryLanguages = await this.repository.getAvailableLanguages();
+		
+		// Create a set of repository language codes for efficient lookup
+		const repoLangCodes = new Set(repositoryLanguages.map(l => l.code));
+		
+		// Get common languages that are not in the repository
+		const commonNotInRepo = Array.from(this.knownLanguages.entries())
+			.filter(([code]) => !repoLangCodes.has(code))
+			.map(([code, name]) => ({
+				code,
+				name,
+				commandCount: 0, // No commands yet for these languages
+			}));
+
+		return {
+			current: currentLang,
+			repository: repositoryLanguages,
+			common: commonNotInRepo,
+		};
 	}
 }

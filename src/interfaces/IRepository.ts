@@ -1,6 +1,31 @@
 import type { Manifest, RepositoryOptions } from "../types/Command.js";
 
 /**
+ * Information about a language and its available commands
+ */
+export interface LanguageStatusInfo {
+	/**
+	 * ISO 639-1 language code (e.g., "en", "fr", "es")
+	 */
+	code: string;
+	
+	/**
+	 * Human-readable language name (e.g., "English", "Français", "Español")
+	 */
+	name: string;
+	
+	/**
+	 * Number of commands available for this language
+	 */
+	commandCount: number;
+	
+	/**
+	 * When the language manifest was last updated (optional)
+	 */
+	lastUpdated?: Date;
+}
+
+/**
  * Cache configuration for repository operations
  *
  * Controls how repository content is cached locally to improve performance
@@ -165,4 +190,16 @@ export default interface IRepository {
 		language: string,
 		options?: RepositoryOptions,
 	): Promise<string>;
+
+	/**
+	 * Discover available languages from the repository cache
+	 *
+	 * Dynamically discovers which languages have command manifests available by
+	 * scanning the cache directory structure. Provides command counts for each
+	 * language to help users assess the value of each language option.
+	 *
+	 * @returns Promise resolving to array of language information with command counts
+	 * @throws RepositoryError for cache access failures
+	 */
+	getAvailableLanguages(): Promise<LanguageStatusInfo[]>;
 }

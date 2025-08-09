@@ -10,27 +10,32 @@ languageCommand
 	.description("List available languages and show current language setting")
 	.action(async () => {
 		try {
-			const { userConfigService, configManager } = getServices();
-
-			const [availableLanguages, currentLanguage] = await Promise.all([
-				userConfigService.getAvailableLanguages(),
-				configManager.getEffectiveLanguage(),
-			]);
-
-			console.log(`Current language: ${currentLanguage}`);
-			console.log("\nAvailable languages:");
-
-			for (const lang of availableLanguages) {
-				const status = lang.available ? "✓" : "✗";
-				const marker = currentLanguage === lang.code ? " (current)" : "";
-				console.log(`  ${status} ${lang.code} - ${lang.name}${marker}`);
+			const { userConfigService } = getServices();
+			const status = await userConfigService.getLanguageStatus();
+			
+			console.log(`Current language: ${status.current}`);
+			
+			if (status.repository.length > 0) {
+				console.log("\nRepository languages:");
+				for (const lang of status.repository) {
+					const marker = status.current === lang.code ? " (current)" : "";
+					console.log(`  ✓ ${lang.code} - ${lang.name} (${lang.commandCount} commands)${marker}`);
+				}
 			}
-
+			
+			if (status.common.length > 0) {
+				console.log("\nCommon languages (not yet in repository):");
+				for (const lang of status.common) {
+					console.log(`  - ${lang.code} - ${lang.name}`);
+				}
+				console.log("\nNote: You can set any of these and start contributing commands!");
+			}
+			
 			console.log(
-				"\nNote: You can set any valid language code (e.g., 'ru' for Russian, 'pl' for Polish).",
+				"\nYou can set any valid language code (e.g., 'ru' for Russian, 'pl' for Polish).",
 			);
 			console.log(
-				"If a command set exists for that language, it will be used automatically.",
+				"If commands exist for that language, they will be used automatically.",
 			);
 		} catch (error) {
 			console.error(

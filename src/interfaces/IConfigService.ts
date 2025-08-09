@@ -11,6 +11,26 @@ export interface LanguageInfo {
 }
 
 /**
+ * Language status information including current language and available options
+ */
+export interface LanguageStatus {
+	/** Currently selected language code */
+	current: string;
+	/** Languages available in the repository with command counts */
+	repository: Array<{
+		code: string;
+		name: string;
+		commandCount: number;
+	}>;
+	/** Common languages not yet in repository (for contribution encouragement) */
+	common: Array<{
+		code: string;
+		name: string;
+		commandCount: number;
+	}>;
+}
+
+/**
  * Unified configuration structure for both user and project configs
  */
 export interface Config {
@@ -61,6 +81,16 @@ export interface IConfigService {
 	 * @returns Array of valid language codes
 	 */
 	getSupportedLanguageCodes(): string[];
+
+	/**
+	 * Get comprehensive language status information
+	 *
+	 * Combines current language, repository-available languages with command counts,
+	 * and common languages for contribution encouragement.
+	 *
+	 * @returns Language status with current, repository, and common languages
+	 */
+	getLanguageStatus(): Promise<LanguageStatus>;
 }
 
 /**

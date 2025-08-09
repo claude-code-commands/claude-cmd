@@ -17,7 +17,8 @@ describe("CLI Language Command Integration", () => {
 			const { result, stdout } = await runCli(["language", "list"]);
 
 			expect(result).toBe(0);
-			expect(stdout).toContain("Available languages:");
+			// Check for either format (repository languages or common languages)
+			expect(stdout).toMatch(/Repository languages:|Common languages/);
 			expect(stdout).toContain("Current language:");
 		});
 

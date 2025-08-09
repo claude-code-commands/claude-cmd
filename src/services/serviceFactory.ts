@@ -93,6 +93,7 @@ export function getServices() {
 		);
 		const projectConfigPath = path.join(".claude", "config.claude-cmd.json");
 
+		// First create ConfigService instances without ConfigManager
 		const userConfigService = new ConfigService(
 			userConfigPath,
 			fileService,
@@ -114,6 +115,15 @@ export function getServices() {
 			languageDetector,
 		);
 
+		// Now recreate userConfigService with ConfigManager for getLanguageStatus
+		const userConfigServiceWithManager = new ConfigService(
+			userConfigPath,
+			fileService,
+			repository,
+			languageDetector,
+			configManager,
+		);
+
 		// Create CommandService with all dependencies including InstallationService
 		const commandService = new CommandService(
 			repository,
@@ -128,7 +138,7 @@ export function getServices() {
 			commandService,
 			languageDetector,
 			installationService,
-			userConfigService,
+			userConfigService: userConfigServiceWithManager,
 			projectConfigService,
 			configManager,
 			localCommandRepository,

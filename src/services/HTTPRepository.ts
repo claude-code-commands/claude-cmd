@@ -7,7 +7,7 @@ import {
 	HTTPTimeoutError,
 } from "../interfaces/IHTTPClient.js";
 import type IRepository from "../interfaces/IRepository.js";
-import { CacheConfig } from "../interfaces/IRepository.js";
+import { CacheConfig, type LanguageStatusInfo } from "../interfaces/IRepository.js";
 import type { Manifest, RepositoryOptions } from "../types/Command.js";
 import {
 	CommandContentError,
@@ -472,5 +472,114 @@ export default class HTTPRepository implements IRepository {
 			contentValidator,
 			options,
 		);
+	}
+
+	/**
+	 * Discover available languages from the repository cache
+	 *
+	 * Dynamically discovers which languages have command manifests available by
+	 * scanning the cache directory structure. Falls back to attempting network
+	 * discovery if cache is empty. Provides command counts for each language
+	 * to help users assess the value of each language option.
+	 *
+	 * @returns Promise resolving to array of language information with command counts
+	 */
+	async getAvailableLanguages(): Promise<LanguageStatusInfo[]> {
+		const languages: LanguageStatusInfo[] = [];
+		
+		try {
+			// Check if cache directory exists
+			const cacheDirExists = await this.fileService.exists(this.cacheConfig.cacheDir);
+			if (!cacheDirExists) {
+				// No cache yet, return empty array (caller can use common languages)
+				return [];
+			}
+
+			// List all files in the cache directory
+			const entries = await this.fileService.listFiles(this.cacheConfig.cacheDir);
+			
+			// Find all manifest files (format: manifest-{lang}.json)
+			const manifestPattern = /^manifest-([a-z]{2})\.json$/;
+			
+			for (const entry of entries) {
+				const match = entry.match(manifestPattern);
+				if (!match) {
+					continue;
+				}
+				
+				const languageCode = match[1];
+				const manifestPath = join(this.cacheConfig.cacheDir, entry);
+				
+				try {
+					// Read and parse the manifest to get command count
+					const manifestContent = await this.fileService.readFile(manifestPath);
+					
+					// Parse the cached data (it includes timestamp)
+					const cacheData = JSON.parse(manifestContent);
+					const manifestData = cacheData.data || cacheData; // Handle both cache formats
+					
+					// Validate it's a proper manifest with commands array
+					if (!manifestData || !Array.isArray(manifestData.commands)) {
+						continue;
+					}
+					
+					// Try to get language name from known languages or use code as fallback
+					const languageName = this.getLanguageName(languageCode);
+					
+					languages.push({
+						code: languageCode,
+						name: languageName,
+						commandCount: manifestData.commands.length,
+					});
+				} catch (error) {
+					// Skip this language if we can't read or parse its manifest
+					console.debug(`Skipping language ${languageCode} due to error:`, error);
+					continue;
+				}
+			}
+			
+			// Sort languages by command count (descending) for better UX
+			languages.sort((a, b) => b.commandCount - a.commandCount);
+			
+			return languages;
+		} catch (error) {
+			// If we can't read the cache directory, return empty array
+			console.debug("Error reading cache directory:", error);
+			return [];
+		}
+	}
+
+	/**
+	 * Get human-readable language name from language code
+	 * 
+	 * @param code - ISO 639-1 language code
+	 * @returns Human-readable language name or the code itself if unknown
+	 */
+	private getLanguageName(code: string): string {
+		// Common language names mapping (will be extended over time)
+		const knownLanguages = new Map<string, string>([
+			["en", "English"],
+			["fr", "Français"],
+			["es", "Español"],
+			["de", "Deutsch"],
+			["it", "Italiano"],
+			["pt", "Português"],
+			["ja", "日本語"],
+			["ko", "한국어"],
+			["zh", "中文"],
+			["ru", "Русский"],
+			["pl", "Polski"],
+			["nl", "Nederlands"],
+			["sv", "Svenska"],
+			["no", "Norsk"],
+			["da", "Dansk"],
+			["fi", "Suomi"],
+			["tr", "Türkçe"],
+			["ar", "العربية"],
+			["he", "עברית"],
+			["hi", "हिन्दी"],
+		]);
+		
+		return knownLanguages.get(code) || code.toUpperCase();
 	}
 }
