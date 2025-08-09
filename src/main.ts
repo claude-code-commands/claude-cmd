@@ -10,6 +10,7 @@ import { languageCommand } from "./cli/commands/language.js";
 import { listCommand } from "./cli/commands/list.js";
 import { removeCommand } from "./cli/commands/remove.js";
 import { searchCommand } from "./cli/commands/search.js";
+import { statusCommand } from "./cli/commands/status.js";
 import { updateCommand } from "./cli/commands/update.js";
 
 // Read version from package.json using Bun's file API with error handling
@@ -46,6 +47,7 @@ program.addCommand(searchCommand);
 program.addCommand(infoCommand);
 program.addCommand(installedCommand);
 program.addCommand(removeCommand);
+program.addCommand(statusCommand);
 program.addCommand(updateCommand);
 program.addCommand(languageCommand);
 program.addCommand(completionCommand);

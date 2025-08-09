@@ -15,6 +15,8 @@ import { LanguageDetector } from "./LanguageDetector.js";
 import { LocalCommandRepository } from "./LocalCommandRepository.js";
 import { ManifestComparison } from "./ManifestComparison.js";
 import NamespaceService from "./NamespaceService.js";
+import { StatusFormatter } from "./StatusFormatter.js";
+import { StatusService } from "./StatusService.js";
 import { UserInteractionService } from "./UserInteractionService.js";
 
 /**
@@ -37,6 +39,8 @@ let services: {
 	userInteractionService: UserInteractionService;
 	manifestComparison: ManifestComparison;
 	changeDisplayFormatter: ChangeDisplayFormatter;
+	statusService: StatusService;
+	statusFormatter: StatusFormatter;
 } | null = null;
 
 /**
@@ -135,6 +139,19 @@ export function getServices() {
 			directoryDetector,
 		);
 
+		// Create StatusService with all its dependencies
+		const statusService = new StatusService(
+			fileService,
+			cacheManager,
+			directoryDetector,
+			localCommandRepository,
+			languageDetector,
+			configManager,
+		);
+
+		// Create StatusFormatter (no dependencies)
+		const statusFormatter = new StatusFormatter();
+
 		services = {
 			commandService,
 			languageDetector,
@@ -146,6 +163,8 @@ export function getServices() {
 			userInteractionService,
 			manifestComparison,
 			changeDisplayFormatter,
+			statusService,
+			statusFormatter,
 		};
 	}
 
