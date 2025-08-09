@@ -108,7 +108,11 @@ export const infoCommand = new Command("info")
 	.action(async (commandName, options) => {
 		try {
 			// Get singleton service instances from factory
-			const { commandService, languageDetector } = getServices();
+			const {
+				commandEnrichmentService,
+				commandContentService,
+				languageDetector,
+			} = getServices();
 
 			// Prepare options for CommandService
 			const serviceOptions = {
@@ -117,10 +121,11 @@ export const infoCommand = new Command("info")
 			};
 
 			// Get enhanced command info from service (includes installation status)
-			const enhancedCommand = await commandService.getEnhancedCommandInfo(
-				commandName,
-				serviceOptions,
-			);
+			const enhancedCommand =
+				await commandEnrichmentService.getEnhancedCommandInfo(
+					commandName,
+					serviceOptions,
+				);
 
 			// Determine language used via shared utility
 			const language = await detectLanguage(options.language, languageDetector);
@@ -130,7 +135,7 @@ export const infoCommand = new Command("info")
 			if (options.detailed) {
 				// Try to get content from the primary source (repository or local)
 				if (enhancedCommand.source === "repository") {
-					content = await commandService.getCommandContent(
+					content = await commandContentService.getCommandContent(
 						commandName,
 						serviceOptions,
 					);
@@ -145,7 +150,7 @@ export const infoCommand = new Command("info")
 						);
 					} catch (_error) {
 						// Fallback to repository if local content isn't available
-						content = await commandService.getCommandContent(
+						content = await commandContentService.getCommandContent(
 							commandName,
 							serviceOptions,
 						);

@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { getServices } from "../../services/serviceFactory.ts";
+import { getServices } from "../../services/serviceFactory.js";
 import type { Command as CommandType } from "../../types/Command.js";
 import { detectLanguage, handleError } from "../cliUtils.js";
 
@@ -78,7 +78,7 @@ export const searchCommand = new Command("search")
 	.action(async (query, options) => {
 		try {
 			// Get singleton service instances from factory
-			const { commandService, languageDetector } = getServices();
+			const { commandQueryService, languageDetector } = getServices();
 
 			// Prepare options for CommandService with proper typing
 			const serviceOptions = {
@@ -87,7 +87,7 @@ export const searchCommand = new Command("search")
 			};
 
 			// Execute search through service layer
-			const commands = await commandService.searchCommands(
+			const commands = await commandQueryService.searchCommands(
 				query,
 				serviceOptions,
 			);

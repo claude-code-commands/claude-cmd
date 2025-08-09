@@ -181,3 +181,13 @@ export class CommandContentError extends RepositoryError {
 		this.cause = cause;
 	}
 }
+
+/**
+ * Options for command service operations that may affect language detection and caching
+ */
+export interface CommandServiceOptions {
+	/** Override automatic language detection */
+	readonly language?: string;
+	/** Force refresh from remote source, bypassing cache */
+	readonly forceRefresh?: boolean;
+}

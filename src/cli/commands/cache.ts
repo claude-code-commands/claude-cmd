@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import type { CommandServiceOptions } from "../../services/CommandService.js";
 import { getServices } from "../../services/serviceFactory.js";
+import type { CommandServiceOptions } from "../../types/Command.js";
 import { handleError } from "../cliUtils.js";
 
 /**
@@ -25,7 +25,7 @@ const cacheUpdateCommand = new Command("update")
 				console.log(`Using language: ${options.lang}`);
 			}
 
-			const { commandService, changeDisplayFormatter } = getServices();
+			const { commandCacheService, changeDisplayFormatter } = getServices();
 
 			const serviceOptions: CommandServiceOptions = options.lang
 				? { language: options.lang }
@@ -33,7 +33,7 @@ const cacheUpdateCommand = new Command("update")
 
 			// Use updateCacheWithChanges to get change information
 			const result =
-				await commandService.updateCacheWithChanges(serviceOptions);
+				await commandCacheService.updateCacheWithChanges(serviceOptions);
 
 			// Format and display the results
 			const summary = changeDisplayFormatter.formatUpdateSummary(result);

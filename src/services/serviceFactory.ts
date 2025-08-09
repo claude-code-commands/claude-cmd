@@ -4,8 +4,12 @@ import BunFileService from "./BunFileService.js";
 import BunHTTPClient from "./BunHTTPClient.js";
 import { CacheManager } from "./CacheManager.js";
 import { ChangeDisplayFormatter } from "./ChangeDisplayFormatter.js";
+import { CommandCacheService } from "./CommandCacheService.js";
+import { CommandContentService } from "./CommandContentService.js";
+import { CommandEnrichmentService } from "./CommandEnrichmentService.js";
+import { CommandInstalledService } from "./CommandInstalledService.js";
 import { CommandParser } from "./CommandParser.js";
-import { CommandService } from "./CommandService.js";
+import { CommandQueryService } from "./CommandQueryService.js";
 import { ConfigManager } from "./ConfigManager.js";
 import { ConfigService } from "./ConfigService.js";
 import { DirectoryDetector } from "./DirectoryDetector.js";
@@ -29,7 +33,11 @@ import { UserInteractionService } from "./UserInteractionService.js";
 
 // Create singleton instances of services
 let services: {
-	commandService: CommandService;
+	commandQueryService: CommandQueryService;
+	commandContentService: CommandContentService;
+	commandCacheService: CommandCacheService;
+	commandEnrichmentService: CommandEnrichmentService;
+	commandInstalledService: CommandInstalledService;
 	languageDetector: LanguageDetector;
 	installationService: InstallationService;
 	userConfigService: ConfigService;
@@ -130,15 +138,36 @@ export function getServices() {
 			configManager,
 		);
 
-		// Create CommandService with all dependencies including InstallationService
-		const commandService = new CommandService(
+		// Create specialized command services
+		const commandQueryService = new CommandQueryService(
 			repository,
 			cacheManager,
 			languageDetector,
-			installationService,
+		);
+
+		const commandContentService = new CommandContentService(
+			repository,
+			languageDetector,
+			commandQueryService,
+		);
+
+		const commandCacheService = new CommandCacheService(
+			repository,
+			cacheManager,
+			languageDetector,
 			manifestComparison,
+		);
+
+		const commandEnrichmentService = new CommandEnrichmentService(
+			commandQueryService,
 			localCommandRepository,
 			directoryDetector,
+			languageDetector,
+		);
+
+		const commandInstalledService = new CommandInstalledService(
+			installationService,
+			languageDetector,
 		);
 
 		// Create StatusService with all its dependencies
@@ -155,7 +184,11 @@ export function getServices() {
 		const statusFormatter = new StatusFormatter();
 
 		services = {
-			commandService,
+			commandQueryService,
+			commandContentService,
+			commandCacheService,
+			commandEnrichmentService,
+			commandInstalledService,
 			languageDetector,
 			installationService,
 			userConfigService: userConfigServiceWithManager,

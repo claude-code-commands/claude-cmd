@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { getServices } from "../../services/serviceFactory.ts";
+import { getServices } from "../../services/serviceFactory.js";
 import type { Command as CommandType } from "../../types/Command.js";
 import { detectLanguage, handleError } from "../cliUtils.js";
 
@@ -36,7 +36,7 @@ export const listCommand = new Command("list")
 	.action(async (options) => {
 		try {
 			// Get singleton service instances from factory
-			const { commandService, languageDetector } = getServices();
+			const { commandQueryService, languageDetector } = getServices();
 
 			// Prepare options for CommandService
 			const serviceOptions = {
@@ -45,7 +45,7 @@ export const listCommand = new Command("list")
 			};
 
 			// Get commands from service
-			const commands = await commandService.listCommands(serviceOptions);
+			const commands = await commandQueryService.listCommands(serviceOptions);
 
 			// Determine language used
 			const language = await detectLanguage(options.language, languageDetector);

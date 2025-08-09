@@ -1,5 +1,4 @@
-import type { CommandServiceOptions } from "../services/CommandService.js";
-import type { Command } from "../types/Command.js";
+import type { Command, CommandServiceOptions } from "../types/Command.js";
 import type {
 	InstallationInfo,
 	InstallationSummary,

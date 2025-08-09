@@ -3,7 +3,7 @@ import type IFileService from "../interfaces/IFileService.js";
 import type IInstallationService from "../interfaces/IInstallationService.js";
 import type IRepository from "../interfaces/IRepository.js";
 import type IUserInteractionService from "../interfaces/IUserInteractionService.js";
-import type { Command } from "../types/Command.js";
+import type { Command, CommandServiceOptions } from "../types/Command.js";
 import type {
 	InstallationInfo,
 	InstallationSummary,
@@ -16,7 +16,6 @@ import {
 	InstallationError,
 } from "../types/Installation.js";
 import type { CommandParser } from "./CommandParser.js";
-import type { CommandServiceOptions } from "./CommandService.js";
 import type { DirectoryDetector } from "./DirectoryDetector.js";
 import type { LocalCommandRepository } from "./LocalCommandRepository.js";
 
