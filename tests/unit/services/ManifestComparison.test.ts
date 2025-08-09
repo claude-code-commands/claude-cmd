@@ -21,13 +21,13 @@ describe("ManifestComparison", () => {
 			name: "debug-help",
 			description: "Debug help command",
 			file: "debug-help.md",
-			"allowed-tools": ["bash", "read"],
+			"allowed-tools": ["Bash", "Read"],
 		},
 		{
 			name: "frontend:component",
 			description: "Create frontend component",
 			file: "frontend/component.md",
-			"allowed-tools": "write,edit",
+			"allowed-tools": "Write,Edit",
 			namespace: "frontend",
 		},
 	];
@@ -89,13 +89,13 @@ describe("ManifestComparison", () => {
 			const commands1: Command[] = [
 				{
 					...baseCommands[0]!,
-					"allowed-tools": ["bash", "read"],
+					"allowed-tools": ["Bash", "Read"],
 				},
 			];
 			const commands2: Command[] = [
 				{
 					...baseCommands[0]!,
-					"allowed-tools": "bash, read",
+					"allowed-tools": "Bash, Read",
 				},
 			];
 			const manifest1 = createManifest(commands1);
@@ -126,7 +126,7 @@ describe("ManifestComparison", () => {
 				name: "backend:api",
 				description: "Create API endpoint",
 				file: "backend/api.md",
-				"allowed-tools": ["write", "bash"],
+				"allowed-tools": ["Write", "Bash"],
 			};
 			const oldManifest = createManifest(baseCommands);
 			const newManifest = createManifest([...baseCommands, newCommand]);
@@ -169,7 +169,7 @@ describe("ManifestComparison", () => {
 			const modifiedCommand: Command = {
 				...baseCommands[0]!,
 				description: "Updated debug help command",
-				"allowed-tools": ["bash", "read", "write"],
+				"allowed-tools": ["Bash", "Read", "Write"],
 			};
 			const oldManifest = createManifest(baseCommands);
 			const newManifest = createManifest([modifiedCommand, baseCommands[1]!]);
@@ -202,7 +202,7 @@ describe("ManifestComparison", () => {
 				name: "test:unit",
 				description: "Run unit tests",
 				file: "test/unit.md",
-				"allowed-tools": "bash",
+				"allowed-tools": "Bash",
 			};
 			const modifiedCommand: Command = {
 				...baseCommands[0]!,
@@ -262,11 +262,11 @@ describe("ManifestComparison", () => {
 				name: "test",
 				description: "Test",
 				file: "test.md",
-				"allowed-tools": "bash, read, write",
+				"allowed-tools": "Bash, Read, Write",
 			};
 			const command2: Command = {
 				...command1,
-				"allowed-tools": ["bash", "read", "write"],
+				"allowed-tools": ["Bash", "Read", "Write"],
 			};
 
 			const oldManifest = createManifest([command1]);
@@ -281,11 +281,11 @@ describe("ManifestComparison", () => {
 				name: "test",
 				description: "Test",
 				file: "test.md",
-				"allowed-tools": ["bash", "read", "write"],
+				"allowed-tools": ["Bash", "Read", "Write"],
 			};
 			const command2: Command = {
 				...command1,
-				"allowed-tools": ["write", "bash", "read"], // Same tools, different order
+				"allowed-tools": ["Write", "Bash", "Read"], // Same tools, different order
 			};
 
 			const oldManifest = createManifest([command1]);
@@ -300,11 +300,11 @@ describe("ManifestComparison", () => {
 				name: "test",
 				description: "Test",
 				file: "test.md",
-				"allowed-tools": ["bash", "read"],
+				"allowed-tools": ["Bash", "Read"],
 			};
 			const command2: Command = {
 				...command1,
-				"allowed-tools": ["bash", "write"], // Changed read to write
+				"allowed-tools": ["Bash", "Write"], // Changed Read to Write
 			};
 
 			const oldManifest = createManifest([command1]);

@@ -168,16 +168,17 @@ class InMemoryFileService implements IFileService {
 			}
 		}
 
-		// Find all files in this directory (non-recursive)
+		// Find all direct files in this directory (non-recursive)
+		// Like BunFileService, we should return only files, not directories
 		const files: string[] = [];
 		for (const filePath in this.fs) {
 			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
 				// Get relative path from directory
 				const relativePath = filePath.substring(dirPath.length);
 
-				// Only include direct children (no subdirectories)
+				// Check if this is a direct file (no more path separators)
 				if (!relativePath.includes("/")) {
-					// Only include files, not directories
+					// This is a direct file in this directory
 					const entry = this.fs[filePath];
 					if (entry?.type === "file") {
 						files.push(relativePath);
@@ -187,6 +188,46 @@ class InMemoryFileService implements IFileService {
 		}
 
 		return files;
+	}
+
+	/**
+	 * List all entries (files and directories) in a directory (non-recursive)
+	 * This method is needed for StatusService to discover cached language directories
+	 */
+	async listEntries(path: string): Promise<string[]> {
+		this.operationHistory.push({ operation: "listEntries", path });
+
+		// Normalize directory path
+		const dirPath = path.endsWith("/") ? path : `${path}/`;
+
+		// Check if directory exists
+		if (!this.fs[dirPath]) {
+			// Check if directory exists implicitly (has files in it)
+			const hasChildFiles = Object.keys(this.fs).some(
+				(filePath) => filePath.startsWith(dirPath) && filePath !== dirPath,
+			);
+
+			if (!hasChildFiles) {
+				throw new FileNotFoundError(path);
+			}
+		}
+
+		// Find all files and directories in this directory (non-recursive)
+		const entries = new Set<string>();
+		for (const filePath in this.fs) {
+			if (filePath.startsWith(dirPath) && filePath !== dirPath) {
+				// Get relative path from directory
+				const relativePath = filePath.substring(dirPath.length);
+
+				// Extract the first part (file or directory name)
+				const firstPart = relativePath.split("/")[0];
+				if (firstPart) {
+					entries.add(firstPart);
+				}
+			}
+		}
+
+		return Array.from(entries);
 	}
 
 	/**

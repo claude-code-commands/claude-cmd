@@ -244,13 +244,15 @@ export function runRepositoryContractTests(
 				if (languages.length > 0) {
 					// Validate language info structure
 					const firstLanguage = languages[0];
-					expect(firstLanguage.code).toBeDefined();
-					expect(typeof firstLanguage.code).toBe("string");
-					expect(firstLanguage.name).toBeDefined();
-					expect(typeof firstLanguage.name).toBe("string");
-					expect(firstLanguage.commandCount).toBeDefined();
-					expect(typeof firstLanguage.commandCount).toBe("number");
-					expect(firstLanguage.commandCount).toBeGreaterThanOrEqual(0);
+					if (firstLanguage) {
+						expect(firstLanguage.code).toBeDefined();
+						expect(typeof firstLanguage.code).toBe("string");
+						expect(firstLanguage.name).toBeDefined();
+						expect(typeof firstLanguage.name).toBe("string");
+						expect(firstLanguage.commandCount).toBeDefined();
+						expect(typeof firstLanguage.commandCount).toBe("number");
+						expect(firstLanguage.commandCount).toBeGreaterThanOrEqual(0);
+					}
 				}
 			});
 
@@ -333,10 +335,12 @@ export function runRepositoryContractTests(
 
 				expect(error1).toBeInstanceOf(ManifestError);
 				expect(error2).toBeInstanceOf(ManifestError);
-				expect(error1?.constructor.name).toBe(error2?.constructor.name);
-				expect((error1 as ManifestError).language).toBe(
-					(error2 as ManifestError).language,
-				);
+				if (error1 && error2) {
+					expect(error1.constructor.name).toBe(error2.constructor.name);
+					expect((error1 as ManifestError).language).toBe(
+						(error2 as ManifestError).language,
+					);
+				}
 			});
 
 			test("should maintain error properties across calls", async () => {

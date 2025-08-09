@@ -10,14 +10,15 @@ import NamespaceService from "../../src/services/NamespaceService.js";
 import { StatusService } from "../../src/services/StatusService.js";
 import { StatusError } from "../../src/types/Status.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
-import { InMemoryHTTPClient } from "../mocks/InMemoryHTTPClient.js";
+import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
 import InMemoryRepository from "../mocks/InMemoryRepository.js";
 
 describe("StatusService", () => {
 	// Helper to create services with dependencies
 	function createStatusService() {
 		const fileService = new InMemoryFileService();
-		const repository = new InMemoryRepository();
+		const httpClient = new InMemoryHTTPClient();
+		const repository = new InMemoryRepository(httpClient, fileService);
 		const cacheManager = new CacheManager(fileService);
 		const directoryDetector = new DirectoryDetector(fileService);
 		const languageDetector = new LanguageDetector();
@@ -98,7 +99,7 @@ describe("StatusService", () => {
 						name: "test-command",
 						description: "Test command",
 						file: "test.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -173,7 +174,8 @@ describe("StatusService", () => {
 				commandParser,
 			);
 
-			const repository = new InMemoryRepository();
+			const httpClient = new InMemoryHTTPClient();
+			const repository = new InMemoryRepository(httpClient, fileService);
 			const userConfigService = new ConfigService(
 				"/home/.config/claude-cmd/config.claude-cmd.json",
 				failingFileService,
@@ -218,7 +220,7 @@ describe("StatusService", () => {
 				commands: [],
 			};
 
-			const oldTimestamp = Date.now() - 2 * 60 * 60 * 1000; // 2 hours ago
+			const oldTimestamp = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago (older than 1 week default expiration)
 			await cacheManager.set("en", manifest, oldTimestamp);
 
 			const status = await statusService.getSystemStatus();
@@ -239,11 +241,11 @@ describe("StatusService", () => {
 			await fileService.mkdir(commandsDir);
 			await fileService.writeFile(
 				`${commandsDir}/cmd1.md`,
-				"---\\ndescription: Command 1\\nallowed-tools: [read]\\n---\\n\\n# Command 1",
+				"---\\ndescription: Command 1\\nallowed-tools: [Read]\\n---\\n\\n# Command 1",
 			);
 			await fileService.writeFile(
 				`${commandsDir}/cmd2.md`,
-				"---\\ndescription: Command 2\\nallowed-tools: [write]\\n---\\n\\n# Command 2",
+				"---\\ndescription: Command 2\\nallowed-tools: [Write]\\n---\\n\\n# Command 2",
 			);
 
 			const status = await statusService.getSystemStatus();
@@ -279,7 +281,8 @@ describe("StatusService", () => {
 				throw new Error("Critical file system error");
 			};
 
-			const repository = new InMemoryRepository();
+			const httpClient = new InMemoryHTTPClient();
+			const repository = new InMemoryRepository(httpClient, brokenFileService);
 			const cacheManager = new CacheManager(brokenFileService);
 			const directoryDetector = new DirectoryDetector(brokenFileService);
 			const languageDetector = new LanguageDetector();

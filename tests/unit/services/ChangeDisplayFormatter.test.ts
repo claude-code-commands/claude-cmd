@@ -15,7 +15,7 @@ describe("ChangeDisplayFormatter", () => {
 		name: "test-command",
 		description: "A test command",
 		file: "test-command.md",
-		"allowed-tools": ["read", "write"],
+		"allowed-tools": ["Read", "Write"],
 	};
 
 	describe("formatUpdateSummary", () => {
@@ -144,7 +144,7 @@ describe("ChangeDisplayFormatter", () => {
 						name: "old-command",
 						description: "An old command",
 						file: "old-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				},
 			];
@@ -263,7 +263,7 @@ describe("ChangeDisplayFormatter", () => {
 					name: "old-command",
 					description: "An old command",
 					file: "old-command.md",
-					"allowed-tools": ["read"],
+					"allowed-tools": ["Read"],
 				},
 			};
 
@@ -302,7 +302,7 @@ describe("ChangeDisplayFormatter", () => {
 					name: "no-desc-command",
 					description: "",
 					file: "no-desc.md",
-					"allowed-tools": ["read"],
+					"allowed-tools": ["Read"],
 				},
 			};
 
@@ -319,18 +319,18 @@ describe("ChangeDisplayFormatter", () => {
 				oldCommand: sampleCommand,
 				newCommand: {
 					...sampleCommand,
-					"allowed-tools": ["read", "write", "bash"],
+					"allowed-tools": ["Read", "Write", "Bash"],
 				},
 				details: {
 					fields: ["allowed-tools"],
-					oldValues: { "allowed-tools": ["read", "write"] },
-					newValues: { "allowed-tools": ["read", "write", "bash"] },
+					oldValues: { "allowed-tools": ["Read", "Write"] },
+					newValues: { "allowed-tools": ["Read", "Write", "Bash"] },
 				},
 			};
 
 			const formatted = formatter.formatCommandChange(change);
 			expect(formatted).toContain(
-				"allowed-tools: [read, write] → [read, write, bash]",
+				"allowed-tools: [Read, Write] → [Read, Write, Bash]",
 			);
 		});
 

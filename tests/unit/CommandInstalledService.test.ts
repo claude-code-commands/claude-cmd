@@ -64,7 +64,7 @@ describe("CommandInstalledService", () => {
 				".claude/commands/local-command.md",
 				`---
 description: A local command
-allowed-tools: ["read"]
+allowed-tools: ["Read"]
 ---
 
 # Local Command
@@ -89,7 +89,7 @@ This is a local command.`,
 				".claude/commands/test-command.md",
 				`---
 description: Test command
-allowed-tools: ["read"]
+allowed-tools: ["Read"]
 ---
 
 # Test Command`,
@@ -113,7 +113,7 @@ allowed-tools: ["read"]
 				".claude/commands/multilang-command.md",
 				`---
 description: Multilingual command
-allowed-tools: ["read"]
+allowed-tools: ["Read"]
 ---
 
 # Multilingual Command`,

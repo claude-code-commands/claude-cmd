@@ -145,7 +145,7 @@ describe("StatusFormatter", () => {
 				},
 			};
 
-			const output = formatter.format(errorStatus, "error");
+			const output = formatter.format(errorStatus, "default");
 
 			expect(output).toContain("Overall Status: ❌ ERROR");
 		});

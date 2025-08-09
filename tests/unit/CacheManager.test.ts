@@ -38,8 +38,8 @@ describe("CacheManager", () => {
 		});
 
 		test("should return null when cache exists but is expired", async () => {
-			// Set a manifest with custom expiration time in the past
-			const expiredTime = Date.now() - 2 * 60 * 60 * 1000; // 2 hours ago
+			// Set a manifest with custom expiration time in the past (more than 1 week ago)
+			const expiredTime = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
 			await cacheManager.set("en", mockManifest, expiredTime);
 			const result = await cacheManager.get("en");
 			expect(result).toBeNull();
@@ -118,7 +118,7 @@ describe("CacheManager", () => {
 		});
 
 		test("should return true when cache exists but is expired", async () => {
-			const expiredTime = Date.now() - 2 * 60 * 60 * 1000; // 2 hours ago
+			const expiredTime = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago (more than 1 week)
 			await cacheManager.set("en", mockManifest, expiredTime);
 			const result = await cacheManager.isExpired("en");
 			expect(result).toBe(true);

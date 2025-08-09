@@ -58,7 +58,7 @@ describe("CommandQueryService", () => {
 						name: "test-command",
 						description: "A test command",
 						file: "test-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -100,7 +100,7 @@ describe("CommandQueryService", () => {
 						name: "old-command",
 						description: "An old command",
 						file: "old-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};

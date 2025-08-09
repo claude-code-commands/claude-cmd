@@ -47,13 +47,13 @@ describe("CommandCacheService", () => {
 						name: "fresh-command",
 						description: "A fresh command",
 						file: "fresh-command.md",
-						"allowed-tools": ["read", "write"],
+						"allowed-tools": ["Read", "Write"],
 					},
 					{
 						name: "another-command",
 						description: "Another command",
 						file: "another-command.md",
-						"allowed-tools": ["bash"],
+						"allowed-tools": ["Bash"],
 					},
 				],
 			};
@@ -84,7 +84,7 @@ describe("CommandCacheService", () => {
 						name: "default-lang-command",
 						description: "A command in default language",
 						file: "default-lang-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -109,7 +109,7 @@ describe("CommandCacheService", () => {
 						name: "stale-command",
 						description: "A stale command",
 						file: "stale-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -125,7 +125,7 @@ describe("CommandCacheService", () => {
 						name: "fresh-command",
 						description: "A fresh command",
 						file: "fresh-command.md",
-						"allowed-tools": ["read", "write"],
+						"allowed-tools": ["Read", "Write"],
 					},
 				],
 			};
@@ -174,7 +174,7 @@ describe("CommandCacheService", () => {
 						name: "old-command",
 						description: "An old command",
 						file: "old-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -189,13 +189,13 @@ describe("CommandCacheService", () => {
 						name: "old-command",
 						description: "Updated old command",
 						file: "old-command.md",
-						"allowed-tools": ["read", "write"],
+						"allowed-tools": ["Read", "Write"],
 					},
 					{
 						name: "new-command",
 						description: "A new command",
 						file: "new-command.md",
-						"allowed-tools": ["bash"],
+						"allowed-tools": ["Bash"],
 					},
 				],
 			};
@@ -240,7 +240,7 @@ describe("CommandCacheService", () => {
 						name: "test-command",
 						description: "A test command",
 						file: "test-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -270,7 +270,7 @@ describe("CommandCacheService", () => {
 						name: "test-command",
 						description: "A test command",
 						file: "test-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
@@ -316,7 +316,7 @@ describe("CommandCacheService", () => {
 						name: "test-command",
 						description: "A test command",
 						file: "test-command.md",
-						"allowed-tools": ["read"],
+						"allowed-tools": ["Read"],
 					},
 				],
 			};
