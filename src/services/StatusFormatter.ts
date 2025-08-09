@@ -1,4 +1,9 @@
-import type { CacheInfo, InstallationInfo, SystemStatus, StatusOutputFormat } from "../types/Status.js";
+import type {
+	CacheInfo,
+	InstallationInfo,
+	StatusOutputFormat,
+	SystemStatus,
+} from "../types/Status.js";
 
 /**
  * Formatter for system status output in various formats
@@ -40,24 +45,32 @@ export class StatusFormatter {
 	 */
 	private formatDefault(status: SystemStatus): string {
 		const lines: string[] = [];
-		
+
 		// Header
 		lines.push("Claude CMD System Status");
 		lines.push("=======================");
 		const dateFormatter = new Intl.DateTimeFormat(undefined, {
-		dateStyle: 'full',
-		timeStyle: 'long'
-	});
-	lines.push(`Status collected at: ${dateFormatter.format(new Date(status.timestamp))}`);
+			dateStyle: "full",
+			timeStyle: "long",
+		});
+		lines.push(
+			`Status collected at: ${dateFormatter.format(new Date(status.timestamp))}`,
+		);
 		lines.push("");
 
 		// System Health
 		lines.push("System Health:");
 		const healthIcon = this.getHealthIcon(status.health.status);
-		lines.push(`  Overall Status: ${healthIcon} ${status.health.status.toUpperCase()}`);
-		lines.push(`  Cache Accessible: ${status.health.cacheAccessible ? "✅ Yes" : "❌ No"}`);
-		lines.push(`  Installation Possible: ${status.health.installationPossible ? "✅ Yes" : "❌ No"}`);
-		
+		lines.push(
+			`  Overall Status: ${healthIcon} ${status.health.status.toUpperCase()}`,
+		);
+		lines.push(
+			`  Cache Accessible: ${status.health.cacheAccessible ? "✅ Yes" : "❌ No"}`,
+		);
+		lines.push(
+			`  Installation Possible: ${status.health.installationPossible ? "✅ Yes" : "❌ No"}`,
+		);
+
 		if (status.health.messages.length > 0) {
 			lines.push("  Messages:");
 			for (const message of status.health.messages) {
@@ -97,7 +110,9 @@ export class StatusFormatter {
 			lines.push("  No installation directories found");
 		} else {
 			for (const install of status.installations) {
-				lines.push(`  ${install.type.charAt(0).toUpperCase() + install.type.slice(1)} Directory:`);
+				lines.push(
+					`  ${install.type.charAt(0).toUpperCase() + install.type.slice(1)} Directory:`,
+				);
 				lines.push(`    Exists: ${install.exists ? "✅ Yes" : "❌ No"}`);
 				if (install.exists) {
 					lines.push(`    Writable: ${install.writable ? "✅ Yes" : "❌ No"}`);
@@ -119,21 +134,30 @@ export class StatusFormatter {
 	 */
 	private formatCompact(status: SystemStatus): string {
 		const lines: string[] = [];
-		
+
 		// One-line summary
 		const healthIcon = this.getHealthIcon(status.health.status);
 		lines.push(`Status: ${healthIcon} ${status.health.status.toUpperCase()}`);
-		
+
 		// Cache summary
-		const validCaches = status.cache.filter(c => c.exists && !c.isExpired).length;
+		const validCaches = status.cache.filter(
+			(c) => c.exists && !c.isExpired,
+		).length;
 		const totalCaches = status.cache.length;
 		lines.push(`Cache: ${validCaches}/${totalCaches} valid`);
-		
+
 		// Installation summary
-		const writableInstalls = status.installations.filter(i => i.exists && i.writable).length;
+		const writableInstalls = status.installations.filter(
+			(i) => i.exists && i.writable,
+		).length;
 		const totalInstalls = status.installations.length;
-		const totalCommands = status.installations.reduce((sum, i) => sum + i.commandCount, 0);
-		lines.push(`Installs: ${writableInstalls}/${totalInstalls} writable, ${totalCommands} commands`);
+		const totalCommands = status.installations.reduce(
+			(sum, i) => sum + i.commandCount,
+			0,
+		);
+		lines.push(
+			`Installs: ${writableInstalls}/${totalInstalls} writable, ${totalCommands} commands`,
+		);
 
 		// Warnings if any
 		if (status.health.messages.length > 0) {

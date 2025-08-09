@@ -17,7 +17,9 @@ export const statusCommand = new Command("status")
 			// Validate format option
 			const format = options.output as StatusOutputFormat;
 			if (!["default", "compact", "json"].includes(format)) {
-				throw new Error(`Invalid format: ${format}. Must be one of: default, compact, json`);
+				throw new Error(
+					`Invalid format: ${format}. Must be one of: default, compact, json`,
+				);
 			}
 
 			// Get singleton service instances from factory
@@ -29,7 +31,6 @@ export const statusCommand = new Command("status")
 			// Format and display output
 			const output = statusFormatter.format(status, format);
 			console.log(output);
-
 		} catch (error) {
 			handleError(error, "Failed to collect system status");
 		}

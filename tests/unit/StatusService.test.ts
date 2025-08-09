@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
+import { CacheManager } from "../../src/services/CacheManager.js";
+import { CommandParser } from "../../src/services/CommandParser.js";
+import { ConfigManager } from "../../src/services/ConfigManager.js";
+import { ConfigService } from "../../src/services/ConfigService.js";
+import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
+import { LanguageDetector } from "../../src/services/LanguageDetector.js";
+import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
+import NamespaceService from "../../src/services/NamespaceService.js";
 import { StatusService } from "../../src/services/StatusService.js";
 import { StatusError } from "../../src/types/Status.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
-import InMemoryRepository from "../mocks/InMemoryRepository.js";
 import { InMemoryHTTPClient } from "../mocks/InMemoryHTTPClient.js";
-import { CacheManager } from "../../src/services/CacheManager.js";
-import { DirectoryDetector } from "../../src/services/DirectoryDetector.js";
-import { LocalCommandRepository } from "../../src/services/LocalCommandRepository.js";
-import { LanguageDetector } from "../../src/services/LanguageDetector.js";
-import { ConfigManager } from "../../src/services/ConfigManager.js";
-import { ConfigService } from "../../src/services/ConfigService.js";
-import { CommandParser } from "../../src/services/CommandParser.js";
-import NamespaceService from "../../src/services/NamespaceService.js";
+import InMemoryRepository from "../mocks/InMemoryRepository.js";
 
 describe("StatusService", () => {
 	// Helper to create services with dependencies
@@ -21,13 +21,13 @@ describe("StatusService", () => {
 		const cacheManager = new CacheManager(fileService);
 		const directoryDetector = new DirectoryDetector(fileService);
 		const languageDetector = new LanguageDetector();
-		
+
 		// Set up LocalCommandRepository
 		const namespaceService = new NamespaceService();
 		const commandParser = new CommandParser(namespaceService);
 		const localCommandRepository = new LocalCommandRepository(
 			directoryDetector,
-			commandParser
+			commandParser,
 		);
 
 		// Set up ConfigManager
@@ -35,18 +35,18 @@ describe("StatusService", () => {
 			"/home/.config/claude-cmd/config.claude-cmd.json",
 			fileService,
 			repository,
-			languageDetector
+			languageDetector,
 		);
 		const projectConfigService = new ConfigService(
 			".claude/config.claude-cmd.json",
 			fileService,
 			repository,
-			languageDetector
+			languageDetector,
 		);
 		const configManager = new ConfigManager(
 			userConfigService,
 			projectConfigService,
-			languageDetector
+			languageDetector,
 		);
 
 		const statusService = new StatusService(
@@ -55,7 +55,7 @@ describe("StatusService", () => {
 			directoryDetector,
 			localCommandRepository,
 			languageDetector,
-			configManager
+			configManager,
 		);
 
 		return {
@@ -86,7 +86,8 @@ describe("StatusService", () => {
 		});
 
 		test("should show cache status for existing cache files", async () => {
-			const { statusService, fileService, cacheManager } = createStatusService();
+			const { statusService, fileService, cacheManager } =
+				createStatusService();
 
 			// Create a cache file
 			const manifest = {
@@ -125,7 +126,7 @@ describe("StatusService", () => {
 			await fileService.mkdir(expectedPersonalPath);
 			await fileService.writeFile(
 				`${expectedPersonalPath}/test.md`,
-				"# Test Command\\n\\nA test command."
+				"# Test Command\\n\\nA test command.",
 			);
 
 			const status = await statusService.getSystemStatus();
@@ -164,12 +165,12 @@ describe("StatusService", () => {
 			const cacheManager = new CacheManager(failingFileService);
 			const directoryDetector = new DirectoryDetector(failingFileService);
 			const languageDetector = new LanguageDetector();
-			
+
 			const namespaceService = new NamespaceService();
 			const commandParser = new CommandParser(namespaceService);
 			const localCommandRepository = new LocalCommandRepository(
 				directoryDetector,
-				commandParser
+				commandParser,
 			);
 
 			const repository = new InMemoryRepository();
@@ -177,18 +178,18 @@ describe("StatusService", () => {
 				"/home/.config/claude-cmd/config.claude-cmd.json",
 				failingFileService,
 				repository,
-				languageDetector
+				languageDetector,
 			);
 			const projectConfigService = new ConfigService(
 				".claude/config.claude-cmd.json",
 				failingFileService,
 				repository,
-				languageDetector
+				languageDetector,
 			);
 			const configManager = new ConfigManager(
 				userConfigService,
 				projectConfigService,
-				languageDetector
+				languageDetector,
 			);
 
 			const degradedStatusService = new StatusService(
@@ -197,7 +198,7 @@ describe("StatusService", () => {
 				directoryDetector,
 				localCommandRepository,
 				languageDetector,
-				configManager
+				configManager,
 			);
 
 			const status = await degradedStatusService.getSystemStatus();
@@ -234,15 +235,15 @@ describe("StatusService", () => {
 			// Create personal directory with multiple commands using correct path
 			const homeDir = process.env.HOME || "/home";
 			const commandsDir = `${homeDir}/.claude/commands`;
-			
+
 			await fileService.mkdir(commandsDir);
 			await fileService.writeFile(
 				`${commandsDir}/cmd1.md`,
-				"---\\ndescription: Command 1\\nallowed-tools: [read]\\n---\\n\\n# Command 1"
+				"---\\ndescription: Command 1\\nallowed-tools: [read]\\n---\\n\\n# Command 1",
 			);
 			await fileService.writeFile(
 				`${commandsDir}/cmd2.md`,
-				"---\\ndescription: Command 2\\nallowed-tools: [write]\\n---\\n\\n# Command 2"
+				"---\\ndescription: Command 2\\nallowed-tools: [write]\\n---\\n\\n# Command 2",
 			);
 
 			const status = await statusService.getSystemStatus();
@@ -264,7 +265,7 @@ describe("StatusService", () => {
 
 			// Should not throw - should handle errors gracefully
 			const status = await statusService.getSystemStatus();
-			
+
 			expect(status).toBeDefined();
 			expect(status.timestamp).toBeGreaterThan(0);
 		});
@@ -282,30 +283,30 @@ describe("StatusService", () => {
 			const cacheManager = new CacheManager(brokenFileService);
 			const directoryDetector = new DirectoryDetector(brokenFileService);
 			const languageDetector = new LanguageDetector();
-			
+
 			const namespaceService = new NamespaceService();
 			const commandParser = new CommandParser(namespaceService);
 			const localCommandRepository = new LocalCommandRepository(
 				directoryDetector,
-				commandParser
+				commandParser,
 			);
 
 			const userConfigService = new ConfigService(
 				"/home/.config/claude-cmd/config.claude-cmd.json",
 				brokenFileService,
 				repository,
-				languageDetector
+				languageDetector,
 			);
 			const projectConfigService = new ConfigService(
 				".claude/config.claude-cmd.json",
 				brokenFileService,
 				repository,
-				languageDetector
+				languageDetector,
 			);
 			const configManager = new ConfigManager(
 				userConfigService,
 				projectConfigService,
-				languageDetector
+				languageDetector,
 			);
 
 			const brokenStatusService = new StatusService(
@@ -314,7 +315,7 @@ describe("StatusService", () => {
 				directoryDetector,
 				localCommandRepository,
 				languageDetector,
-				configManager
+				configManager,
 			);
 
 			// Should handle most errors gracefully, but some critical ones might bubble up
@@ -325,7 +326,8 @@ describe("StatusService", () => {
 
 	describe("cache analysis", () => {
 		test("should handle corrupted cache files", async () => {
-			const { statusService, fileService, cacheManager } = createStatusService();
+			const { statusService, fileService, cacheManager } =
+				createStatusService();
 
 			// Create a corrupted cache file
 			const cachePath = cacheManager.getCachePath("en");

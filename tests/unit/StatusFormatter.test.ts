@@ -52,7 +52,7 @@ describe("StatusFormatter", () => {
 	describe("format", () => {
 		test("should default to default format", () => {
 			const output = formatter.format(sampleStatus, "default");
-			
+
 			expect(output).toContain("Claude CMD System Status");
 			expect(output).toContain("System Health:");
 			expect(output).toContain("Cache Status:");
@@ -61,7 +61,7 @@ describe("StatusFormatter", () => {
 
 		test("should handle compact format", () => {
 			const output = formatter.format(sampleStatus, "compact");
-			
+
 			expect(output).toContain("Status: ✅ HEALTHY");
 			expect(output).toContain("Cache: 1/2 valid");
 			expect(output).toContain("Installs: 1/2 writable, 3 commands");
@@ -69,7 +69,7 @@ describe("StatusFormatter", () => {
 
 		test("should handle json format", () => {
 			const output = formatter.format(sampleStatus, "json");
-			
+
 			const parsed = JSON.parse(output);
 			expect(parsed.timestamp).toBe(sampleStatus.timestamp);
 			expect(parsed.cache).toHaveLength(2);
@@ -81,7 +81,7 @@ describe("StatusFormatter", () => {
 	describe("default format", () => {
 		test("should include human-readable timestamp", () => {
 			const output = formatter.format(sampleStatus, "default");
-			
+
 			// Check that timestamp is formatted with user's locale (will vary by system)
 			// Just verify it contains some expected date components
 			expect(output).toContain("Status collected at:");
@@ -92,7 +92,7 @@ describe("StatusFormatter", () => {
 
 		test("should show health status with icons", () => {
 			const output = formatter.format(sampleStatus, "default");
-			
+
 			expect(output).toContain("Overall Status: ✅ HEALTHY");
 			expect(output).toContain("Cache Accessible: ✅ Yes");
 			expect(output).toContain("Installation Possible: ✅ Yes");
@@ -100,7 +100,7 @@ describe("StatusFormatter", () => {
 
 		test("should display cache information", () => {
 			const output = formatter.format(sampleStatus, "default");
-			
+
 			expect(output).toContain("Language: en");
 			expect(output).toContain("Age: 30m 0s");
 			expect(output).toContain("Size: 2.0 KB");
@@ -110,7 +110,7 @@ describe("StatusFormatter", () => {
 
 		test("should display installation directories", () => {
 			const output = formatter.format(sampleStatus, "default");
-			
+
 			expect(output).toContain("Project Directory:");
 			expect(output).toContain("User Directory:");
 			expect(output).toContain("Commands Installed: 3");
@@ -128,7 +128,7 @@ describe("StatusFormatter", () => {
 			};
 
 			const output = formatter.format(degradedStatus, "default");
-			
+
 			expect(output).toContain("Overall Status: ⚠️  DEGRADED");
 			expect(output).toContain("Cache Accessible: ❌ No");
 			expect(output).toContain("⚠️  Cache directory not accessible");
@@ -146,7 +146,7 @@ describe("StatusFormatter", () => {
 			};
 
 			const output = formatter.format(errorStatus, "error");
-			
+
 			expect(output).toContain("Overall Status: ❌ ERROR");
 		});
 
@@ -157,7 +157,7 @@ describe("StatusFormatter", () => {
 			};
 
 			const output = formatter.format(emptyCacheStatus, "default");
-			
+
 			expect(output).toContain("No cache information available");
 		});
 
@@ -168,7 +168,7 @@ describe("StatusFormatter", () => {
 			};
 
 			const output = formatter.format(emptyInstallsStatus, "default");
-			
+
 			expect(output).toContain("No installation directories found");
 		});
 	});
@@ -176,7 +176,7 @@ describe("StatusFormatter", () => {
 	describe("compact format", () => {
 		test("should show one-line summary", () => {
 			const output = formatter.format(sampleStatus, "compact");
-			
+
 			// Should be a single line
 			expect(output.split("\\n")).toHaveLength(1);
 			expect(output).toContain(" | ");
@@ -192,13 +192,13 @@ describe("StatusFormatter", () => {
 			};
 
 			const output = formatter.format(statusWithWarnings, "compact");
-			
+
 			expect(output).toContain("Warnings: 2");
 		});
 
 		test("should not show warnings when none present", () => {
 			const output = formatter.format(sampleStatus, "compact");
-			
+
 			expect(output).not.toContain("Warnings:");
 		});
 	});
@@ -207,14 +207,16 @@ describe("StatusFormatter", () => {
 		test("should format seconds", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					ageMs: 45000, // 45 seconds
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						ageMs: 45000, // 45 seconds
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -224,14 +226,16 @@ describe("StatusFormatter", () => {
 		test("should format minutes and seconds", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					ageMs: 125000, // 2 minutes 5 seconds
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						ageMs: 125000, // 2 minutes 5 seconds
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -241,14 +245,16 @@ describe("StatusFormatter", () => {
 		test("should format hours and minutes", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					ageMs: 3750000, // 1 hour 2 minutes 30 seconds
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						ageMs: 3750000, // 1 hour 2 minutes 30 seconds
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -258,14 +264,16 @@ describe("StatusFormatter", () => {
 		test("should format days and hours", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					ageMs: 90000000, // 1 day 1 hour
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						ageMs: 90000000, // 1 day 1 hour
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -277,14 +285,16 @@ describe("StatusFormatter", () => {
 		test("should format bytes", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					sizeBytes: 512,
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						sizeBytes: 512,
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -294,14 +304,16 @@ describe("StatusFormatter", () => {
 		test("should format kilobytes", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					sizeBytes: 1536, // 1.5 KB
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						sizeBytes: 1536, // 1.5 KB
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");
@@ -311,14 +323,16 @@ describe("StatusFormatter", () => {
 		test("should format megabytes", () => {
 			const status: SystemStatus = {
 				...sampleStatus,
-				cache: [{
-					language: "en",
-					exists: true,
-					path: "/cache/en/manifest.json",
-					isExpired: false,
-					sizeBytes: 2097152, // 2 MB
-					commandCount: 1,
-				}],
+				cache: [
+					{
+						language: "en",
+						exists: true,
+						path: "/cache/en/manifest.json",
+						isExpired: false,
+						sizeBytes: 2097152, // 2 MB
+						commandCount: 1,
+					},
+				],
 			};
 
 			const output = formatter.format(status, "default");

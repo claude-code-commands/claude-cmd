@@ -75,8 +75,19 @@ const cacheClearCommand = new Command("clear")
 				console.log(`Cache cleared for language: ${options.lang}`);
 			} else {
 				// Clear all language caches
-				const supportedLanguages = ["en", "es", "fr", "de", "ja", "zh", "pt", "it", "ru", "ko"];
-				
+				const supportedLanguages = [
+					"en",
+					"es",
+					"fr",
+					"de",
+					"ja",
+					"zh",
+					"pt",
+					"it",
+					"ru",
+					"ko",
+				];
+
 				let clearedCount = 0;
 				for (const language of supportedLanguages) {
 					try {
@@ -92,7 +103,7 @@ const cacheClearCommand = new Command("clear")
 						console.warn(`Warning: Failed to clear cache for ${language}`);
 					}
 				}
-				
+
 				if (clearedCount > 0) {
 					console.log(`Cache cleared for ${clearedCount} languages`);
 				} else {

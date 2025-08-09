@@ -1,6 +1,11 @@
 import * as path from "node:path";
 import type IFileService from "../interfaces/IFileService.js";
-import type { CacheInfo, InstallationInfo, SystemHealth, SystemStatus } from "../types/Status.js";
+import type {
+	CacheInfo,
+	InstallationInfo,
+	SystemHealth,
+	SystemStatus,
+} from "../types/Status.js";
 import { StatusError } from "../types/Status.js";
 import type { CacheManager } from "./CacheManager.js";
 import type { ConfigManager } from "./ConfigManager.js";
@@ -49,7 +54,7 @@ export class StatusService {
 	async getSystemStatus(): Promise<SystemStatus> {
 		try {
 			const timestamp = Date.now();
-			
+
 			// Collect status information in parallel for better performance
 			const [cache, installations, health] = await Promise.all([
 				this.collectCacheStatus(),
@@ -78,11 +83,11 @@ export class StatusService {
 	 */
 	private async collectCacheStatus(): Promise<readonly CacheInfo[]> {
 		const cacheInfos: CacheInfo[] = [];
-		
+
 		try {
 			// Discover languages that actually have cache files
 			const existingLanguages = await this.getExistingCachedLanguages();
-			
+
 			for (const language of existingLanguages) {
 				try {
 					const cacheInfo = await this.analyzeCacheForLanguage(language);
@@ -115,25 +120,27 @@ export class StatusService {
 	 */
 	private async getExistingCachedLanguages(): Promise<string[]> {
 		const languages: string[] = [];
-		
+
 		try {
 			// Get the base cache directory (e.g., ~/.cache/claude-cmd/pages)
-			const cacheBaseDir = path.dirname(this.cacheManager.getCachePath("dummy"));
-			
+			const cacheBaseDir = path.dirname(
+				this.cacheManager.getCachePath("dummy"),
+			);
+
 			// Check if cache directory exists
 			const exists = await this.fileService.exists(cacheBaseDir);
 			if (!exists) {
 				return languages;
 			}
-			
+
 			// List all entries in the cache directory
 			const entries = await this.fileService.listFiles(cacheBaseDir);
-			
+
 			for (const entry of entries) {
 				// Check if this entry has a corresponding manifest.json file
 				const manifestPath = path.join(cacheBaseDir, entry, "manifest.json");
 				const hasManifest = await this.fileService.exists(manifestPath);
-				
+
 				if (hasManifest) {
 					// Validate that this is a valid language code
 					try {
@@ -149,7 +156,7 @@ export class StatusService {
 			// If we can't scan the directory, return empty array
 			// This handles cases where cache directory doesn't exist or isn't readable
 		}
-		
+
 		return languages.sort(); // Sort for consistent output
 	}
 
@@ -162,7 +169,7 @@ export class StatusService {
 	private async analyzeCacheForLanguage(language: string): Promise<CacheInfo> {
 		const cachePath = this.cacheManager.getCachePath(language);
 		const exists = await this.fileService.exists(cachePath);
-		
+
 		if (!exists) {
 			return {
 				language,
@@ -176,18 +183,18 @@ export class StatusService {
 			// Get cache age by checking the cached manifest
 			const isExpired = await this.cacheManager.isExpired(language);
 			const manifest = await this.cacheManager.get(language);
-			
+
 			// Try to get file stats for additional information
 			let ageMs: number | undefined;
 			let sizeBytes: number | undefined;
-			
+
 			try {
 				const content = await this.fileService.readFile(cachePath);
-				sizeBytes = Buffer.byteLength(content, 'utf8');
-				
+				sizeBytes = Buffer.byteLength(content, "utf8");
+
 				// Parse timestamp from cache entry to calculate age
 				const parsed = JSON.parse(content);
-				if (parsed && typeof parsed.timestamp === 'number') {
+				if (parsed && typeof parsed.timestamp === "number") {
 					ageMs = Date.now() - parsed.timestamp;
 				}
 			} catch {
@@ -221,14 +228,19 @@ export class StatusService {
 	 *
 	 * @returns Promise resolving to array of installation information
 	 */
-	private async collectInstallationStatus(): Promise<readonly InstallationInfo[]> {
+	private async collectInstallationStatus(): Promise<
+		readonly InstallationInfo[]
+	> {
 		const installations: InstallationInfo[] = [];
 
 		try {
 			// Check project-specific directory
 			const projectDir = await this.directoryDetector.getProjectDirectory();
 			if (projectDir) {
-				const projectInfo = await this.analyzeInstallationDirectory(projectDir, "project");
+				const projectInfo = await this.analyzeInstallationDirectory(
+					projectDir,
+					"project",
+				);
 				installations.push(projectInfo);
 			}
 		} catch {
@@ -238,7 +250,10 @@ export class StatusService {
 		try {
 			// Check personal directory (user-global)
 			const personalDir = await this.directoryDetector.getPersonalDirectory();
-			const personalInfo = await this.analyzeInstallationDirectory(personalDir, "user");
+			const personalInfo = await this.analyzeInstallationDirectory(
+				personalDir,
+				"user",
+			);
 			installations.push(personalInfo);
 		} catch {
 			// Continue if personal directory analysis fails
@@ -265,17 +280,19 @@ export class StatusService {
 		if (exists) {
 			try {
 				writable = await this.fileService.isWritable(dirPath);
-				
+
 				// Count installed commands using LocalCommandRepository
-				const detectedLanguage = await this.configManager.getEffectiveLanguage();
+				const detectedLanguage =
+					await this.configManager.getEffectiveLanguage();
 				try {
-					const manifest = await this.localCommandRepository.getManifest(detectedLanguage);
+					const manifest =
+						await this.localCommandRepository.getManifest(detectedLanguage);
 					commandCount = manifest.commands.length;
 				} catch {
 					// If we can't get commands, at least try to count files
 					try {
 						const files = await this.fileService.listFilesRecursive(dirPath);
-						commandCount = files.filter(file => file.endsWith('.md')).length;
+						commandCount = files.filter((file) => file.endsWith(".md")).length;
 					} catch {
 						// Leave commandCount as 0 if we can't determine it
 					}
@@ -309,14 +326,14 @@ export class StatusService {
 			const testLanguage = "en"; // Use English as a test language
 			const cachePath = this.cacheManager.getCachePath(testLanguage);
 			const cacheDir = path.dirname(cachePath);
-			
+
 			// Check if we can create the cache directory
 			await this.fileService.mkdir(cacheDir);
-			
+
 			// Try a test write to ensure cache is writable
 			const testPath = path.join(cacheDir, ".test");
 			await this.fileService.writeFile(testPath, "test");
-			
+
 			// Clean up test file
 			try {
 				await this.fileService.deleteFile(testPath);
@@ -325,26 +342,33 @@ export class StatusService {
 			}
 		} catch (error) {
 			cacheAccessible = false;
-			messages.push(`Cache directory not accessible: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			messages.push(
+				`Cache directory not accessible: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 
 		// Check if at least one installation directory is writable
 		try {
 			const personalDir = await this.directoryDetector.getPersonalDirectory();
-			const personalWritable = await this.fileService.exists(personalDir) && await this.fileService.isWritable(personalDir);
-			
+			const personalWritable =
+				(await this.fileService.exists(personalDir)) &&
+				(await this.fileService.isWritable(personalDir));
+
 			const projectDir = await this.directoryDetector.getProjectDirectory();
-			const projectWritable = projectDir ? 
-				await this.fileService.exists(projectDir) && await this.fileService.isWritable(projectDir) :
-				false;
+			const projectWritable = projectDir
+				? (await this.fileService.exists(projectDir)) &&
+					(await this.fileService.isWritable(projectDir))
+				: false;
 
 			installationPossible = personalWritable || projectWritable;
-			
+
 			if (!installationPossible) {
 				messages.push("No writable installation directories found");
 			}
 		} catch (error) {
-			messages.push(`Installation directory check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			messages.push(
+				`Installation directory check failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 
 		// Determine overall status
