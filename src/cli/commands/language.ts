@@ -25,6 +25,13 @@ languageCommand
 				const marker = currentLanguage === lang.code ? " (current)" : "";
 				console.log(`  ${status} ${lang.code} - ${lang.name}${marker}`);
 			}
+
+			console.log(
+				"\nNote: You can set any valid language code (e.g., 'ru' for Russian, 'pl' for Polish).",
+			);
+			console.log(
+				"If a command set exists for that language, it will be used automatically.",
+			);
 		} catch (error) {
 			console.error(
 				"Error listing languages:",

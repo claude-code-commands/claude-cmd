@@ -208,10 +208,8 @@ export class ConfigService implements IConfigService {
 				return false;
 			}
 
-			// Check if the language is actually supported
-			if (!this.knownLanguages.has(sanitized)) {
-				return false;
-			}
+			// Note: Allow any valid language code format
+			// The repository will determine actual availability at runtime
 		}
 
 		// Validate repositoryURL if present
