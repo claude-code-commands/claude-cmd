@@ -16,14 +16,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `bun run start` - Run the built CLI
 - `bun run build` - Build for production (outputs to `dist/`)
 
-### Testing (CRITICAL - Always Use CLAUDECODE=1)
-- `CLAUDECODE=1 bun test unit` - Run unit tests only (fast, no I/O)
-- `CLAUDECODE=1 bun test tests/integration/` - Run integration tests (slower, real I/O)
-- `CLAUDECODE=1 bun test tests/integration/<specific-test.test.ts>` - Run specific integration test
-- `CLAUDECODE=1 bun test` - Run all tests (unit + integration)
+### Testing
+- `bun test unit` - Run unit tests only (fast, no I/O)
+- `bun test tests/integration/` - Run integration tests (slower, real I/O)
+- `bun test tests/integration/<specific-test.test.ts>` - Run specific integration test
+- `bun test` - Run all tests (unit + integration)
 - `bun run typecheck` - TypeScript type checking
-
-**IMPORTANT**: The `CLAUDECODE=1` environment variable is *ONLY* required for all test runs. You MUST NOT use it for any other Bun or Bash commands.
 
 ### Code Quality
 - `bun run check` - Run Biome linter checks
