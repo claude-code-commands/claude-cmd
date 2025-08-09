@@ -5,6 +5,7 @@ import type { CacheUpdateResult, CacheUpdateResultWithChanges, Command, Enhanced
 import type { ManifestComparisonResult } from "../types/ManifestComparison.js";
 import { CommandNotFoundError } from "../types/Command.js";
 import type { CacheManager } from "./CacheManager.js";
+import type { DirectoryDetector } from "./DirectoryDetector.js";
 import type { LanguageDetector } from "./LanguageDetector.js";
 import type { LocalCommandRepository } from "./LocalCommandRepository.js";
 
@@ -131,6 +132,7 @@ export class CommandService implements ICommandService {
 		private readonly installationService: IInstallationService,
 		private readonly manifestComparison: IManifestComparison,
 		private readonly localCommandRepository: LocalCommandRepository,
+		private readonly directoryDetector: DirectoryDetector,
 	) {}
 
 	/**
@@ -339,9 +341,9 @@ export class CommandService implements ICommandService {
 				localCommand = localManifest.commands.find(cmd => cmd.name === commandName);
 				if (localCommand) {
 					// Determine actual installation location by scanning directories
-					const scanResult = await this.installationService.directoryDetector.scanAllClaudeDirectories();
-					const personalFiles = scanResult.personal.filter(file => file.includes(`${commandName}.md`));
-					const projectFiles = scanResult.project.filter(file => file.includes(`${commandName}.md`));
+					const scanResult = await this.directoryDetector.scanAllClaudeDirectories();
+					const personalFiles = scanResult.personal.filter((file: string) => file.includes(`${commandName}.md`));
+					const projectFiles = scanResult.project.filter((file: string) => file.includes(`${commandName}.md`));
 					
 					if (personalFiles.length > 0) {
 						availableInSources.push("personal");
@@ -365,11 +367,11 @@ export class CommandService implements ICommandService {
 				// Personal directory takes precedence over project directory
 				if (availableInSources.includes("personal")) {
 					source = "personal";
-					const personalDir = await this.installationService.directoryDetector.getPersonalDirectory();
+					const personalDir = await this.directoryDetector.getPersonalDirectory();
 					installPath = `${personalDir}/${commandName}.md`;
 				} else if (availableInSources.includes("project")) {
 					source = "project";
-					const projectDir = await this.installationService.directoryDetector.getProjectDirectory();
+					const projectDir = await this.directoryDetector.getProjectDirectory();
 					installPath = `${projectDir}/${commandName}.md`;
 				} else {
 					source = "personal"; // Fallback
@@ -393,11 +395,11 @@ export class CommandService implements ICommandService {
 					// Determine actual installation location
 					if (availableInSources.includes("personal")) {
 						installLocation = "personal";
-						const personalDir = await this.installationService.directoryDetector.getPersonalDirectory();
+						const personalDir = await this.directoryDetector.getPersonalDirectory();
 						detectedInstallPath = `${personalDir}/${commandName}.md`;
 					} else if (availableInSources.includes("project")) {
 						installLocation = "project";
-						const projectDir = await this.installationService.directoryDetector.getProjectDirectory();
+						const projectDir = await this.directoryDetector.getProjectDirectory();
 						detectedInstallPath = `${projectDir}/${commandName}.md`;
 					}
 					

@@ -183,7 +183,7 @@ export class CommandParser {
 			const yamlContent = frontmatterMatch[1];
 			
 			// Pre-validate YAML syntax to ensure consistent behavior
-			if (yamlContent.trim()) {
+			if (yamlContent && yamlContent.trim()) {
 				// Basic syntax checks for common YAML errors that gray-matter might inconsistently handle
 				const hasUnmatchedBrackets = this.hasUnmatchedBrackets(yamlContent);
 				const hasUnmatchedQuotes = this.hasUnmatchedQuotes(yamlContent);

@@ -1,5 +1,6 @@
 import path from "node:path";
 import type IRepository from "../interfaces/IRepository.js";
+import type { LanguageStatusInfo } from "../interfaces/IRepository.js";
 import type { Command, Manifest, RepositoryOptions } from "../types/Command.js";
 import { CommandNotFoundError } from "../types/Command.js";
 import type { CommandParser } from "./CommandParser.js";
@@ -208,5 +209,19 @@ export class LocalCommandRepository implements IRepository {
 			// Fallback to just the filename
 			return path.basename(absolutePath);
 		}
+	}
+
+	/**
+	 * Get available languages - for local repository, always returns just 'en'
+	 * since local commands don't have language variants
+	 */
+	async getAvailableLanguages(): Promise<LanguageStatusInfo[]> {
+		// Local commands are language-agnostic, so we return a single entry
+		const manifest = await this.getManifest("en");
+		return [{
+			code: "en",
+			name: "English",
+			commandCount: manifest.commands.length,
+		}];
 	}
 }

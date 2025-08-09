@@ -59,6 +59,7 @@ describe("CommandService", () => {
 			installationService,
 			manifestComparison,
 			localCommandRepository,
+			directoryDetector,
 		);
 	});
 

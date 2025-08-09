@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type IFileService from "../../src/interfaces/IFileService.js";
 import type IHTTPClient from "../../src/interfaces/IHTTPClient.js";
 import type IRepository from "../../src/interfaces/IRepository.js";
+import type { LanguageStatusInfo } from "../../src/interfaces/IRepository.js";
 import { CacheConfig } from "../../src/interfaces/IRepository.js";
 import type { Manifest, RepositoryOptions } from "../../src/types/Command.js";
 import {
@@ -543,6 +544,25 @@ class InMemoryRepository implements IRepository {
 	 */
 	clearRequestHistory(): void {
 		this.requestHistory.length = 0;
+	}
+
+	/**
+	 * Get available languages from the in-memory manifests
+	 */
+	async getAvailableLanguages(): Promise<LanguageStatusInfo[]> {
+		const languages: LanguageStatusInfo[] = [];
+		
+		for (const [lang, manifest] of this.manifests) {
+			if (!(manifest instanceof Error)) {
+				languages.push({
+					code: lang,
+					name: lang === "en" ? "English" : lang === "fr" ? "French" : lang,
+					commandCount: manifest.commands.length,
+				});
+			}
+		}
+		
+		return languages;
 	}
 
 	/**

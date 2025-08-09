@@ -731,10 +731,10 @@ allowed-tools: [invalid yaml
 				const allInfo = await installationService.getAllInstallationInfo();
 
 				expect(allInfo).toHaveLength(1);
-				expect(allInfo[0].name).toBe("test-command");
-				expect(allInfo[0].location).toBe("personal");
-				expect(allInfo[0].source).toBe("repository");
-				expect(allInfo[0].installedAt).toBeInstanceOf(Date);
+				expect(allInfo[0]!.name).toBe("test-command");
+				expect(allInfo[0]!.location).toBe("personal");
+				expect(allInfo[0]!.source).toBe("repository");
+				expect(allInfo[0]!.installedAt).toBeInstanceOf(Date);
 			});
 
 			test("should return installation info with location indicators", async () => {

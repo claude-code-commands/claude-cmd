@@ -63,8 +63,8 @@ describe("ManifestComparison", () => {
 
 		test("returns false for different command content", async () => {
 			const modifiedCommands: Command[] = [
-				{ ...baseCommands[0], description: "Modified description" },
-				baseCommands[1],
+				{ ...baseCommands[0]!, description: "Modified description" },
+				baseCommands[1]!,
 			];
 			const manifest1 = createManifest(baseCommands);
 			const manifest2 = createManifest(modifiedCommands);
@@ -76,13 +76,13 @@ describe("ManifestComparison", () => {
 		test("handles allowed-tools format differences correctly", async () => {
 			const commands1: Command[] = [
 				{
-					...baseCommands[0],
+					...baseCommands[0]!,
 					"allowed-tools": ["bash", "read"],
 				},
 			];
 			const commands2: Command[] = [
 				{
-					...baseCommands[0],
+					...baseCommands[0]!,
 					"allowed-tools": "bash, read",
 				},
 			];
@@ -136,7 +136,7 @@ describe("ManifestComparison", () => {
 
 		test("detects removed commands", async () => {
 			const oldManifest = createManifest(baseCommands);
-			const newManifest = createManifest([baseCommands[0]]); // Remove second command
+			const newManifest = createManifest([baseCommands[0]!]); // Remove second command
 
 			const result = await service.compareManifests(oldManifest, newManifest);
 
@@ -149,18 +149,18 @@ describe("ManifestComparison", () => {
 			const removedChange = result.changes.find(c => c.type === "removed");
 			expect(removedChange).toBeDefined();
 			expect(removedChange?.name).toBe("frontend:component");
-			expect(removedChange?.oldCommand).toEqual(baseCommands[1]);
+			expect(removedChange?.oldCommand).toEqual(baseCommands[1]!);
 			expect(removedChange?.newCommand).toBeUndefined();
 		});
 
 		test("detects modified commands with detailed changes", async () => {
 			const modifiedCommand: Command = {
-				...baseCommands[0],
+				...baseCommands[0]!,
 				description: "Updated debug help command",
 				"allowed-tools": ["bash", "read", "write"],
 			};
 			const oldManifest = createManifest(baseCommands);
-			const newManifest = createManifest([modifiedCommand, baseCommands[1]]);
+			const newManifest = createManifest([modifiedCommand, baseCommands[1]!]);
 
 			const result = await service.compareManifests(oldManifest, newManifest);
 
@@ -173,7 +173,7 @@ describe("ManifestComparison", () => {
 			const modifiedChange = result.changes.find(c => c.type === "modified");
 			expect(modifiedChange).toBeDefined();
 			expect(modifiedChange?.name).toBe("debug-help");
-			expect(modifiedChange?.oldCommand).toEqual(baseCommands[0]);
+			expect(modifiedChange?.oldCommand).toEqual(baseCommands[0]!);
 			expect(modifiedChange?.newCommand).toEqual(modifiedCommand);
 			expect(modifiedChange?.details?.fields).toContain("description");
 			expect(modifiedChange?.details?.fields).toContain("allowed-tools");
@@ -189,7 +189,7 @@ describe("ManifestComparison", () => {
 				"allowed-tools": "bash",
 			};
 			const modifiedCommand: Command = {
-				...baseCommands[0],
+				...baseCommands[0]!,
 				description: "Updated debug help command",
 			};
 

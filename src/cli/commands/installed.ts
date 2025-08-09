@@ -99,10 +99,13 @@ export function formatInstalledCommandsTree(
 			const namespace = parts.slice(0, -1).join(':');
 			const commandName = parts[parts.length - 1];
 			
-			if (!tree.has(namespace)) {
+			if (commandName && !tree.has(namespace)) {
 				tree.set(namespace, []);
 			}
-			tree.get(namespace)!.push(commandName);
+			const namespaceCommands = tree.get(namespace);
+			if (namespaceCommands && commandName) {
+				namespaceCommands.push(commandName);
+			}
 		} else {
 			// Flat command - also display with tree structure for consistency
 			flatCommands.push(info.name);

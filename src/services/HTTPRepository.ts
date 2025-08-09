@@ -508,6 +508,8 @@ export default class HTTPRepository implements IRepository {
 				}
 				
 				const languageCode = match[1];
+				if (!languageCode) continue;
+				
 				const manifestPath = join(this.cacheConfig.cacheDir, entry);
 				
 				try {
@@ -528,7 +530,7 @@ export default class HTTPRepository implements IRepository {
 					
 					languages.push({
 						code: languageCode,
-						name: languageName,
+						name: languageName || languageCode,
 						commandCount: manifestData.commands.length,
 					});
 				} catch (error) {

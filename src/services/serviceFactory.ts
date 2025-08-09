@@ -132,6 +132,7 @@ export function getServices() {
 			installationService,
 			manifestComparison,
 			localCommandRepository,
+			directoryDetector,
 		);
 
 		services = {

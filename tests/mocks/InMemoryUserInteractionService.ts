@@ -104,7 +104,7 @@ export default class InMemoryUserInteractionService implements IUserInteractionS
 		}
 
 		// Fall back to default selection response or first choice
-		const response = (this.defaultResponses.selection as T) ?? options.choices[0];
+		const response = ((this.defaultResponses.selection as T) ?? options.choices[0]) as T;
 		this.logInteraction("selection", options, response);
 		return response;
 	}

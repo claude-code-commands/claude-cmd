@@ -170,7 +170,7 @@ export class UserInteractionService implements IUserInteractionService {
 
 		// Use default or first choice if not in interactive mode
 		if (!this.shouldPrompt()) {
-			return options.defaultChoice ?? options.choices[0];
+			return options.defaultChoice ?? options.choices[0] as T;
 		}
 
 		const rl = this.createReadlineInterface();
@@ -180,8 +180,10 @@ export class UserInteractionService implements IUserInteractionService {
 			stdout.write(`${options.message}\n`);
 			for (let i = 0; i < options.choices.length; i++) {
 				const choice = options.choices[i];
-				const displayText = options.displayFunction ? options.displayFunction(choice) : String(choice);
-				stdout.write(`  ${i + 1}. ${displayText}\n`);
+				if (choice !== undefined) {
+					const displayText = options.displayFunction ? options.displayFunction(choice) : String(choice);
+					stdout.write(`  ${i + 1}. ${displayText}\n`);
+				}
 			}
 
 			while (true) {
@@ -195,12 +197,12 @@ export class UserInteractionService implements IUserInteractionService {
 					}
 
 					const choiceIndex = Number.parseInt(answer.trim(), 10) - 1;
-					return options.choices[choiceIndex];
+					return options.choices[choiceIndex] as T;
 				} catch (error) {
 					// Handle interruption gracefully
 					if (error instanceof Error && error.message.includes("interrupt")) {
 						// Return default choice or first choice on interruption
-						return options.defaultChoice ?? options.choices[0];
+						return options.defaultChoice ?? options.choices[0] as T;
 					}
 					throw error;
 				}
