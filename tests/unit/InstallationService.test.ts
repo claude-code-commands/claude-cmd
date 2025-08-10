@@ -60,7 +60,7 @@ Use this command when you need help with debugging.
 		userInteractionService = new InMemoryUserInteractionService();
 
 		// Set default confirmation to true for most tests
-		userInteractionService.setDefaultResponses({ confirmation: true });
+		userInteractionService.setDefaultResponse(true);
 
 		installationService = new InstallationService(
 			repository,
@@ -631,7 +631,7 @@ allowed-tools: [invalid yaml
 			await fileService.writeFile(namespacedPath, mockCommandContent);
 
 			// Configure mock to cancel removal
-			userInteractionService.setDefaultResponses({ confirmation: false });
+			userInteractionService.setDefaultResponse(false);
 
 			// Try to remove without --yes flag (should be cancelled)
 			await installationService.removeCommand("test:interactive");
@@ -640,7 +640,7 @@ allowed-tools: [invalid yaml
 			expect(await fileService.exists(namespacedPath)).toBe(true);
 
 			// Configure mock to confirm removal
-			userInteractionService.setDefaultResponses({ confirmation: true });
+			userInteractionService.setDefaultResponse(true);
 
 			// Remove without --yes flag (should succeed)
 			await installationService.removeCommand("test:interactive");

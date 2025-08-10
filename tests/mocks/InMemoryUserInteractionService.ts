@@ -1,14 +1,10 @@
 import type IUserInteractionService from "../../src/interfaces/IUserInteractionService.js";
-import type {
-	ConfirmationOptions,
-	SelectionOptions,
-	TextInputOptions,
-} from "../../src/interfaces/IUserInteractionService.js";
+import type { ConfirmationOptions } from "../../src/interfaces/IUserInteractionService.js";
 
 type InteractionLog = {
-	type: "confirmation" | "selection" | "textInput";
-	options: ConfirmationOptions | SelectionOptions<any> | TextInputOptions;
-	response: boolean | any | string;
+	type: "confirmation";
+	options: ConfirmationOptions;
+	response: boolean;
 	timestamp: Date;
 };
 
@@ -23,12 +19,8 @@ export default class InMemoryUserInteractionService
 {
 	private yesMode = false;
 	private interactionHistory: InteractionLog[] = [];
-	private preConfiguredResponses: Map<string, any> = new Map();
-	private defaultResponses: {
-		confirmation?: boolean;
-		selection?: any;
-		textInput?: string;
-	} = {};
+	private preConfiguredResponses: Map<string, boolean> = new Map();
+	private defaultResponse?: boolean;
 
 	/**
 	 * Set whether the service is in --yes mode (skips prompts with defaults)
@@ -38,29 +30,18 @@ export default class InMemoryUserInteractionService
 	}
 
 	/**
-	 * Check if the service is in --yes mode
-	 */
-	isYesMode(): boolean {
-		return this.yesMode;
-	}
-
-	/**
 	 * Pre-configure response for a specific message
 	 * Useful for testing specific interaction scenarios
 	 */
-	setPreConfiguredResponse(message: string, response: any): void {
+	setPreConfiguredResponse(message: string, response: boolean): void {
 		this.preConfiguredResponses.set(message, response);
 	}
 
 	/**
-	 * Set default responses for each type when no specific response is configured
+	 * Set default response for confirmation prompts when no specific response is configured
 	 */
-	setDefaultResponses(defaults: {
-		confirmation?: boolean;
-		selection?: any;
-		textInput?: string;
-	}): void {
-		this.defaultResponses = { ...defaults };
+	setDefaultResponse(response: boolean): void {
+		this.defaultResponse = response;
 	}
 
 	/**
@@ -76,73 +57,14 @@ export default class InMemoryUserInteractionService
 
 		// Check for pre-configured response first
 		if (this.preConfiguredResponses.has(options.message)) {
-			const response = this.preConfiguredResponses.get(
-				options.message,
-			) as boolean;
+			const response = this.preConfiguredResponses.get(options.message)!;
 			this.logInteraction("confirmation", options, response);
 			return response;
 		}
 
-		// Fall back to default confirmation response or the option's default
-		const response =
-			this.defaultResponses.confirmation ?? options.defaultResponse ?? false;
+		// Fall back to default response or the option's default
+		const response = this.defaultResponse ?? options.defaultResponse ?? false;
 		this.logInteraction("confirmation", options, response);
-		return response;
-	}
-
-	/**
-	 * Display a selection prompt
-	 */
-	async selectOption<T>(options: SelectionOptions<T>): Promise<T> {
-		// In --yes mode, use default choice if available
-		if (this.yesMode && options.defaultChoice !== undefined) {
-			const response = options.defaultChoice;
-			this.logInteraction("selection", options, response);
-			return response;
-		}
-
-		// Check for pre-configured response first
-		if (this.preConfiguredResponses.has(options.message)) {
-			const response = this.preConfiguredResponses.get(options.message) as T;
-			this.logInteraction("selection", options, response);
-			return response;
-		}
-
-		// Fall back to default selection response or first choice
-		const response = ((this.defaultResponses.selection as T) ??
-			options.choices[0]) as T;
-		this.logInteraction("selection", options, response);
-		return response;
-	}
-
-	/**
-	 * Display a text input prompt
-	 */
-	async getTextInput(options: TextInputOptions): Promise<string> {
-		// In --yes mode, use default value if configured to do so
-		if (
-			this.yesMode &&
-			options.skipWithDefault &&
-			options.defaultValue !== undefined
-		) {
-			const response = options.defaultValue;
-			this.logInteraction("textInput", options, response);
-			return response;
-		}
-
-		// Check for pre-configured response first
-		if (this.preConfiguredResponses.has(options.message)) {
-			const response = this.preConfiguredResponses.get(
-				options.message,
-			) as string;
-			this.logInteraction("textInput", options, response);
-			return response;
-		}
-
-		// Fall back to default text input response or empty string
-		const response =
-			this.defaultResponses.textInput ?? options.defaultValue ?? "";
-		this.logInteraction("textInput", options, response);
 		return response;
 	}
 
@@ -179,24 +101,24 @@ export default class InMemoryUserInteractionService
 	 */
 	wasMessagePrompted(message: string): boolean {
 		return this.interactionHistory.some(
-			(log) => (log.options as any).message === message,
+			(log) => log.options.message === message,
 		);
 	}
 
 	/**
-	 * Count how many interactions of a specific type occurred
+	 * Count how many confirmation interactions occurred
 	 */
-	countInteractions(type: "confirmation" | "selection" | "textInput"): number {
-		return this.interactionHistory.filter((log) => log.type === type).length;
+	countInteractions(): number {
+		return this.interactionHistory.length;
 	}
 
 	/**
 	 * Private helper to log interactions
 	 */
 	private logInteraction(
-		type: "confirmation" | "selection" | "textInput",
-		options: any,
-		response: any,
+		type: "confirmation",
+		options: ConfirmationOptions,
+		response: boolean,
 	): void {
 		this.interactionHistory.push({
 			type,

@@ -2,15 +2,11 @@ import { stdin, stdout } from "node:process";
 import type { Interface as ReadlineInterface } from "node:readline";
 import { createInterface } from "node:readline";
 import type IUserInteractionService from "../interfaces/IUserInteractionService.js";
-import type {
-	ConfirmationOptions,
-	SelectionOptions,
-	TextInputOptions,
-} from "../interfaces/IUserInteractionService.js";
+import type { ConfirmationOptions } from "../interfaces/IUserInteractionService.js";
 
 /**
  * Service for handling interactive user prompts in terminal environments
- * Supports confirmation prompts, selections, and text input with --yes flag bypassing
+ * Supports confirmation prompts with --yes flag bypassing
  */
 export class UserInteractionService implements IUserInteractionService {
 	private yesMode = false;
@@ -20,13 +16,6 @@ export class UserInteractionService implements IUserInteractionService {
 	 */
 	setYesMode(yesMode: boolean): void {
 		this.yesMode = yesMode;
-	}
-
-	/**
-	 * Check if the service is running in --yes mode (skip prompts)
-	 */
-	isYesMode(): boolean {
-		return this.yesMode;
 	}
 
 	/**
@@ -82,28 +71,6 @@ export class UserInteractionService implements IUserInteractionService {
 	}
 
 	/**
-	 * Validate that input is a positive integer within range
-	 * Addresses critical input validation vulnerability
-	 */
-	private isValidChoice(input: string, maxChoice: number): boolean {
-		const trimmedInput = input.trim();
-
-		// Must be digits only
-		if (!/^\d+$/.test(trimmedInput)) {
-			return false;
-		}
-
-		const num = Number.parseInt(trimmedInput, 10);
-
-		// Check for NaN and range
-		if (Number.isNaN(num) || num < 1 || num > maxChoice) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
 	 * Display a confirmation prompt to the user
 	 */
 	async confirmAction(options: ConfirmationOptions): Promise<boolean> {
@@ -154,117 +121,6 @@ export class UserInteractionService implements IUserInteractionService {
 					}
 					throw error;
 				}
-			}
-		} finally {
-			rl.close();
-		}
-	}
-
-	/**
-	 * Display a selection prompt to the user
-	 */
-	async selectOption<T>(options: SelectionOptions<T>): Promise<T> {
-		if (options.choices.length === 0) {
-			throw new Error("Selection options cannot be empty");
-		}
-
-		// Skip prompt if in --yes mode and default choice available
-		if (this.shouldSkipPrompt(true) && options.defaultChoice !== undefined) {
-			return options.defaultChoice;
-		}
-
-		// Use default or first choice if not in interactive mode
-		if (!this.shouldPrompt()) {
-			return options.defaultChoice ?? (options.choices[0] as T);
-		}
-
-		const rl = this.createReadlineInterface();
-
-		try {
-			// Display choices
-			stdout.write(`${options.message}\n`);
-			for (let i = 0; i < options.choices.length; i++) {
-				const choice = options.choices[i];
-				if (choice !== undefined) {
-					const displayText = options.displayFunction
-						? options.displayFunction(choice)
-						: String(choice);
-					stdout.write(`  ${i + 1}. ${displayText}\n`);
-				}
-			}
-
-			while (true) {
-				try {
-					const answer = await this.askQuestion(
-						rl,
-						`Enter choice (1-${options.choices.length}): `,
-					);
-
-					// Validate input using secure validation method
-					if (!this.isValidChoice(answer, options.choices.length)) {
-						stdout.write(
-							`Please enter a number between 1 and ${options.choices.length}.\n`,
-						);
-						continue;
-					}
-
-					const choiceIndex = Number.parseInt(answer.trim(), 10) - 1;
-					return options.choices[choiceIndex] as T;
-				} catch (error) {
-					// Handle interruption gracefully
-					if (error instanceof Error && error.message.includes("interrupt")) {
-						// Return default choice or first choice on interruption
-						return options.defaultChoice ?? (options.choices[0] as T);
-					}
-					throw error;
-				}
-			}
-		} finally {
-			rl.close();
-		}
-	}
-
-	/**
-	 * Display a text input prompt to the user
-	 */
-	async getTextInput(options: TextInputOptions): Promise<string> {
-		// Skip prompt if in --yes mode and configured to do so
-		if (
-			this.shouldSkipPrompt(options.skipWithDefault) &&
-			options.defaultValue !== undefined
-		) {
-			return options.defaultValue;
-		}
-
-		// Use default or empty string if not in interactive mode
-		if (!this.shouldPrompt()) {
-			return options.defaultValue ?? "";
-		}
-
-		const rl = this.createReadlineInterface();
-
-		try {
-			const defaultHint = options.defaultValue
-				? ` [${options.defaultValue}]`
-				: "";
-			const prompt = `${options.message}${defaultHint}: `;
-
-			try {
-				const answer = await this.askQuestion(rl, prompt);
-
-				// Use default value for empty input
-				if (answer.trim() === "" && options.defaultValue !== undefined) {
-					return options.defaultValue;
-				}
-
-				return answer;
-			} catch (error) {
-				// Handle interruption gracefully
-				if (error instanceof Error && error.message.includes("interrupt")) {
-					// Return default or empty string on interruption
-					return options.defaultValue ?? "";
-				}
-				throw error;
 			}
 		} finally {
 			rl.close();
