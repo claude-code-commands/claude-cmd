@@ -288,7 +288,7 @@ export default class HTTPRepository implements IRepository {
 		// Fetcher function that retrieves fresh manifest data from GitHub
 		const manifestFetcher = async (): Promise<Manifest> => {
 			try {
-				const manifestUrl = `${HTTPRepository.BASE_URL}/pages/${validatedLanguage}/index.json`;
+				const manifestUrl = `${HTTPRepository.BASE_URL}/commands/${validatedLanguage}/index.json`;
 				const response = await this.httpClient.get(manifestUrl);
 
 				// Validate response has content
@@ -416,7 +416,7 @@ export default class HTTPRepository implements IRepository {
 		// Fetcher function that retrieves fresh command content from GitHub
 		const contentFetcher = async (): Promise<string> => {
 			try {
-				const commandUrl = `${HTTPRepository.BASE_URL}/pages/${validatedLanguage}/${command.file}`;
+				const commandUrl = `${HTTPRepository.BASE_URL}/commands/${validatedLanguage}/${command.file}`;
 				const response = await this.httpClient.get(commandUrl);
 
 				// Validate response has content

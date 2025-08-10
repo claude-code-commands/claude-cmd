@@ -124,7 +124,7 @@ describe("HTTPRepository", () => {
 
 			const httpHistory = mockHttpClient.getRequestHistory();
 			expect(httpHistory[0]?.url).toMatch(
-				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/pages\/en\/index\.json/,
+				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/commands\/en\/index\.json/,
 			);
 		});
 
@@ -138,7 +138,7 @@ describe("HTTPRepository", () => {
 			);
 			expect(commandRequest).toBeDefined();
 			expect(commandRequest?.url).toMatch(
-				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/pages\/en\/debug-help\.md/,
+				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/commands\/en\/debug-help\.md/,
 			);
 		});
 

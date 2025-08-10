@@ -52,14 +52,14 @@ export class CacheManager {
 	 * Create a new CacheManager instance
 	 *
 	 * @param fileService - File service implementation for I/O operations
-	 * @param cacheDir - Optional custom cache directory (defaults to ~/.cache/claude-cmd/pages)
+	 * @param cacheDir - Optional custom cache directory (defaults to ~/.cache/claude-cmd/commands)
 	 */
 	constructor(
 		private readonly fileService: IFileService,
 		cacheDir?: string,
 	) {
 		this.cacheDir =
-			cacheDir ?? path.join(os.homedir(), ".cache", "claude-cmd", "pages");
+			cacheDir ?? path.join(os.homedir(), ".cache", "claude-cmd", "commands");
 	}
 
 	/**

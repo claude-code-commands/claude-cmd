@@ -122,7 +122,7 @@ export class StatusService {
 		const languages: string[] = [];
 
 		try {
-			// Get the base cache directory (e.g., ~/.cache/claude-cmd/pages)
+			// Get the base cache directory (e.g., ~/.cache/claude-cmd/commands)
 			// getCachePath returns {cacheDir}/{language}/manifest.json
 			// So we need to go up two levels: dirname(dirname(path))
 			const dummyCachePath = this.cacheManager.getCachePath("dummy");

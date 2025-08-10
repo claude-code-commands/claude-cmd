@@ -86,7 +86,7 @@ Commands are defined by the `Command` interface with:
 
 ### Repository & Caching
 - Commands stored in GitHub repository with `index.json` manifest
-- Local cache in `{UserCacheDir}/claude-cmd/pages/{lang}/index.json`
+- Local cache in `{UserCacheDir}/claude-cmd/commands/{lang}/index.json`
 - Language-specific manifests support internationalization
 - Force refresh bypasses cache for development
 
@@ -156,9 +156,9 @@ All features must follow a DESIGN-RED-GREEN-REFACTOR-REVIEW workflow:
 
 ## Cache Directory Structure
 
-Cache location: `{UserCacheDir}/claude-cmd/pages/`
+Cache location: `{UserCacheDir}/claude-cmd/commands/`
 ```
-pages/
+commands/
 ├── en/index.json      # English commands manifest
 ├── fr/index.json      # French commands manifest
 └── {lang}/index.json  # Other language manifests
