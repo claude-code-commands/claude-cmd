@@ -18,6 +18,7 @@ import {
 	CommandNotFoundError,
 	ManifestError,
 } from "../../src/types/Command.js";
+import { runRepositoryContractTests } from "../shared/IRepository.contract.ts";
 
 describe("HTTPRepository Integration", () => {
 	let repository: IRepository;
@@ -51,6 +52,13 @@ describe("HTTPRepository Integration", () => {
 		} catch {
 			// Ignore cleanup errors
 		}
+	});
+
+	// Run the shared contract tests for HTTPRepository with real HTTP and file operations
+	describe("Contract Tests", () => {
+		runRepositoryContractTests(() => repository, {
+			isRealRepository: true,
+		});
 	});
 
 	describe("Real HTTP Operations", () => {
