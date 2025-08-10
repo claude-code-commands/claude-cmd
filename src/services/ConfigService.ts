@@ -183,15 +183,6 @@ export class ConfigService implements IConfigService {
 	}
 
 	/**
-	 * Get list of supported language codes
-	 *
-	 * @returns Array of valid language codes
-	 */
-	getSupportedLanguageCodes(): string[] {
-		return Array.from(this.knownLanguages.keys());
-	}
-
-	/**
 	 * Validate configuration structure and values
 	 *
 	 * @param config - Configuration object to validate

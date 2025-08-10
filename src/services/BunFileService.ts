@@ -2,7 +2,6 @@ import { constants } from "node:fs";
 import {
 	access,
 	mkdir as fsMkdir,
-	rmdir as fsRmdir,
 	readdir,
 	stat,
 	unlink,
@@ -203,22 +202,6 @@ export default class BunFileService implements IFileService {
 	}
 
 	/**
-	 * Create hierarchical directory structure for namespace
-	 */
-	async createNamespaceDirectories(
-		basePath: string,
-		namespacePath: string,
-	): Promise<string> {
-		try {
-			const fullPath = join(basePath, namespacePath);
-			await this.mkdir(fullPath);
-			return fullPath;
-		} catch (error) {
-			this.mapSystemError(error, join(basePath, namespacePath), "create");
-		}
-	}
-
-	/**
 	 * Scan directory hierarchy for command files
 	 */
 	async scanNamespaceHierarchy(
@@ -232,17 +215,6 @@ export default class BunFileService implements IFileService {
 		} catch (error) {
 			this.mapSystemError(error, basePath, "list");
 		}
-	}
-
-	/**
-	 * Resolve path for namespaced command file
-	 */
-	resolveNamespacedPath(
-		basePath: string,
-		namespacePath: string,
-		fileName: string,
-	): string {
-		return join(basePath, namespacePath, fileName);
 	}
 
 	/**
@@ -299,17 +271,6 @@ export default class BunFileService implements IFileService {
 				}
 			}
 			throw error;
-		}
-	}
-
-	/**
-	 * Remove a directory and optionally its contents
-	 */
-	async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
-		try {
-			await fsRmdir(path, options);
-		} catch (error) {
-			this.mapSystemError(error, path, "delete");
 		}
 	}
 }

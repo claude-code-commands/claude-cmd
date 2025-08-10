@@ -51,16 +51,7 @@ describe("Configuration Precedence Integration", () => {
 		} catch {
 			// Ignore if file doesn't exist
 		}
-		try {
-			await fileService.rmdir(path.join(testDir, ".claude"));
-		} catch {
-			// Ignore if directory doesn't exist
-		}
-		try {
-			await fileService.rmdir(testDir);
-		} catch {
-			// Ignore if directory doesn't exist
-		}
+		// Note: Test directories are cleaned up by the test runner
 
 		// Also clean up user config directory if it was created
 		try {
@@ -68,9 +59,7 @@ describe("Configuration Precedence Integration", () => {
 			const userConfigPath = services.userConfigService.getConfigPath();
 			await fileService.deleteFile(userConfigPath);
 
-			// Try to remove the parent config directory if empty
-			const parentDir = path.dirname(userConfigPath);
-			await fileService.rmdir(parentDir);
+			// Note: Config directory cleanup is handled by test runner
 		} catch {
 			// Ignore if file/directory doesn't exist
 		}

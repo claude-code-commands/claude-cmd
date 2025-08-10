@@ -148,20 +148,6 @@ export default interface IFileService {
 	isWritable(path: string): Promise<boolean>;
 
 	/**
-	 * Create hierarchical directory structure for namespace
-	 *
-	 * @param basePath - Base directory path (e.g., ~/.claude/commands)
-	 * @param namespacePath - Namespace path (e.g., "project/frontend/component")
-	 * @returns Promise resolving to the full directory path
-	 * @throws FilePermissionError when create access is denied
-	 * @throws FileIOError for other I/O failures
-	 */
-	createNamespaceDirectories(
-		basePath: string,
-		namespacePath: string,
-	): Promise<string>;
-
-	/**
 	 * Scan directory hierarchy for command files
 	 *
 	 * @param basePath - Base directory to scan from
@@ -175,32 +161,6 @@ export default interface IFileService {
 		basePath: string,
 		maxDepth?: number,
 	): Promise<NamespacedFile[]>;
-
-	/**
-	 * Resolve path for namespaced command file
-	 *
-	 * @param basePath - Base directory path
-	 * @param namespacePath - Namespace path (e.g., "project/frontend/component")
-	 * @param fileName - Command file name (e.g., "create-component.md")
-	 * @returns Full path to the command file
-	 */
-	resolveNamespacedPath(
-		basePath: string,
-		namespacePath: string,
-		fileName: string,
-	): string;
-
-	/**
-	 * Remove a directory and optionally its contents
-	 *
-	 * @param path - Absolute or relative path to the directory
-	 * @param options - Optional removal options
-	 * @returns Promise that resolves when directory is removed
-	 * @throws FileNotFoundError when directory doesn't exist
-	 * @throws FilePermissionError when delete access is denied
-	 * @throws FileIOError for other I/O failures
-	 */
-	rmdir(path: string, options?: { recursive?: boolean }): Promise<void>;
 }
 
 /**

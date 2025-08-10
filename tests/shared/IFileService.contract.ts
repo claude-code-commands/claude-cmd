@@ -164,49 +164,6 @@ export function createFileServiceContractTests(
 			});
 		});
 
-		describe("directory removal", () => {
-			test("should remove empty directories", async () => {
-				const dirPath = "empty-dir";
-
-				await fileService.mkdir(dirPath);
-				expect(await fileService.exists(dirPath)).toBe(true);
-
-				await fileService.rmdir(dirPath);
-				expect(await fileService.exists(dirPath)).toBe(false);
-			});
-
-			test("should throw error when removing non-empty directory without recursive option", async () => {
-				const dirPath = "non-empty-dir";
-				const filePath = `${dirPath}/file.txt`;
-
-				await fileService.mkdir(dirPath);
-				await fileService.writeFile(filePath, "content");
-
-				await expect(fileService.rmdir(dirPath)).rejects.toThrow();
-			});
-
-			test("should remove non-empty directories with recursive option", async () => {
-				const dirPath = "recursive-dir";
-				const filePath = `${dirPath}/nested/file.txt`;
-
-				await fileService.writeFile(filePath, "content");
-				expect(await fileService.exists(dirPath)).toBe(true);
-				expect(await fileService.exists(`${dirPath}/nested`)).toBe(true);
-				expect(await fileService.exists(filePath)).toBe(true);
-
-				await fileService.rmdir(dirPath, { recursive: true });
-				expect(await fileService.exists(dirPath)).toBe(false);
-				expect(await fileService.exists(`${dirPath}/nested`)).toBe(false);
-				expect(await fileService.exists(filePath)).toBe(false);
-			});
-
-			test("should throw FileNotFoundError when removing non-existent directory", async () => {
-				await expect(fileService.rmdir("non-existent-dir")).rejects.toThrow(
-					FileNotFoundError,
-				);
-			});
-		});
-
 		describe("directory listing operations", () => {
 			test("should list files in a directory", async () => {
 				const dirPath = "list-test";
@@ -390,49 +347,12 @@ export function createFileServiceContractTests(
 						fileService.readFile("/dev/null/impossible/path"),
 					).rejects.toThrow();
 
-					// Clean up
-					await fileService.rmdir(tempDir, { recursive: true });
+					// Clean up - tempDir will be cleaned up by test cleanup
 				},
 			);
 		});
 
 		describe("namespace operations", () => {
-			test("should create namespace directories", async () => {
-				const basePath = "commands";
-				const namespacePath = "project/frontend/component";
-
-				const fullPath = await fileService.createNamespaceDirectories(
-					basePath,
-					namespacePath,
-				);
-
-				expect(fullPath).toBe("commands/project/frontend/component");
-				expect(await fileService.exists("commands")).toBe(true);
-				expect(await fileService.exists("commands/project")).toBe(true);
-				expect(await fileService.exists("commands/project/frontend")).toBe(
-					true,
-				);
-				expect(
-					await fileService.exists("commands/project/frontend/component"),
-				).toBe(true);
-			});
-
-			test("should resolve namespaced paths correctly", async () => {
-				const basePath = "commands";
-				const namespacePath = "project/frontend";
-				const fileName = "create-component.md";
-
-				const resolvedPath = fileService.resolveNamespacedPath(
-					basePath,
-					namespacePath,
-					fileName,
-				);
-
-				expect(resolvedPath).toBe(
-					"commands/project/frontend/create-component.md",
-				);
-			});
-
 			test("should scan namespace hierarchy for command files", async () => {
 				const basePath = "commands";
 

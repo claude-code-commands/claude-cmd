@@ -156,32 +156,4 @@ export default interface INamespaceService {
 	 * @throws InvalidNamespaceSyntaxError if input format is invalid
 	 */
 	toColonSeparated(pathBased: string): string;
-
-	/**
-	 * Get the parent namespace of a given namespace
-	 *
-	 * @param namespace - Child namespace
-	 * @returns Parent namespace or null if no parent (root level)
-	 * @throws InvalidNamespaceSyntaxError if input format is invalid
-	 */
-	getParent(namespace: string): string | null;
-
-	/**
-	 * Check if one namespace is a parent of another
-	 *
-	 * @param parent - Potential parent namespace
-	 * @param child - Potential child namespace
-	 * @returns true if parent is a parent of child
-	 * @throws InvalidNamespaceSyntaxError if either format is invalid
-	 */
-	isParentOf(parent: string, child: string): boolean;
-
-	/**
-	 * Get all ancestor namespaces of a given namespace
-	 *
-	 * @param namespace - Namespace to get ancestors for
-	 * @returns Array of ancestor namespaces from root to immediate parent
-	 * @throws InvalidNamespaceSyntaxError if input format is invalid
-	 */
-	getAncestors(namespace: string): string[];
 }

@@ -36,9 +36,8 @@ describe("CLI Language Command Integration", () => {
 		let validLanguages: string[];
 
 		beforeEach(async () => {
-			// Get valid languages from the domain layer
-			const services = getServices();
-			validLanguages = services.userConfigService.getSupportedLanguageCodes();
+			// Use known valid languages for testing
+			validLanguages = ["en", "fr", "es"];
 
 			const { result: listResult, stdout: listStdout } = await runCli([
 				"language",

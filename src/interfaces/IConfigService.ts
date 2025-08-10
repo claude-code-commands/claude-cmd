@@ -76,13 +76,6 @@ export interface IConfigService {
 	getConfigPath(): string;
 
 	/**
-	 * Get list of supported language codes
-	 *
-	 * @returns Array of valid language codes
-	 */
-	getSupportedLanguageCodes(): string[];
-
-	/**
 	 * Get comprehensive language status information
 	 *
 	 * Combines current language, repository-available languages with command counts,

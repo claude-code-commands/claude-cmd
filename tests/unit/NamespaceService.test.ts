@@ -102,32 +102,4 @@ describe("NamespaceService", () => {
 			);
 		});
 	});
-
-	describe("hierarchy operations", () => {
-		test("should get parent namespace", () => {
-			expect(service.getParent("frontend:component:button")).toBe(
-				"frontend:component",
-			);
-			expect(service.getParent("frontend:component")).toBe("frontend");
-			expect(service.getParent("frontend")).toBe(null);
-		});
-
-		test("should check parent relationship", () => {
-			expect(service.isParentOf("frontend", "frontend:component")).toBe(true);
-			expect(
-				service.isParentOf("frontend:component", "frontend:component:button"),
-			).toBe(true);
-			expect(service.isParentOf("frontend", "backend:api")).toBe(false);
-			expect(service.isParentOf("frontend:component", "frontend")).toBe(false);
-		});
-
-		test("should get ancestors", () => {
-			expect(service.getAncestors("frontend:component:button")).toEqual([
-				"frontend",
-				"frontend:component",
-			]);
-			expect(service.getAncestors("frontend:component")).toEqual(["frontend"]);
-			expect(service.getAncestors("frontend")).toEqual([]);
-		});
-	});
 });

@@ -304,23 +304,6 @@ class InMemoryFileService implements IFileService {
 	}
 
 	/**
-	 * Create hierarchical directory structure for namespace
-	 */
-	async createNamespaceDirectories(
-		basePath: string,
-		namespacePath: string,
-	): Promise<string> {
-		this.operationHistory.push({
-			operation: "createNamespaceDirectories",
-			path: `${basePath}/${namespacePath}`,
-		});
-
-		const fullPath = `${basePath}/${namespacePath}`;
-		await this.mkdir(fullPath);
-		return fullPath;
-	}
-
-	/**
 	 * Scan directory hierarchy for command files
 	 */
 	async scanNamespaceHierarchy(
@@ -335,17 +318,6 @@ class InMemoryFileService implements IFileService {
 		const files: NamespacedFile[] = [];
 		await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
 		return files;
-	}
-
-	/**
-	 * Resolve path for namespaced command file
-	 */
-	resolveNamespacedPath(
-		basePath: string,
-		namespacePath: string,
-		fileName: string,
-	): string {
-		return `${basePath}/${namespacePath}/${fileName}`;
 	}
 
 	/**
@@ -434,49 +406,6 @@ class InMemoryFileService implements IFileService {
 					maxDepth,
 				);
 			}
-		}
-	}
-
-	/**
-	 * Remove a directory and optionally its contents
-	 */
-	async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
-		this.operationHistory.push({ operation: "rmdir", path });
-
-		// Ensure directory path format consistency
-		const dirPath = path.endsWith("/") ? path : `${path}/`;
-
-		if (!this.fs[dirPath]) {
-			throw new FileNotFoundError(path);
-		}
-
-		const entry = this.fs[dirPath];
-		if (entry?.type !== "directory") {
-			throw new FileIOError(path, "Not a directory");
-		}
-
-		// Check if directory has children and recursive is not set
-		if (!options?.recursive) {
-			const hasChildren = Object.keys(this.fs).some(
-				(filePath: string) =>
-					filePath.startsWith(dirPath) && filePath !== dirPath,
-			);
-			if (hasChildren) {
-				throw new FileIOError(path, "Directory not empty");
-			}
-		}
-
-		// Remove directory and all children if recursive
-		if (options?.recursive) {
-			const toDelete = Object.keys(this.fs).filter(
-				(filePath: string) =>
-					filePath.startsWith(dirPath) || filePath === dirPath,
-			);
-			for (const filePath of toDelete) {
-				delete this.fs[filePath];
-			}
-		} else {
-			delete this.fs[dirPath];
 		}
 	}
 }
