@@ -39,8 +39,7 @@ export function formatInstalledCommandsEnhanced(
 	if (personalCommands.length > 0) {
 		output += "Personal Commands:\n";
 		for (const info of personalCommands) {
-			const locationTag = `[${info.location}]`;
-			output += `${locationTag} ${info.name}\n`;
+			output += `${info.name}\n`;
 		}
 		output += "\n";
 	}
@@ -48,8 +47,7 @@ export function formatInstalledCommandsEnhanced(
 	if (projectCommands.length > 0) {
 		output += "Project Commands:\n";
 		for (const info of projectCommands) {
-			const locationTag = `[${info.location}]`;
-			output += `${locationTag} ${info.name}\n`;
+			output += `${info.name}\n`;
 		}
 		output += "\n";
 	}
