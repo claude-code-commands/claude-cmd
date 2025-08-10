@@ -361,9 +361,37 @@ export function createFileServiceContractTests(
 			test.skipIf(!context.isRealFileSystem)(
 				"should handle complex permission scenarios",
 				async () => {
-					// This test would involve more complex file permission scenarios
-					// that don't make sense for the in-memory implementation
-					expect(true).toBe(true); // Placeholder for actual permission tests
+					// Test real file system permission handling scenarios
+					// These tests verify the file service properly handles permission errors
+
+					// Test 1: Verify isWritable correctly detects writable paths
+					const tempDir = "temp-permission-test";
+					await fileService.mkdir(tempDir);
+
+					// Should be writable after creation
+					expect(await fileService.isWritable(tempDir)).toBe(true);
+
+					// Test 2: Verify file operations work in writable directories
+					const testFile = `${tempDir}/test-file.txt`;
+					await fileService.writeFile(testFile, "test content");
+					expect(await fileService.exists(testFile)).toBe(true);
+
+					const content = await fileService.readFile(testFile);
+					expect(content).toBe("test content");
+
+					// Test 3: Verify writability check for non-existent parent directories
+					const nonExistentPath = "definitely-not-existing/nested/path";
+					const isWritable = await fileService.isWritable(nonExistentPath);
+					// Should handle gracefully (either true if can create, or false if cannot)
+					expect(typeof isWritable).toBe("boolean");
+
+					// Test 4: Verify operations handle invalid paths properly
+					await expect(
+						fileService.readFile("/dev/null/impossible/path"),
+					).rejects.toThrow();
+
+					// Clean up
+					await fileService.rmdir(tempDir, { recursive: true });
 				},
 			);
 		});

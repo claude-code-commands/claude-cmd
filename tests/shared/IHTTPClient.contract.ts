@@ -277,8 +277,22 @@ export function runHttpClientContractTests(
 					expect(response.status).toBe(200);
 					expect(response.url).toBe(`${context.baseUrl}/get`);
 				} else {
-					// Skip this test for mock implementations as they don't handle redirects
-					expect(true).toBe(true);
+					// For mock implementations, test that they handle URL preservation correctly
+					// Mock implementations don't need to handle actual redirects but should maintain URL consistency
+					try {
+						const response = await httpClient.get(
+							"https://api.example.com/data",
+						);
+
+						expect(response.url).toBeDefined();
+						expect(typeof response.url).toBe("string");
+						expect(response.url).toBe("https://api.example.com/data");
+					} catch (error) {
+						// Mock implementations may not have all URLs configured
+						// Verify they still provide meaningful error information
+						expect(error).toBeDefined();
+						expect(error instanceof Error).toBe(true);
+					}
 				}
 			});
 		});

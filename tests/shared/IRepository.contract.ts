@@ -395,18 +395,52 @@ export function runRepositoryContractTests(
 			test.skipIf(!context.isRealRepository)(
 				"should handle real network timeouts",
 				async () => {
-					// This test would involve actual network timeout scenarios
-					// that don't make sense for the in-memory implementation
-					expect(true).toBe(true); // Placeholder for actual timeout tests
+					// Test actual network timeout behavior with timeout scenarios
+					// For real repository implementations, test that timeout errors
+					// are properly converted to ManifestError
+
+					// This should trigger timeout behavior in real HTTP implementations
+					await expect(repository.getManifest("timeout")).rejects.toThrow(
+						ManifestError,
+					);
+
+					// Verify that the timeout error includes appropriate error information
+					try {
+						await repository.getManifest("timeout");
+					} catch (error) {
+						expect(error).toBeInstanceOf(ManifestError);
+						expect((error as ManifestError).message).toMatch(
+							/timeout|network|failed/i,
+						);
+					}
 				},
 			);
 
 			test.skipIf(!context.isRealRepository)(
 				"should handle real cache directory creation",
 				async () => {
-					// This test would involve actual file system operations
-					// for cache directory management
-					expect(true).toBe(true); // Placeholder for actual cache tests
+					// Test that real repository implementations properly handle
+					// cache directory creation and file system operations
+
+					// Get a manifest which should trigger cache operations
+					const manifest1 = await repository.getManifest("en");
+					expect(manifest1).toBeDefined();
+
+					// Get the same manifest again - should work with cached data
+					const manifest2 = await repository.getManifest("en");
+					expect(manifest2).toEqual(manifest1);
+
+					// Force refresh should bypass cache and still work
+					const manifest3 = await repository.getManifest("en", {
+						forceRefresh: true,
+					});
+					expect(manifest3).toBeDefined();
+					expect(manifest3).toEqual(manifest1);
+
+					// Verify that repository can handle multiple languages
+					const frManifest = await repository.getManifest("fr");
+					expect(frManifest).toBeDefined();
+					expect(frManifest).not.toEqual(manifest1); // Should be different language
 				},
 			);
 		});
