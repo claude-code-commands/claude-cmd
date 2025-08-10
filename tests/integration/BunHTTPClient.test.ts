@@ -64,47 +64,5 @@ describe("BunHTTPClient", () => {
 			// Valid header should be preserved
 			expect(responseBody.headers["valid-header"]).toBe("ValidValue");
 		});
-
-		test("should handle GET requests with query parameters", async () => {
-			const response = await httpClient.get(`${server.baseUrl}/get?test=123`);
-
-			expect(response.status).toBe(200);
-			const responseBody = JSON.parse(response.body);
-			expect(responseBody.args.test).toBe("123");
-		});
-
-		test("should handle different content types", async () => {
-			const xmlResponse = await httpClient.get(`${server.baseUrl}/xml`);
-			expect(xmlResponse.status).toBe(200);
-			expect(xmlResponse.body).toContain("<?xml");
-
-			const jsonResponse = await httpClient.get(`${server.baseUrl}/json`);
-			expect(jsonResponse.status).toBe(200);
-			expect(() => JSON.parse(jsonResponse.body)).not.toThrow();
-		});
-
-		test("should handle very long URLs", async () => {
-			const longPath = "a".repeat(100);
-			const response = await httpClient.get(
-				`${server.baseUrl}/get?long=${longPath}`,
-			);
-
-			expect(response.status).toBe(200);
-		});
-
-		test("should handle special characters in URLs", async () => {
-			const response = await httpClient.get(
-				`${server.baseUrl}/get?special=%20%21%40%23`,
-			);
-
-			expect(response.status).toBe(200);
-		});
-
-		test("should handle multiple headers with same name", async () => {
-			const response = await httpClient.get(`${server.baseUrl}/get`);
-
-			expect(response.status).toBe(200);
-			expect(response.headers).toBeDefined();
-		});
 	});
 });

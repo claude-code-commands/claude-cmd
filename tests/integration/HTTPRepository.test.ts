@@ -62,50 +62,8 @@ describe("HTTPRepository Integration", () => {
 	});
 
 	describe("Real HTTP Operations", () => {
-		test("should fetch real manifest from GitHub for English", async () => {
-			const manifest = await repository.getManifest("en");
-
-			expect(manifest).toBeDefined();
-			expect(typeof manifest.version).toBe("string");
-			expect(typeof manifest.updated).toBe("string");
-			expect(Array.isArray(manifest.commands)).toBe(true);
-			expect(manifest.commands.length).toBeGreaterThan(0);
-
-			// Verify manifest structure
-			const firstCommand = manifest.commands[0];
-			expect(firstCommand).toBeDefined();
-			expect(typeof firstCommand?.name).toBe("string");
-			expect(typeof firstCommand?.description).toBe("string");
-			expect(typeof firstCommand?.file).toBe("string");
-			expect(firstCommand?.["allowed-tools"]).toBeDefined();
-		});
-
-		test("should handle non-existent language gracefully", async () => {
-			await expect(repository.getManifest("xx")).rejects.toThrow(ManifestError);
-		});
-
-		test("should fetch real command content from GitHub", async () => {
-			// First get the manifest to find a valid command
-			const manifest = await repository.getManifest("en");
-			expect(manifest.commands.length).toBeGreaterThan(0);
-
-			const firstCommand = manifest.commands[0];
-			expect(firstCommand).toBeDefined();
-
-			// Now fetch the command content
-			// biome-ignore lint: Biome and TS can't agree
-			const content = await repository.getCommand(firstCommand!.name, "en");
-
-			expect(content).toBeDefined();
-			expect(typeof content).toBe("string");
-			expect(content.length).toBeGreaterThan(0);
-		});
-
-		test("should handle command not found in manifest", async () => {
-			await expect(
-				repository.getCommand("non-existent-command", "en"),
-			).rejects.toThrow(CommandNotFoundError);
-		});
+		// Basic HTTP operations are covered by contract tests
+		// Only real HTTP-specific tests remain here
 	});
 
 	describe("Filesystem Caching Integration", () => {
@@ -228,28 +186,7 @@ describe("HTTPRepository Integration", () => {
 	});
 
 	describe("Security Integration", () => {
-		test("should sanitize language codes in filesystem paths", async () => {
-			// Try with various potentially dangerous language codes
-			const dangerousLang = "../etc";
-
-			await expect(repository.getManifest(dangerousLang)).rejects.toThrow(
-				ManifestError,
-			);
-		});
-
-		test("should sanitize command names in cache paths", async () => {
-			// First get a valid manifest
-			const manifest = await repository.getManifest("en");
-			const validCommand = manifest.commands[0];
-			expect(validCommand).toBeDefined();
-
-			// Try with dangerous command name (this should be sanitized internally)
-			const dangerousCommand = "../../../etc/passwd";
-
-			await expect(
-				repository.getCommand(dangerousCommand, "en"),
-			).rejects.toThrow(CommandNotFoundError);
-		});
+		// Input sanitization is covered by contract tests
 
 		test("should create safe cache file paths", async () => {
 			await repository.getManifest("en");
@@ -265,21 +202,7 @@ describe("HTTPRepository Integration", () => {
 	});
 
 	describe("Performance and Concurrency", () => {
-		test("should handle concurrent requests efficiently", async () => {
-			// Make multiple concurrent requests
-			const promises = [
-				repository.getManifest("en"),
-				repository.getManifest("en"),
-				repository.getManifest("en"),
-			];
-
-			const results = await Promise.all(promises);
-
-			// All results should be identical
-			expect(results[0]!).toEqual(results[1]!);
-			expect(results[1]!).toEqual(results[2]!);
-			expect(results[0]).toBeDefined();
-		});
+		// Basic concurrency behavior is covered by contract tests
 
 		test("should respect TTL configuration", async () => {
 			// Create repository with very short TTL

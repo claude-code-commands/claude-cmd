@@ -25,13 +25,7 @@ describe("UserInteractionService", () => {
 				expect(service.isYesMode()).toBe(false);
 			});
 
-			test("should handle yes mode state management", () => {
-				service.setYesMode(true);
-				expect(service.isYesMode()).toBe(true);
-
-				service.setYesMode(false);
-				expect(service.isYesMode()).toBe(false);
-			});
+			// Yes mode state management is covered by contract tests
 		});
 
 		describe("non-interactive mode handling", () => {
@@ -66,44 +60,7 @@ describe("UserInteractionService", () => {
 			});
 		});
 
-		describe("yes mode integration", () => {
-			test("should properly skip confirmations in yes mode", async () => {
-				service.setYesMode(true);
-
-				const result = await service.confirmAction({
-					message: "Skip this confirmation?",
-					defaultResponse: true,
-					skipWithYes: true,
-				});
-
-				expect(result).toBe(true);
-			});
-
-			test("should use default choices in yes mode", async () => {
-				service.setYesMode(true);
-
-				const choices = ["red", "green", "blue"];
-				const result = await service.selectOption({
-					message: "Pick color:",
-					choices,
-					defaultChoice: "green",
-				});
-
-				expect(result).toBe("green");
-			});
-
-			test("should use default text in yes mode", async () => {
-				service.setYesMode(true);
-
-				const result = await service.getTextInput({
-					message: "Enter name:",
-					defaultValue: "auto-name",
-					skipWithDefault: true,
-				});
-
-				expect(result).toBe("auto-name");
-			});
-		});
+		// Yes mode integration is covered by contract tests
 
 		describe("error handling integration", () => {
 			test("should throw error for empty selection choices", async () => {
@@ -115,20 +72,7 @@ describe("UserInteractionService", () => {
 				).rejects.toThrow("Selection options cannot be empty");
 			});
 
-			test("should handle edge cases gracefully", async () => {
-				// These should not throw in real environment
-				const confirmResult = await service.confirmAction({
-					message: "",
-					defaultResponse: false,
-				});
-
-				const textResult = await service.getTextInput({
-					message: "",
-				});
-
-				expect(typeof confirmResult).toBe("boolean");
-				expect(typeof textResult).toBe("string");
-			});
+			// Edge case handling is covered by contract tests
 		});
 	});
 });
