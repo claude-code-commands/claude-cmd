@@ -112,6 +112,8 @@ Shared contract tests ensure mock implementations match real ones:
 - `tests/shared/IFileService.contract.ts` - Tests both real and mock implementations
 - `tests/shared/IHTTPClient.contract.ts` - Ensures behavior consistency
 
+When adding new tests for a service, first check if there's an existing contract test suite and if the new tests fit there. Only add the new tests to the in-memory version or real version service if they're specific to the version.
+
 ## Bun-Specific Considerations
 
 - Project uses Bun runtime instead of Node.js
