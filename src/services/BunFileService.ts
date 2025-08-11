@@ -14,6 +14,7 @@ import {
 	FilePermissionError,
 	type NamespacedFile,
 } from "../interfaces/IFileService.ts";
+import { realFileLogger } from "../utils/logger.js";
 
 /**
  * Interface for Node.js system errors with error codes
@@ -60,10 +61,20 @@ export default class BunFileService implements IFileService {
 	 * Read content from a file using Bun.file()
 	 */
 	async readFile(path: string): Promise<string> {
+		realFileLogger.debug("read: {path}", { path });
 		try {
 			const file = Bun.file(path);
-			return await file.text();
+			const content = await file.text();
+			realFileLogger.debug("read success: {path} ({bytes} bytes)", {
+				path,
+				bytes: content.length,
+			});
+			return content;
 		} catch (error) {
+			realFileLogger.error("read failed: {path} (error: {error})", {
+				path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			this.mapSystemError(error, path, "read");
 		}
 	}
@@ -72,6 +83,10 @@ export default class BunFileService implements IFileService {
 	 * Write content to a file using Bun.write(), creating directories as needed
 	 */
 	async writeFile(path: string, content: string): Promise<void> {
+		realFileLogger.debug("write: {path} ({bytes} bytes)", {
+			path,
+			bytes: content.length,
+		});
 		try {
 			// Create parent directories first
 			const dir = dirname(path);
@@ -81,7 +96,12 @@ export default class BunFileService implements IFileService {
 			}
 
 			await Bun.write(path, content);
+			realFileLogger.debug("write success: {path}", { path });
 		} catch (error) {
+			realFileLogger.error("write failed: {path} (error: {error})", {
+				path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			this.mapSystemError(error, path, "write");
 		}
 	}
@@ -90,8 +110,10 @@ export default class BunFileService implements IFileService {
 	 * Check if a file or directory exists using fs.stat()
 	 */
 	async exists(path: string): Promise<boolean> {
+		realFileLogger.debug("exists: {path}", { path });
 		try {
 			await stat(path);
+			realFileLogger.debug("exists success: {path} (true)", { path });
 			return true;
 		} catch (error) {
 			if (error instanceof Error) {
@@ -114,6 +136,7 @@ export default class BunFileService implements IFileService {
 			}
 
 			// For other errors, return false
+			realFileLogger.debug("exists: {path} (false)", { path });
 			return false;
 		}
 	}
@@ -122,14 +145,21 @@ export default class BunFileService implements IFileService {
 	 * Create a directory recursively using Node.js fs.mkdir()
 	 */
 	async mkdir(path: string): Promise<void> {
+		realFileLogger.debug("mkdir: {path}", { path });
 		try {
 			await fsMkdir(path, { recursive: true });
+			realFileLogger.debug("mkdir success: {path}", { path });
 		} catch (error) {
 			// Handle EEXIST gracefully for idempotent behavior
 			if (error instanceof Error && (error as SystemError).code === "EEXIST") {
+				realFileLogger.debug("mkdir: {path} (already exists)", { path });
 				return; // Directory already exists, which is fine (idempotent)
 			}
 
+			realFileLogger.error("mkdir failed: {path} (error: {error})", {
+				path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			this.mapSystemError(error, path, "create");
 		}
 	}
@@ -138,9 +168,15 @@ export default class BunFileService implements IFileService {
 	 * Delete a file using Node.js fs.unlink()
 	 */
 	async deleteFile(path: string): Promise<void> {
+		realFileLogger.debug("deleteFile: {path}", { path });
 		try {
 			await unlink(path);
+			realFileLogger.debug("deleteFile success: {path}", { path });
 		} catch (error) {
+			realFileLogger.error("deleteFile failed: {path} (error: {error})", {
+				path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			this.mapSystemError(error, path, "delete");
 		}
 	}
@@ -149,13 +185,23 @@ export default class BunFileService implements IFileService {
 	 * List files in a directory using Node.js fs.readdir()
 	 */
 	async listFiles(path: string): Promise<string[]> {
+		realFileLogger.debug("listFiles: {path}", { path });
 		try {
 			const entries = await readdir(path, { withFileTypes: true });
 			// Return only files, not subdirectories
-			return entries
+			const files = entries
 				.filter((entry) => entry.isFile())
 				.map((entry) => entry.name);
+			realFileLogger.debug("listFiles success: {path} ({count} files)", {
+				path,
+				count: files.length,
+			});
+			return files;
 		} catch (error) {
+			realFileLogger.error("listFiles failed: {path} (error: {error})", {
+				path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			this.mapSystemError(error, path, "list");
 		}
 	}
@@ -193,10 +239,13 @@ export default class BunFileService implements IFileService {
 	 * Check if a path is writable
 	 */
 	async isWritable(path: string): Promise<boolean> {
+		realFileLogger.debug("isWritable: {path}", { path });
 		try {
 			await access(path, constants.W_OK);
+			realFileLogger.debug("isWritable: {path} (true)", { path });
 			return true;
 		} catch {
+			realFileLogger.debug("isWritable: {path} (false)", { path });
 			return false;
 		}
 	}
@@ -208,11 +257,32 @@ export default class BunFileService implements IFileService {
 		basePath: string,
 		maxDepth = 10,
 	): Promise<NamespacedFile[]> {
+		realFileLogger.debug(
+			"scanNamespaceHierarchy: {basePath} (maxDepth: {maxDepth})",
+			{
+				basePath,
+				maxDepth,
+			},
+		);
 		try {
 			const files: NamespacedFile[] = [];
 			await this.scanDirectoryRecursive(basePath, basePath, files, 0, maxDepth);
+			realFileLogger.debug(
+				"scanNamespaceHierarchy success: {basePath} ({count} files)",
+				{
+					basePath,
+					count: files.length,
+				},
+			);
 			return files;
 		} catch (error) {
+			realFileLogger.error(
+				"scanNamespaceHierarchy failed: {basePath} (error: {error})",
+				{
+					basePath,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			);
 			this.mapSystemError(error, basePath, "list");
 		}
 	}

@@ -1,5 +1,6 @@
 import type IUserInteractionService from "../../src/interfaces/IUserInteractionService.js";
 import type { ConfirmationOptions } from "../../src/interfaces/IUserInteractionService.js";
+import { mockInteractionLogger } from "../../src/utils/logger.js";
 
 type InteractionLog = {
 	type: "confirmation";
@@ -48,9 +49,22 @@ export default class InMemoryUserInteractionService
 	 * Display a confirmation prompt (y/N)
 	 */
 	async confirmAction(options: ConfirmationOptions): Promise<boolean> {
+		mockInteractionLogger.debug(
+			"confirmAction: {message} (default: {defaultResponse}, skipWithYes: {skipWithYes})",
+			{
+				message: options.message,
+				defaultResponse: options.defaultResponse,
+				skipWithYes: options.skipWithYes,
+			},
+		);
+
 		// In --yes mode, skip prompt if configured to do so
 		if (this.yesMode && options.skipWithYes) {
 			const response = options.defaultResponse ?? false;
+			mockInteractionLogger.debug(
+				"confirmAction: yes mode active, returning default: {response}",
+				{ response },
+			);
 			this.logInteraction("confirmation", options, response);
 			return response;
 		}
@@ -58,12 +72,20 @@ export default class InMemoryUserInteractionService
 		// Check for pre-configured response first
 		if (this.preConfiguredResponses.has(options.message)) {
 			const response = this.preConfiguredResponses.get(options.message)!;
+			mockInteractionLogger.debug(
+				"confirmAction: pre-configured response: {response}",
+				{ response },
+			);
 			this.logInteraction("confirmation", options, response);
 			return response;
 		}
 
 		// Fall back to default response or the option's default
 		const response = this.defaultResponse ?? options.defaultResponse ?? false;
+		mockInteractionLogger.debug(
+			"confirmAction: fallback response: {response}",
+			{ response },
+		);
 		this.logInteraction("confirmation", options, response);
 		return response;
 	}

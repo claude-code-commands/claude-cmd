@@ -5,6 +5,7 @@ import {
 	HTTPStatusError,
 	HTTPTimeoutError,
 } from "../interfaces/IHTTPClient.ts";
+import { realHttpLogger } from "../utils/logger.js";
 
 /**
  * Real HTTP client implementation using Bun's Web APIs
@@ -81,6 +82,10 @@ export default class BunHTTPClient implements IHTTPClient {
 	async get(url: string, options?: HTTPOptions): Promise<HTTPResponse> {
 		// Extract timeout with safe fallback to default
 		const timeout = options?.timeout ?? BunHTTPClient.DEFAULT_TIMEOUT;
+		realHttpLogger.debug("request: {url} (timeout: {timeout}ms)", {
+			url,
+			timeout,
+		});
 
 		// Validate timeout is a positive number
 		if (
@@ -126,6 +131,17 @@ export default class BunHTTPClient implements IHTTPClient {
 				response.text(),
 			]);
 
+			const contentLength = headers["content-length"] ?? body.length.toString();
+			realHttpLogger.debug(
+				"response success: {url} - {status} {statusText} (content-length: {contentLength})",
+				{
+					url,
+					status: response.status,
+					statusText: response.statusText,
+					contentLength,
+				},
+			);
+
 			// Return properly formatted HTTP response
 			return {
 				status: response.status,
@@ -137,6 +153,12 @@ export default class BunHTTPClient implements IHTTPClient {
 		} catch (error) {
 			// Always clear timeout on any error to prevent memory leaks
 			clearTimeout(timeoutId);
+
+			// Log error before mapping and throwing
+			realHttpLogger.error("request failed: {url} (error: {error})", {
+				url,
+				error: error instanceof Error ? error.message : String(error),
+			});
 
 			// Map Web API errors to custom error types
 			throw this.mapError(error, url, timeout);

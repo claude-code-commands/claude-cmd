@@ -17,6 +17,7 @@ import {
 	CommandNotFoundError,
 	ManifestError,
 } from "../types/Command.js";
+import { realRepoLogger } from "../utils/logger.js";
 
 /**
  * GitHub-based HTTP repository implementation
@@ -187,6 +188,7 @@ export default class HTTPRepository implements IRepository {
 				const cacheExists = await this.fileService.exists(cachePath);
 
 				if (cacheExists) {
+					realRepoLogger.debug("cache file found: {cacheKey}", { cacheKey });
 					const cachedContent = await this.fileService.readFile(cachePath);
 
 					try {
@@ -206,25 +208,42 @@ export default class HTTPRepository implements IRepository {
 						const cacheAge = Date.now() - cachedData.timestamp;
 						if (cacheAge < this.cacheConfig.ttl) {
 							// Cache hit - return cached data
+							realRepoLogger.debug(
+								"cache hit: {cacheKey} (age: {age}ms, ttl: {ttl}ms)",
+								{ cacheKey, age: cacheAge, ttl: this.cacheConfig.ttl },
+							);
 							return cachedData.data;
 						}
 
 						// Cache expired, will fetch fresh data below
+						realRepoLogger.debug(
+							"cache expired: {cacheKey} (age: {age}ms, ttl: {ttl}ms)",
+							{ cacheKey, age: cacheAge, ttl: this.cacheConfig.ttl },
+						);
 					} catch (parseError) {
 						// Malformed cache data, treat as cache miss but log warning
-						console.warn(
-							`Corrupted cache file ${cachePath}, will fetch fresh data:`,
-							parseError instanceof Error ? parseError.message : parseError,
+						realRepoLogger.warn(
+							"cache corrupted: {cacheKey} (error: {error})",
+							{
+								cacheKey,
+								error:
+									parseError instanceof Error ? parseError.message : parseError,
+							},
 						);
 					}
+				} else {
+					realRepoLogger.debug("cache miss: {cacheKey} (file not found)", {
+						cacheKey,
+					});
 				}
 			} catch (_cacheError) {
 				// Cache read error - continue with fresh fetch
-				// Don't log as error since cache failures shouldn't break operations
+				realRepoLogger.debug("cache read error: {cacheKey}", { cacheKey });
 			}
 		}
 
 		// Phase 2: Fetch fresh data from source
+		realRepoLogger.debug("fetching fresh data: {cacheKey}", { cacheKey });
 		const freshData = await dataFetcher();
 
 		// Phase 3: Cache the fresh data for future use
@@ -242,14 +261,16 @@ export default class HTTPRepository implements IRepository {
 				cachePath,
 				JSON.stringify(cacheData, null, 2),
 			);
+			realRepoLogger.debug("cache written: {cacheKey}", { cacheKey });
 		} catch (cacheWriteError) {
 			// Log cache write failures but don't break the operation
-			console.error(
-				`Failed to write cache for ${cacheKey}:`,
-				cacheWriteError instanceof Error
-					? cacheWriteError.message
-					: cacheWriteError,
-			);
+			realRepoLogger.error("cache write failed: {cacheKey} (error: {error})", {
+				cacheKey,
+				error:
+					cacheWriteError instanceof Error
+						? cacheWriteError.message
+						: cacheWriteError,
+			});
 		}
 
 		return freshData;
@@ -430,8 +451,9 @@ export default class HTTPRepository implements IRepository {
 
 				// Allow empty string content but warn about it
 				if (response.body === "") {
-					console.warn(
-						`Command ${commandName} has empty content in ${validatedLanguage}`,
+					realRepoLogger.warn(
+						"command has empty content: {commandName} (language: {language})",
+						{ commandName, language: validatedLanguage },
 					);
 				}
 
@@ -542,9 +564,12 @@ export default class HTTPRepository implements IRepository {
 					});
 				} catch (error) {
 					// Skip this language if we can't read or parse its manifest
-					console.debug(
-						`Skipping language ${languageCode} due to error:`,
-						error,
+					realRepoLogger.debug(
+						"skipping language {languageCode} (error: {error})",
+						{
+							languageCode,
+							error: error instanceof Error ? error.message : String(error),
+						},
 					);
 				}
 			}
@@ -555,7 +580,9 @@ export default class HTTPRepository implements IRepository {
 			return languages;
 		} catch (error) {
 			// If we can't read the cache directory, return empty array
-			console.debug("Error reading cache directory:", error);
+			realRepoLogger.debug("error reading cache directory (error: {error})", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			return [];
 		}
 	}

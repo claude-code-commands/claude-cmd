@@ -4,6 +4,7 @@ import {
 	FileNotFoundError,
 	type NamespacedFile,
 } from "../../src/interfaces/IFileService.ts";
+import { mockFileLogger } from "../../src/utils/logger.js";
 
 type FileEntry = { type: "file"; content: string };
 type DirectoryEntry = { type: "directory" };
@@ -30,11 +31,16 @@ class InMemoryFileService implements IFileService {
 		}
 	}
 	async readFile(path: string): Promise<string> {
+		mockFileLogger.debug("read: {path}", { path });
 		this.operationHistory.push({ operation: "readFile", path });
 		const entry = this.fs[path];
 		if (!entry || entry.type !== "file") {
 			throw new FileNotFoundError(path);
 		}
+		mockFileLogger.debug("read success: {path} ({bytes} bytes)", {
+			path,
+			bytes: entry.content.length,
+		});
 		return entry.content;
 	}
 

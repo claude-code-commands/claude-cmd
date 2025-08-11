@@ -2,6 +2,36 @@
 
 import { join } from "node:path";
 import { Command } from "commander";
+import {
+	configureLogger,
+	enableVerboseLogging,
+	rootLogger,
+} from "./utils/logger.js";
+
+// Early check for verbose flag and environment variable before configuring LogTape
+const hasVerboseFlag =
+	process.argv.includes("-V") || process.argv.includes("--verbose");
+const envLogLevel = process.env.LOG_LEVEL;
+
+let initialLogLevel = "info"; // Default log level
+
+// Prioritize the --verbose flag for debug level if present
+if (hasVerboseFlag) {
+	initialLogLevel = "debug";
+}
+
+// Environment variable can override the flag
+if (envLogLevel) {
+	const lowerEnvLogLevel = envLogLevel.toLowerCase();
+	if (["debug", "info", "warn", "error", "fatal"].includes(lowerEnvLogLevel)) {
+		initialLogLevel = lowerEnvLogLevel;
+	}
+}
+
+// Configure LogTape immediately based on early check
+await configureLogger(initialLogLevel);
+
+// Now import commands after logger is configured
 import { addCommand } from "./cli/commands/add.js";
 import { cacheCommand } from "./cli/commands/cache.js";
 import { completionCommand } from "./cli/commands/completion.js";
@@ -38,7 +68,17 @@ program
 		"Output format (default, compact, json)",
 		"default",
 	)
-	.helpOption("-h, --help", "help for claude-cmd");
+	.option(
+		"-V, --verbose",
+		"Enable verbose debug logging for cache, HTTP, and file operations",
+	)
+	.helpOption("-h, --help", "help for claude-cmd")
+	.hook("preAction", (thisCommand, actionCommand) => {
+		const opts = thisCommand.opts();
+		if (opts.verbose) {
+			enableVerboseLogging();
+		}
+	});
 
 // Add modular commands
 program.addCommand(addCommand);
