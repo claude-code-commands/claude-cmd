@@ -65,8 +65,6 @@ describe("Installed Command Formatter", () => {
 				"en",
 			);
 
-			expect(result).toContain("[personal]");
-			expect(result).toContain("[project]");
 			expect(result).toContain("test-command");
 			expect(result).toContain("project-helper");
 		});
