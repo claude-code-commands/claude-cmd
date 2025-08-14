@@ -2,11 +2,7 @@
 
 import { join } from "node:path";
 import { Command } from "commander";
-import {
-	configureLogger,
-	enableVerboseLogging,
-	rootLogger,
-} from "./utils/logger.js";
+import { configureLogger, enableVerboseLogging } from "./utils/logger.js";
 
 // Early check for verbose flag and environment variable before configuring LogTape
 const hasVerboseFlag =
