@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
 import BunFileService from "../../src/services/BunFileService.js";
 import {
@@ -43,25 +44,11 @@ describe("Configuration Precedence Integration", () => {
 			delete process.env.CLAUDE_CMD_LANG;
 		}
 
-		// Clean up test directory completely
+		// Clean up the test directory completely
 		try {
-			await fileService.deleteFile(
-				path.join(testDir, ".claude", "config.claude-cmd.json"),
-			);
-		} catch {
-			// Ignore if file doesn't exist
-		}
-		// Note: Test directories are cleaned up by the test runner
-
-		// Also clean up user config directory if it was created
-		try {
-			const services = getServices();
-			const userConfigPath = services.userConfigService.getConfigPath();
-			await fileService.deleteFile(userConfigPath);
-
-			// Note: Config directory cleanup is handled by test runner
-		} catch {
-			// Ignore if file/directory doesn't exist
+			await fs.rm(testDir, { recursive: true, force: true });
+		} catch (error) {
+			console.error(`Failed to clean up test directory ${testDir}`, error);
 		}
 	});
 
