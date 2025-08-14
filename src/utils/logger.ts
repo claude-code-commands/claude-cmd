@@ -33,32 +33,6 @@ export async function configureLogger(level: string = "info"): Promise<void> {
 				lowestLevel: level as any, // Use the provided level
 				sinks: ["console"],
 			},
-			// Service-specific loggers inherit from root but ensure debug level
-			{
-				category: ["claude-cmd", "repo"],
-				lowestLevel: level as any,
-				sinks: ["console"],
-			},
-			{
-				category: ["claude-cmd", "http"],
-				lowestLevel: level as any,
-				sinks: ["console"],
-			},
-			{
-				category: ["claude-cmd", "file"],
-				lowestLevel: level as any,
-				sinks: ["console"],
-			},
-			{
-				category: ["claude-cmd", "install"],
-				lowestLevel: level as any,
-				sinks: ["console"],
-			},
-			{
-				category: ["claude-cmd", "interaction"],
-				lowestLevel: level as any,
-				sinks: ["console"],
-			},
 			{
 				category: ["logtape", "meta"],
 				lowestLevel: "warning", // Suppress info-level meta logger messages
@@ -82,13 +56,6 @@ export function getRootLogger() {
 	}
 	return rootLogger;
 }
-
-// Service loggers
-const fileLogger = getLogger(["claude-cmd", "file"]);
-const httpLogger = getLogger(["claude-cmd", "http"]);
-const repoLogger = getLogger(["claude-cmd", "repo"]);
-const installLogger = getLogger(["claude-cmd", "install"]);
-const interactionLogger = getLogger(["claude-cmd", "interaction"]);
 
 // Implementation-specific loggers
 export const realFileLogger = getLogger(["claude-cmd", "file", "real"]);
