@@ -39,7 +39,7 @@ const ManifestSchema = z.object({
 /**
  * Parser for command repository manifest files
  *
- * Handles parsing and validation of the index.json manifest format used by
+ * Handles parsing and validation of the manifest.json manifest format used by
  * the Claude command repository. Provides comprehensive validation and error
  * recovery for malformed manifest data using Zod schemas.
  */

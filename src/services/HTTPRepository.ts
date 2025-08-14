@@ -276,7 +276,7 @@ export default class HTTPRepository implements IRepository {
 	/**
 	 * Retrieve the command manifest for a specific language
 	 *
-	 * Fetches the index.json file containing all available commands for the specified
+	 * Fetches the manifest.json file containing all available commands for the specified
 	 * language from the GitHub repository. Results are cached locally to improve performance.
 	 *
 	 * @param language - ISO 639-1 language code (e.g., 'en', 'fr', 'es')
@@ -306,7 +306,7 @@ export default class HTTPRepository implements IRepository {
 		// Fetcher function that retrieves fresh manifest data from GitHub
 		const manifestFetcher = async (): Promise<Manifest> => {
 			try {
-				const manifestUrl = `${HTTPRepository.BASE_URL}/commands/${validatedLanguage}/index.json`;
+				const manifestUrl = `${HTTPRepository.BASE_URL}/commands/${validatedLanguage}/manifest.json`;
 				const response = await this.httpClient.get(manifestUrl);
 
 				// Validate response has content

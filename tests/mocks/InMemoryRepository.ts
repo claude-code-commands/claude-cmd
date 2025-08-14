@@ -348,7 +348,7 @@ class InMemoryRepository implements IRepository {
 
 			const manifestFetcher = async (): Promise<Manifest> => {
 				try {
-					const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/index.json`;
+					const manifestUrl = `https://raw.githubusercontent.com/example/commands/main/${language}/manifest.json`;
 					const response = await this.httpClient.get(manifestUrl);
 
 					// Parse manifest from HTTP response with error handling

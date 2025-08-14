@@ -114,31 +114,31 @@ const commandContents = {
  * ```typescript
  * const client = new InMemoryHTTPClient();
  * createClaudeCmdResponses(client);
- * const manifest = await client.get('https://example.com/en/index.json');
+ * const manifest = await client.get('https://example.com/en/manifest.json');
  * ```
  */
 export function createClaudeCmdResponses(client: InMemoryHTTPClient): void {
 	// English manifest responses
 	client.setResponseWithMatcher(
-		(url: string) => url.includes("/en/index.json"),
+		(url: string) => url.includes("/en/manifest.json"),
 		{
 			status: 200,
 			statusText: "OK",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(englishManifest),
-			url: "/en/index.json",
+			url: "/en/manifest.json",
 		},
 	);
 
 	// French manifest responses
 	client.setResponseWithMatcher(
-		(url: string) => url.includes("/fr/index.json"),
+		(url: string) => url.includes("/fr/manifest.json"),
 		{
 			status: 200,
 			statusText: "OK",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(frenchManifest),
-			url: "/fr/index.json",
+			url: "/fr/manifest.json",
 		},
 	);
 

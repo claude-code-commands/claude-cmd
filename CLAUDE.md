@@ -85,8 +85,8 @@ Commands are defined by the `Command` interface with:
 - Backward compatibility with flat commands
 
 ### Repository & Caching
-- Commands stored in GitHub repository with `index.json` manifest
-- Local cache in `{UserCacheDir}/claude-cmd/commands/{lang}/index.json`
+- Commands stored in GitHub repository with `manifest.json` manifest
+- Local cache in `{UserCacheDir}/claude-cmd/commands/{lang}/manifest.json`
 - Language-specific manifests support internationalization
 - Force refresh bypasses cache for development
 
@@ -159,9 +159,9 @@ All features must follow a DESIGN-RED-GREEN-REFACTOR-REVIEW workflow:
 Cache location: `{UserCacheDir}/claude-cmd/commands/`
 ```
 commands/
-├── en/index.json      # English commands manifest
-├── fr/index.json      # French commands manifest
-└── {lang}/index.json  # Other language manifests
+├── en/manifest.json   # English commands manifest
+├── fr/manifest.json   # French commands manifest
+└── {lang}/manifest.json  # Other language manifests
 ```
 
 ## Command Installation

@@ -1,16 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import {
-	HTTPNetworkError,
-	HTTPStatusError,
-	HTTPTimeoutError,
-} from "../../src/interfaces/IHTTPClient.js";
 import { CacheConfig } from "../../src/interfaces/IRepository.js";
 import HTTPRepository from "../../src/services/HTTPRepository.js";
-import {
-	CommandContentError,
-	CommandNotFoundError,
-	ManifestError,
-} from "../../src/types/Command.js";
 import { createClaudeCmdResponses } from "../fixtures/httpResponses.js";
 import InMemoryFileService from "../mocks/InMemoryFileService.js";
 import InMemoryHTTPClient from "../mocks/InMemoryHTTPClient.js";
@@ -124,7 +114,7 @@ describe("HTTPRepository", () => {
 
 			const httpHistory = mockHttpClient.getRequestHistory();
 			expect(httpHistory[0]?.url).toMatch(
-				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/commands\/en\/index\.json/,
+				/https:\/\/raw\.githubusercontent\.com\/.*\/.*\/main\/commands\/en\/manifest\.json/,
 			);
 		});
 

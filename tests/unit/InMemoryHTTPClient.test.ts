@@ -73,15 +73,15 @@ describe("InMemoryHTTPClient", () => {
 				};
 
 				client.setResponseWithMatcher(
-					(url: string) => url.includes("index.json"),
+					(url: string) => url.includes("manifest.json"),
 					manifestResponse,
 				);
 
 				const response1 = await client.get(
-					"https://api.example.com/en/index.json",
+					"https://api.example.com/en/manifest.json",
 				);
 				const response2 = await client.get(
-					"https://api.example.com/fr/index.json",
+					"https://api.example.com/fr/manifest.json",
 				);
 
 				expect(response1.status).toBe(200);

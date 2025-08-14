@@ -176,7 +176,7 @@ describe("ConfigService", () => {
 		test("should mark languages as unavailable when manifest fetch fails", async () => {
 			// Setup: Mock errors for non-English manifest fetches
 			httpClient.setResponse(
-				"https://api.github.com/repos/anthropics/claude-commands/contents/commands/fr/index.json",
+				"https://api.github.com/repos/anthropics/claude-commands/contents/commands/fr/manifest.json",
 				new Error("404 Not Found"),
 			);
 
