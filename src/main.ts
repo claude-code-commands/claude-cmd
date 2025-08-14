@@ -63,6 +63,12 @@ program
 		"claude-cmd is a CLI tool that helps you discover, install, and manage \nClaude Code slash commands from a centralized repository. It provides a simple \nway to extend Claude Code with community-contributed commands.",
 	)
 	.version(version, "-v, --version", "Show version information")
+	.addHelpText(
+		"after",
+		"\nEnvironment variables:\n" +
+			"  LOG_LEVEL         Set logging level (debug, info, warn, error, fatal)\n" +
+			"  CLAUDE_CMD_LANG   Set language for commands (e.g., en, fr, de)",
+	)
 	.option(
 		"--format <format>",
 		"Output format (default, compact, json)",
