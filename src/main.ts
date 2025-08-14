@@ -70,7 +70,7 @@ program
 	)
 	.option(
 		"-V, --verbose",
-		"Enable verbose debug logging for cache, HTTP, and file operations",
+		"Enable verbose debug logging for cache, HTTP, and file operations. Useful for debugging/reporting issues.",
 	)
 	.helpOption("-h, --help", "help for claude-cmd")
 	.hook("preAction", (thisCommand, actionCommand) => {

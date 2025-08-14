@@ -58,22 +58,11 @@ export function getRootLogger() {
 }
 
 // Implementation-specific loggers
-export const realFileLogger = getLogger(["claude-cmd", "file", "real"]);
-export const mockFileLogger = getLogger(["claude-cmd", "file", "mock"]);
-export const realHttpLogger = getLogger(["claude-cmd", "http", "real"]);
-export const mockHttpLogger = getLogger(["claude-cmd", "http", "mock"]);
-export const realRepoLogger = getLogger(["claude-cmd", "repo", "real"]);
-export const realInstallLogger = getLogger(["claude-cmd", "install", "real"]);
-export const realInteractionLogger = getLogger([
-	"claude-cmd",
-	"interaction",
-	"real",
-]);
-export const mockInteractionLogger = getLogger([
-	"claude-cmd",
-	"interaction",
-	"mock",
-]);
+export const fileLogger = getLogger(["claude-cmd", "file"]);
+export const httpLogger = getLogger(["claude-cmd", "http"]);
+export const repoLogger = getLogger(["claude-cmd", "repo"]);
+export const installLogger = getLogger(["claude-cmd", "install"]);
+export const interactionLogger = getLogger(["claude-cmd", "interaction"]);
 
 // Export root logger getter for main.ts verbose flag control
 export { getRootLogger as rootLogger };

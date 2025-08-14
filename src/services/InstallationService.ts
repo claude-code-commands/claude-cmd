@@ -15,7 +15,7 @@ import {
 	CommandNotInstalledError,
 	InstallationError,
 } from "../types/Installation.js";
-import { realInstallLogger } from "../utils/logger.js";
+import { installLogger } from "../utils/logger.js";
 import type { CommandParser } from "./CommandParser.js";
 import type { DirectoryDetector } from "./DirectoryDetector.js";
 import type { LocalCommandRepository } from "./LocalCommandRepository.js";
@@ -64,10 +64,6 @@ export class InstallationService implements IInstallationService {
 		commandName: string,
 		options?: InstallOptions,
 	): Promise<void> {
-		realInstallLogger.debug(
-			"installCommand: {commandName} (options: {options})",
-			{ commandName, options },
-		);
 		try {
 			// Get command content from repository
 			const language = options?.language ?? "en";
@@ -129,7 +125,7 @@ export class InstallationService implements IInstallationService {
 				location: locationType,
 			});
 
-			realInstallLogger.info(
+			installLogger.info(
 				"installCommand success: {commandName} installed to {filePath} ({locationType})",
 				{ commandName, filePath, locationType },
 			);
@@ -151,10 +147,6 @@ export class InstallationService implements IInstallationService {
 		commandName: string,
 		options?: RemoveOptions,
 	): Promise<void> {
-		realInstallLogger.debug(
-			"removeCommand: {commandName} (options: {options})",
-			{ commandName, options },
-		);
 		try {
 			const installationPath = await this.getInstallationPath(commandName);
 
@@ -185,7 +177,7 @@ export class InstallationService implements IInstallationService {
 				});
 
 				if (!shouldRemove) {
-					realInstallLogger.info("command removal canceled: {commandName}", {
+					installLogger.info("command removal canceled: {commandName}", {
 						commandName,
 					});
 					return;
@@ -199,7 +191,7 @@ export class InstallationService implements IInstallationService {
 				// Clear cache entries for this command
 				this.invalidateCommandCache(commandName);
 
-				realInstallLogger.info(
+				installLogger.info(
 					"command removed successfully: {commandName} (path: {path})",
 					{ commandName, path: installationPath },
 				);
@@ -280,7 +272,7 @@ export class InstallationService implements IInstallationService {
 
 			return mostRecentInfo;
 		} catch (error) {
-			realInstallLogger.error(
+			installLogger.error(
 				"failed to get installation info: {commandName} (error: {error})",
 				{
 					commandName,

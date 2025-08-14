@@ -17,7 +17,7 @@ import {
 	CommandNotFoundError,
 	ManifestError,
 } from "../types/Command.js";
-import { realRepoLogger } from "../utils/logger.js";
+import { repoLogger } from "../utils/logger.js";
 
 /**
  * GitHub-based HTTP repository implementation
@@ -188,7 +188,7 @@ export default class HTTPRepository implements IRepository {
 				const cacheExists = await this.fileService.exists(cachePath);
 
 				if (cacheExists) {
-					realRepoLogger.debug("cache file found: {cacheKey}", { cacheKey });
+					repoLogger.debug("cache file found: {cacheKey}", { cacheKey });
 					const cachedContent = await this.fileService.readFile(cachePath);
 
 					try {
@@ -208,7 +208,7 @@ export default class HTTPRepository implements IRepository {
 						const cacheAge = Date.now() - cachedData.timestamp;
 						if (cacheAge < this.cacheConfig.ttl) {
 							// Cache hit - return cached data
-							realRepoLogger.debug(
+							repoLogger.debug(
 								"cache hit: {cacheKey} (age: {age}ms, ttl: {ttl}ms)",
 								{ cacheKey, age: cacheAge, ttl: this.cacheConfig.ttl },
 							);
@@ -216,34 +216,31 @@ export default class HTTPRepository implements IRepository {
 						}
 
 						// Cache expired, will fetch fresh data below
-						realRepoLogger.debug(
+						repoLogger.debug(
 							"cache expired: {cacheKey} (age: {age}ms, ttl: {ttl}ms)",
 							{ cacheKey, age: cacheAge, ttl: this.cacheConfig.ttl },
 						);
 					} catch (parseError) {
 						// Malformed cache data, treat as cache miss but log warning
-						realRepoLogger.warn(
-							"cache corrupted: {cacheKey} (error: {error})",
-							{
-								cacheKey,
-								error:
-									parseError instanceof Error ? parseError.message : parseError,
-							},
-						);
+						repoLogger.warn("cache corrupted: {cacheKey} (error: {error})", {
+							cacheKey,
+							error:
+								parseError instanceof Error ? parseError.message : parseError,
+						});
 					}
 				} else {
-					realRepoLogger.debug("cache miss: {cacheKey} (file not found)", {
+					repoLogger.debug("cache miss: {cacheKey} (file not found)", {
 						cacheKey,
 					});
 				}
 			} catch (_cacheError) {
 				// Cache read error - continue with fresh fetch
-				realRepoLogger.debug("cache read error: {cacheKey}", { cacheKey });
+				repoLogger.debug("cache read error: {cacheKey}", { cacheKey });
 			}
 		}
 
 		// Phase 2: Fetch fresh data from source
-		realRepoLogger.debug("fetching fresh data: {cacheKey}", { cacheKey });
+		repoLogger.debug("fetching fresh data: {cacheKey}", { cacheKey });
 		const freshData = await dataFetcher();
 
 		// Phase 3: Cache the fresh data for future use
@@ -261,10 +258,10 @@ export default class HTTPRepository implements IRepository {
 				cachePath,
 				JSON.stringify(cacheData, null, 2),
 			);
-			realRepoLogger.debug("cache written: {cacheKey}", { cacheKey });
+			repoLogger.debug("cache written: {cacheKey}", { cacheKey });
 		} catch (cacheWriteError) {
 			// Log cache write failures but don't break the operation
-			realRepoLogger.error("cache write failed: {cacheKey} (error: {error})", {
+			repoLogger.error("cache write failed: {cacheKey} (error: {error})", {
 				cacheKey,
 				error:
 					cacheWriteError instanceof Error
@@ -451,7 +448,7 @@ export default class HTTPRepository implements IRepository {
 
 				// Allow empty string content but warn about it
 				if (response.body === "") {
-					realRepoLogger.warn(
+					repoLogger.warn(
 						"command has empty content: {commandName} (language: {language})",
 						{ commandName, language: validatedLanguage },
 					);
@@ -564,7 +561,7 @@ export default class HTTPRepository implements IRepository {
 					});
 				} catch (error) {
 					// Skip this language if we can't read or parse its manifest
-					realRepoLogger.debug(
+					repoLogger.debug(
 						"skipping language {languageCode} (error: {error})",
 						{
 							languageCode,
@@ -580,7 +577,7 @@ export default class HTTPRepository implements IRepository {
 			return languages;
 		} catch (error) {
 			// If we can't read the cache directory, return empty array
-			realRepoLogger.debug("error reading cache directory (error: {error})", {
+			repoLogger.debug("error reading cache directory (error: {error})", {
 				error: error instanceof Error ? error.message : String(error),
 			});
 			return [];

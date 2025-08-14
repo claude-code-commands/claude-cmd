@@ -8,7 +8,6 @@ import {
 	HTTPStatusError,
 	HTTPTimeoutError,
 } from "../../src/interfaces/IHTTPClient.ts";
-import { mockHttpLogger } from "../../src/utils/logger.js";
 
 /**
  * Matcher type for flexible URL matching

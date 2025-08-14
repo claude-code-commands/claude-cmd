@@ -152,7 +152,7 @@ export const installedCommand = new Command("installed")
 
 			// Check which display mode to use
 			if (options.summary) {
-				// Summary mode: use dedicated service method for efficiency
+				// Summary mode: use a dedicated service method for efficiency
 				const summary = await installationService.getInstallationSummary();
 				const output = formatInstalledCommandsSummary(summary, language);
 				console.log(output);

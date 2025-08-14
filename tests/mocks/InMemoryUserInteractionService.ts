@@ -1,6 +1,5 @@
 import type IUserInteractionService from "../../src/interfaces/IUserInteractionService.js";
 import type { ConfirmationOptions } from "../../src/interfaces/IUserInteractionService.js";
-import { mockInteractionLogger } from "../../src/utils/logger.js";
 
 type InteractionLog = {
 	type: "confirmation";
@@ -49,22 +48,9 @@ export default class InMemoryUserInteractionService
 	 * Display a confirmation prompt (y/N)
 	 */
 	async confirmAction(options: ConfirmationOptions): Promise<boolean> {
-		mockInteractionLogger.debug(
-			"confirmAction: {message} (default: {defaultResponse}, skipWithYes: {skipWithYes})",
-			{
-				message: options.message,
-				defaultResponse: options.defaultResponse,
-				skipWithYes: options.skipWithYes,
-			},
-		);
-
 		// In --yes mode, skip prompt if configured to do so
 		if (this.yesMode && options.skipWithYes) {
 			const response = options.defaultResponse ?? false;
-			mockInteractionLogger.debug(
-				"confirmAction: yes mode active, returning default: {response}",
-				{ response },
-			);
 			this.logInteraction("confirmation", options, response);
 			return response;
 		}
@@ -72,66 +58,14 @@ export default class InMemoryUserInteractionService
 		// Check for pre-configured response first
 		if (this.preConfiguredResponses.has(options.message)) {
 			const response = this.preConfiguredResponses.get(options.message)!;
-			mockInteractionLogger.debug(
-				"confirmAction: pre-configured response: {response}",
-				{ response },
-			);
 			this.logInteraction("confirmation", options, response);
 			return response;
 		}
 
 		// Fall back to default response or the option's default
 		const response = this.defaultResponse ?? options.defaultResponse ?? false;
-		mockInteractionLogger.debug(
-			"confirmAction: fallback response: {response}",
-			{ response },
-		);
 		this.logInteraction("confirmation", options, response);
 		return response;
-	}
-
-	/**
-	 * Get the history of all interactions for test verification
-	 */
-	getInteractionHistory(): InteractionLog[] {
-		return [...this.interactionHistory];
-	}
-
-	/**
-	 * Clear interaction history for clean test state
-	 */
-	clearInteractionHistory(): void {
-		this.interactionHistory.length = 0;
-	}
-
-	/**
-	 * Clear all pre-configured responses
-	 */
-	clearPreConfiguredResponses(): void {
-		this.preConfiguredResponses.clear();
-	}
-
-	/**
-	 * Get the last interaction that occurred
-	 */
-	getLastInteraction(): InteractionLog | null {
-		return this.interactionHistory[this.interactionHistory.length - 1] ?? null;
-	}
-
-	/**
-	 * Check if a specific message was prompted
-	 */
-	wasMessagePrompted(message: string): boolean {
-		return this.interactionHistory.some(
-			(log) => log.options.message === message,
-		);
-	}
-
-	/**
-	 * Count how many confirmation interactions occurred
-	 */
-	countInteractions(): number {
-		return this.interactionHistory.length;
 	}
 
 	/**

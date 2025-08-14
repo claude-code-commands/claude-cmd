@@ -3,7 +3,7 @@ import type { Interface as ReadlineInterface } from "node:readline";
 import { createInterface } from "node:readline";
 import type IUserInteractionService from "../interfaces/IUserInteractionService.js";
 import type { ConfirmationOptions } from "../interfaces/IUserInteractionService.js";
-import { realInteractionLogger } from "../utils/logger.js";
+import { interactionLogger } from "../utils/logger.js";
 
 /**
  * Service for handling interactive user prompts in terminal environments
@@ -75,20 +75,11 @@ export class UserInteractionService implements IUserInteractionService {
 	 * Display a confirmation prompt to the user
 	 */
 	async confirmAction(options: ConfirmationOptions): Promise<boolean> {
-		realInteractionLogger.debug(
-			"confirmAction: {message} (default: {defaultResponse}, skipWithYes: {skipWithYes})",
-			{
-				message: options.message,
-				defaultResponse: options.defaultResponse,
-				skipWithYes: options.skipWithYes,
-			},
-		);
-
 		const effectiveDefault = options.defaultResponse ?? false;
 
 		// Skip prompt if in --yes mode and configured to do so
 		if (this.shouldSkipPrompt(options.skipWithYes)) {
-			realInteractionLogger.debug(
+			interactionLogger.debug(
 				"confirmAction: yes mode active, returning default: {effectiveDefault}",
 				{ effectiveDefault },
 			);
@@ -118,11 +109,11 @@ export class UserInteractionService implements IUserInteractionService {
 					// Parse y/yes as true, n/no as false, reprompt on invalid
 					const normalizedAnswer = answer.trim().toLowerCase();
 					if (normalizedAnswer === "y" || normalizedAnswer === "yes") {
-						realInteractionLogger.debug("confirmAction: user response: true");
+						interactionLogger.debug("confirmAction: user response: true");
 						return true;
 					}
 					if (normalizedAnswer === "n" || normalizedAnswer === "no") {
-						realInteractionLogger.debug("confirmAction: user response: false");
+						interactionLogger.debug("confirmAction: user response: false");
 						return false;
 					}
 
